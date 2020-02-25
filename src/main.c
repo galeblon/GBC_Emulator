@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
 
 	rom_print_title();
 
-	// ROM entry point is typically 4 bytes: NOP, JMP optcode, 2 byt address
+	// ROM entry point is typically 4 bytes: NOP, JMP optcode, 2 byte address
 	// this doesn't have to be always true
 	// It should be safe to just interpret the instructions with cpu emulation
 	a16 first_instruction = read16ROM(ROM_H_ENTRY_POINT+2);
