@@ -3,37 +3,48 @@
 
 #include "types.h"
 
+struct cpu_flags {
+    u8 zero : 4;
+    u8 C : 1;
+    u8 H : 1;
+    u8 N : 1;
+    u8 Z : 1;
+}__attribute__((packed));
+
 struct cpu_regs {
     union {
         struct {
-            d8 F;
-            d8 A;
+            union {
+                struct cpu_flags FLAGS;
+                u8 F;
+            };
+            u8 A;
         }__attribute__((packed));
-        d16 AF;
+        u16 AF;
     };
     union {
         struct {
-            d8 C;
-            d8 B;
+            u8 C;
+            u8 B;
         }__attribute__((packed));
-        d16 BC;
+        u16 BC;
     };
     union {
         struct {
-            d8 E;
-            d8 D;
+            u8 E;
+            u8 D;
         }__attribute__((packed));
-        d16 DE;
+        u16 DE;
     };
     union {
         struct {
-            d8 L;
-            d8 H;
+            u8 L;
+            u8 H;
         }__attribute__((packed));
-        d16 HL;
+        u16 HL;
     };
-    d16 SP;
-    d16 PC;
+    u16 SP;
+    u16 PC;
 }__attribute__((packed)) REGISTERS;
 
 void registers_prepare();
