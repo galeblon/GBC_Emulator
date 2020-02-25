@@ -34,6 +34,8 @@ struct cpu_regs {
     };
     d16 SP;
     d16 PC;
-}__attribute__((packed));
+}__attribute__((packed)) REGISTERS;
+
+void registers_prepare();
 
 #endif // __REGS_H_

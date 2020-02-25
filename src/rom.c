@@ -12,7 +12,7 @@ int rom_load(char* path){
 	long rom_len = ftell(rom_fileptr);
 	rewind(rom_fileptr);
 
-	fread(rom, rom_len, 1, rom_fileptr);
+	fread(ROM, rom_len, 1, rom_fileptr);
 	fclose(rom_fileptr);
 	return 1;
 }
@@ -29,6 +29,6 @@ int rom_checksum_validate(){
 }
 
 void rom_print_title(){
-	char* title = (void*)(rom+ROM_H_TITLE);
+	char* title = (void*)(ROM+ROM_H_TITLE);
 	printf("ROM title: %.16s\n", title);
 }

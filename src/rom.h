@@ -1,6 +1,8 @@
 #ifndef ROM_H_
 #define ROM_H_
 
+#include"types.h"
+
 #define MAX_ROM_SIZE 8388608
 
 // ROM Header special addresses
@@ -13,10 +15,10 @@
 // 1 byte
 #define ROM_H_CHECKSUM 0x14D
 
-#define read8ROM(addr) (*(d8*)(rom + addr))
-#define read16ROM(addr) (*(d16*)(rom + addr))
+#define read8ROM(addr) (*(d8*)(ROM + addr))
+#define read16ROM(addr) (*(d16*)(ROM + addr))
 
-byte rom[MAX_ROM_SIZE];
+byte ROM[MAX_ROM_SIZE];
 
 int rom_load(char* path);
 

@@ -1,7 +1,9 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include"types.h"
+#include"regs.h"
 #include"rom.h"
+#include"cpu.h"
 
 int main(int argc, char* argv[]){
 
@@ -19,14 +21,27 @@ int main(int argc, char* argv[]){
 		fprintf(stderr, "ROM header checksum failed.\n");
 	}
 	printf("ROM header checksum passed.\n");
-
 	rom_print_title();
 
-	// ROM entry point is typically 4 bytes: NOP, JMP optcode, 2 byte address
-	// this doesn't have to be always true
-	// It should be safe to just interpret the instructions with cpu emulation
-	a16 first_instruction = read16ROM(ROM_H_ENTRY_POINT+2);
-	printf("ROM first instruction address: 0x%X\n", first_instruction);
+	//TODO prepare memory and fill stack with data according to powerup sequence
+	//TODO prepare gpu
+	//TODO prepare sound
+	//TODO prepare joypads
+	registers_prepare();
+	cpu_prepare();
+
+	printf("Starting emulation.\n");
+	// Main Loop
+	int cycles_delta = 0;
+	while(cycles_delta != -1){
+		cycles_delta = cpu_single_step();
+		// gpu_step(cycles_delta)
+		// sound_step(cycles_delta)
+		// joypad
+		// interrupts_handling
+	}
+
+	printf("Halting emulation.\n");
 
 	return 0;
 }
