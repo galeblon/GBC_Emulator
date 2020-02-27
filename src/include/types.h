@@ -4,7 +4,10 @@
 #include<stdint.h>
 
 // 8 bits
-typedef unsigned char byte;
+typedef uint8_t u8;
+
+// 16 bits
+typedef uint16_t u16;
 
 // immediate 8 bit data
 typedef uint8_t d8;

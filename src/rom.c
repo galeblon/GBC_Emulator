@@ -18,8 +18,8 @@ int rom_load(char* path){
 }
 
 int rom_checksum_validate(){
-	byte header_checksum = read8ROM(ROM_H_CHECKSUM);
-	byte header_checksum_verify = 0;
+	u8 header_checksum = read8ROM(ROM_H_CHECKSUM);
+	u8 header_checksum_verify = 0;
 	for(int i=0x134; i<=0x14C; i++)
 		header_checksum_verify -= read8ROM(i) + 1;
 	printf("ROM header checksum: 0x%X\nROM header checksum calculated: 0x%X\n",

@@ -2,4 +2,6 @@ Debug/
 .settings/
 .cproject
 .project
-zelda.gb
+*.gb
+*.o
+gbc
