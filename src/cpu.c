@@ -3,54 +3,70 @@
 #include"rom.h"
 #include"regs.h"
 
-int cpu_single_step(){
-	// Fetch
-	d8 instruction_code = read8ROM(REGISTERS.PC);
-	// Decode & Execute
-	return CPU_INSTRUCTION_TABLE[instruction_code]();
-}
+#define INSTRUCTIONS_NUMBER 256
+
+typedef int (*cpu_instruction_t)();
+
+static cpu_instruction_t g_instruction_table[INSTRUCTIONS_NUMBER];
+static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
+
+static struct cpu_registers g_registers;
 
 
-void cpu_prepare(){
-	for(int i=0; i<INSTRUCTIONS_NUMBER; i++){
-		CPU_INSTRUCTION_TABLE[i] = not_implemented;
-		CB_PREFIX_CPU_INSTRUCTION_TABLE[i] = not_implemented;
-	}
-
-	// TODO fill all instructions
-	CPU_INSTRUCTION_TABLE[0x0] = _cpu_nop;
-	CPU_INSTRUCTION_TABLE[0xC2] = _jp_nz_a16;
-	CPU_INSTRUCTION_TABLE[0xC3] = _jp_a16;
-}
-
-int not_implemented(){
+// Instructions
+static int _not_implemented()
+{
 	// TODO Print some usefull debug information
 	// This  way of accessing memory is temporary
-	d8 instruction_code = read8ROM(REGISTERS.PC);
+	d8 instruction_code = read8ROM(g_registers.PC);
 	fprintf(stderr, "INSTRUCTION CODE 0x%X NOT IMPLEMENTED", instruction_code);
 	return -1;
 }
 
-
-// Instructions
-int _cpu_nop(){
-	REGISTERS.PC += 1;
+static int _cpu_nop()
+{
+	g_registers.PC += 1;
 	return 4;
 }
 
-int _jp_nz_a16(){
-	a16 operand = read16ROM(REGISTERS.PC + 1);
-	REGISTERS.PC += 3;
+static int _jp_nz_a16()
+{
+	a16 operand = read16ROM(g_registers.PC + 1);
+	g_registers.PC += 3;
 	// TODO macro for easy access to flags
-	if((REGISTERS.F & 0b10000000) != 0){
+	if(g_registers.FLAGS.Z != 0)
 		return 12;
-	}
-	REGISTERS.PC = operand;
+
+	g_registers.PC = operand;
 	return 16;
 }
 
-int _jp_a16(){
-	a16 operand = read16ROM(REGISTERS.PC + 1);
-	REGISTERS.PC = operand;
+static int _jp_a16()
+{
+	a16 operand = read16ROM(g_registers.PC + 1);
+	g_registers.PC = operand;
 	return 16;
+}
+
+
+int cpu_single_step()
+{
+	// Fetch
+	d8 instruction_code = read8ROM(g_registers.PC);
+	// Decode & Execute
+	return g_instruction_table[instruction_code]();
+}
+
+
+void cpu_prepare()
+{
+	for(int i=0; i<INSTRUCTIONS_NUMBER; i++) {
+		g_instruction_table[i] = _not_implemented;
+		g_cb_prefix_instruction_table[i] = _not_implemented;
+	}
+
+	// TODO fill all instructions
+	g_instruction_table[0x0] = _cpu_nop;
+	g_instruction_table[0xC2] = _jp_nz_a16;
+	g_instruction_table[0xC3] = _jp_a16;
 }

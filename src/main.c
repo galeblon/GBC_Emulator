@@ -5,21 +5,21 @@
 #include"rom.h"
 #include"cpu.h"
 
-int main(int argc, char* argv[]){
-
-	if(argc < 2){
+int main(int argc, char *argv[])
+{
+	if (argc < 2) {
 		printf("ROM file not specified.\n");
 		return 1;
 	}
 
-	if(!rom_load(argv[1])){
+	if (!rom_load(argv[1]))
 		return 1;
-	}
+
 	printf("Loaded ROM contents to memory.\n");
 
-	if(!rom_checksum_validate()){
+	if (!rom_checksum_validate())
 		fprintf(stderr, "ROM header checksum failed.\n");
-	}
+
 	printf("ROM header checksum passed.\n");
 	rom_print_title();
 
@@ -31,9 +31,10 @@ int main(int argc, char* argv[]){
 	cpu_prepare();
 
 	printf("Starting emulation.\n");
-	// Main Loop
 	int cycles_delta = 0;
-	while(cycles_delta != -1){
+
+	// Main Loop
+	while (cycles_delta != -1) {
 		cycles_delta = cpu_single_step();
 		// gpu_step(cycles_delta)
 		// sound_step(cycles_delta)

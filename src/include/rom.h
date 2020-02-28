@@ -15,12 +15,12 @@
 // 1 byte
 #define ROM_H_CHECKSUM 0x14D
 
-#define read8ROM(addr) (*(d8*)(ROM + addr))
-#define read16ROM(addr) (*(d16*)(ROM + addr))
+#define read8ROM(addr) (*(d8 *)(ROM + addr))
+#define read16ROM(addr) (*(d16 *)(ROM + addr))
 
 u8 ROM[MAX_ROM_SIZE];
 
-int rom_load(char* path);
+int rom_load(char *path);
 
 int rom_checksum_validate();
 
