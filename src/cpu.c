@@ -69,4 +69,6 @@ void cpu_prepare()
 	g_instruction_table[0x0] = _cpu_nop;
 	g_instruction_table[0xC2] = _jp_nz_a16;
 	g_instruction_table[0xC3] = _jp_a16;
+
+	registers_prepare(&g_registers);
 }

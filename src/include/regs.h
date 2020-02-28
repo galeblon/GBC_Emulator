@@ -47,6 +47,6 @@ struct cpu_registers {
 	u16 PC;
 }__attribute__((packed));
 
-void registers_prepare();
+void registers_prepare(struct cpu_registers *regs);
 
 #endif // __REGS_H_

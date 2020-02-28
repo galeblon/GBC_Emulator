@@ -27,7 +27,6 @@ int main(int argc, char *argv[])
 	//TODO prepare gpu
 	//TODO prepare sound
 	//TODO prepare joypads
-	registers_prepare();
 	cpu_prepare();
 
 	printf("Starting emulation.\n");
