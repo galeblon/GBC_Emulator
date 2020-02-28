@@ -4,6 +4,7 @@
 #include"regs.h"
 #include"rom.h"
 #include"cpu.h"
+#include"ints.h"
 
 int main(int argc, char* argv[]){
 
@@ -29,6 +30,7 @@ int main(int argc, char* argv[]){
 	//TODO prepare joypads
 	registers_prepare();
 	cpu_prepare();
+	ints_prepare();
 
 	printf("Starting emulation.\n");
 	// Main Loop
@@ -39,6 +41,7 @@ int main(int argc, char* argv[]){
 		// sound_step(cycles_delta)
 		// joypad
 		// interrupts_handling
+		check_ints();
 	}
 
 	printf("Halting emulation.\n");

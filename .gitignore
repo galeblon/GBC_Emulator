@@ -1,5 +1,6 @@
 Debug/
 .settings/
+.vs/
 .cproject
 .project
 *.gb
