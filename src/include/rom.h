@@ -15,8 +15,8 @@
 // 1 byte
 #define ROM_H_CHECKSUM 0x14D
 
-#define read8ROM(addr) (*(d8 *)(ROM + addr))
-#define read16ROM(addr) (*(d16 *)(ROM + addr))
+#define READ_8ROM(addr) (*(d8 *)(ROM + addr))
+#define READ_16ROM(addr) (*(d16 *)(ROM + addr))
 
 u8 ROM[MAX_ROM_SIZE];
 

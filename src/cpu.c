@@ -18,7 +18,7 @@ static int _cpu_not_implemented()
 {
 	// TODO Print some usefull debug information
 	// This  way of accessing memory is temporary
-	d8 instruction_code = read8ROM(g_registers.PC);
+	d8 instruction_code = READ_8ROM(g_registers.PC);
 	fprintf(stderr, "INSTRUCTION CODE 0x%X NOT IMPLEMENTED", instruction_code);
 	return -1;
 }
@@ -31,7 +31,7 @@ static int _cpu_nop()
 
 static int _cpu_jp_nz_a16()
 {
-	a16 operand = read16ROM(g_registers.PC + 1);
+	a16 operand = READ_16ROM(g_registers.PC + 1);
 	g_registers.PC += 3;
 	// TODO macro for easy access to flags
 	if(g_registers.FLAGS.Z != 0)
@@ -43,7 +43,7 @@ static int _cpu_jp_nz_a16()
 
 static int _cpu_jp_a16()
 {
-	a16 operand = read16ROM(g_registers.PC + 1);
+	a16 operand = READ_16ROM(g_registers.PC + 1);
 	g_registers.PC = operand;
 	return 16;
 }
@@ -52,7 +52,7 @@ static int _cpu_jp_a16()
 int cpu_single_step()
 {
 	// Fetch
-	d8 instruction_code = read8ROM(g_registers.PC);
+	d8 instruction_code = READ_8ROM(g_registers.PC);
 	// Decode & Execute
 	return g_instruction_table[instruction_code]();
 }
