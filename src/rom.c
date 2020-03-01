@@ -31,6 +31,6 @@ int rom_checksum_validate()
 
 void rom_print_title()
 {
-	char *title = (void *)(ROM+ROM_H_TITLE);
+	char *title = (void *)(ROM + ROM_H_TITLE);
 	printf("ROM title: %.16s\n", title);
 }
