@@ -1,4 +1,3 @@
-#include<stdio.h>
 #include"types.h"
 #include"rom.h"
 

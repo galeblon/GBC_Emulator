@@ -1,6 +1,8 @@
 #ifndef CPU_H_
 #define CPU_H_
 
+#include"stdio.h"
+
 #define CPU_CLOCK_SPEED 4194304
 #define INSTRUCTIONS_NUMBER 256
 
@@ -16,6 +18,8 @@ typedef int(*CPU_INSTRUCTION)();
 CPU_INSTRUCTION CPU_INSTRUCTION_TABLE[INSTRUCTIONS_NUMBER];
 CPU_INSTRUCTION CB_PREFIX_CPU_INSTRUCTION_TABLE[INSTRUCTIONS_NUMBER];
 
+
+void cpu_register_print(_IO_FILE *out);
 
 int not_implemented();
 

@@ -1,7 +1,7 @@
-#include<stdio.h>
 #include"cpu.h"
 #include"rom.h"
 #include"regs.h"
+#include"logger.h"
 
 int cpu_single_step(){
 	// Fetch
@@ -23,11 +23,40 @@ void cpu_prepare(){
 	CPU_INSTRUCTION_TABLE[0xC3] = _jp_a16;
 }
 
+void cpu_register_print(_IO_FILE *out) {
+	fprintf(out,
+		"\tA: 0x%02X F: 0x%02X\n"
+		"\tB: 0x%02X C: 0x%02X\n"
+		"\tD: 0x%02X E: 0x%02X\n"
+		"\tH: 0x%02X L: 0x%02X\n"
+		"\tSP: 0x%04X\n"
+		"\tPC: 0x%04X\n"
+		"\tZNHC\n"
+		"\t%d%d%d%d\n",
+		REGISTERS.A,
+		REGISTERS.F,
+		REGISTERS.B,
+		REGISTERS.C,
+		REGISTERS.D,
+		REGISTERS.E,
+		REGISTERS.H,
+		REGISTERS.L,
+		REGISTERS.SP,
+		REGISTERS.PC,
+		REGISTERS.FLAGS.Z,
+		REGISTERS.FLAGS.N,
+		REGISTERS.FLAGS.H,
+		REGISTERS.FLAGS.C);
+}
+
 int not_implemented(){
-	// TODO Print some usefull debug information
 	// This  way of accessing memory is temporary
 	d8 instruction_code = read8ROM(REGISTERS.PC);
-	fprintf(stderr, "INSTRUCTION CODE 0x%X NOT IMPLEMENTED", instruction_code);
+	char message[50];
+	sprintf(message, "INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n", instruction_code);
+	emulator_log(LOG_FATAL,
+			"UNKOWN INSTRUCTION",
+			message);
 	return -1;
 }
 
