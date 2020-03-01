@@ -142,6 +142,16 @@ struct mem_block g_mem_blocks[NUM_MEM_BLOCKS] = {
 
 #undef MEM_BLOCK_DEF
 
+static inline u8 _mem_u16_lower(u16 data)
+{
+	return (u8)(data & 0x00FF);
+}
+
+static inline u8 _mem_u16_higher(u16 data)
+{
+	return (u8)((data & 0xFF00) >> 8);
+}
+
 static struct mem_block *_mem_get_block(a16 addr)
 {
 	for (int i = 0; i < NUM_MEM_BLOCKS; i++) {
@@ -152,14 +162,27 @@ static struct mem_block *_mem_get_block(a16 addr)
 	return NULL;
 }
 
+static u8 _mem_read_error(a16 addr __attribute__((unused)))
+{
+	// todo: log error
+	// todo: determine proper erroneous read behavior in GBC
+	return 0;
+}
+
+static void _mem_write_error(a16 addr __attribute__((unused)))
+{
+	// todo: log error
+	// todo: determine proper erroneous write behavior in GBC
+}
+
 u8 mem_read8(a16 addr)
 {
 	struct mem_block *block;
 
 	block = _mem_get_block(addr);
 
-	if (block == NULL)  // todo: error
-		return 0;
+	if (block == NULL)
+		return _mem_read_error(addr);
 
 	return block->read(addr);
 }
@@ -170,7 +193,10 @@ void mem_write8(a16 addr, u8 data)
 
 	block = _mem_get_block(addr);
 
-	if (block == NULL) {}  // todo: error
+	if (block == NULL) {
+		_mem_write_error(addr);
+		return;
+	}
 
 	block->write(addr, data);
 }
@@ -178,23 +204,23 @@ void mem_write8(a16 addr, u8 data)
 u16 mem_read16(a16 addr)
 {
 	struct mem_block *block;
-	u16 ret;
+	u16 ret = 0;
 
 	block = _mem_get_block(addr);
 
-	if (block == NULL)  // todo: error
-		return 0;
+	if (block == NULL)
+		return _mem_read_error(addr);
 
-	ret = block->read(addr);
+	ret = block->read(addr) << 8;
 
 	if (addr + 1 == block->base_addr + block->size) {
 		block = _mem_get_block(addr + 1);
 
-		if (block == NULL)  // todo: error
-			return 0;
+		if (block == NULL)
+			return _mem_read_error(addr + 1);
 	}
 
-	ret = block->read(addr) << 8;
+	ret |= block->read(addr + 1);
 
 	return ret;
 }
@@ -214,6 +240,6 @@ void mem_write16(a16 addr, u16 data)
 		block_2 = block_1;
 	}
 
-	block_1->write(addr, (u8)(data >> 8));
-	block_2->write(addr, (u8)data);
+	block_1->write(addr, _mem_u16_higher(data));
+	block_2->write(addr + 1, _mem_u16_lower(data));
 }
