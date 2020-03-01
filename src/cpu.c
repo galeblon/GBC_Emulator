@@ -5,7 +5,7 @@
 
 #define INSTRUCTIONS_NUMBER 256
 
-typedef int (*cpu_instruction_t)();
+typedef int (*cpu_instruction_t)(void);
 
 static cpu_instruction_t g_instruction_table[INSTRUCTIONS_NUMBER];
 static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
@@ -14,7 +14,7 @@ static struct cpu_registers g_registers;
 
 
 // Instructions
-static int _cpu_not_implemented()
+static int _cpu_not_implemented(void)
 {
 	// TODO Print some usefull debug information
 	// This  way of accessing memory is temporary
@@ -23,13 +23,13 @@ static int _cpu_not_implemented()
 	return -1;
 }
 
-static int _cpu_nop()
+static int _cpu_nop(void)
 {
 	g_registers.PC += 1;
 	return 4;
 }
 
-static int _cpu_jp_nz_a16()
+static int _cpu_jp_nz_a16(void)
 {
 	a16 operand = READ_16ROM(g_registers.PC + 1);
 	g_registers.PC += 3;
@@ -41,7 +41,7 @@ static int _cpu_jp_nz_a16()
 	return 16;
 }
 
-static int _cpu_jp_a16()
+static int _cpu_jp_a16(void)
 {
 	a16 operand = READ_16ROM(g_registers.PC + 1);
 	g_registers.PC = operand;
@@ -49,7 +49,7 @@ static int _cpu_jp_a16()
 }
 
 
-int cpu_single_step()
+int cpu_single_step(void)
 {
 	// Fetch
 	d8 instruction_code = READ_8ROM(g_registers.PC);
@@ -58,7 +58,7 @@ int cpu_single_step()
 }
 
 
-void cpu_prepare()
+void cpu_prepare(void)
 {
 	for(int i=0; i<INSTRUCTIONS_NUMBER; i++) {
 		g_instruction_table[i] = _cpu_not_implemented;

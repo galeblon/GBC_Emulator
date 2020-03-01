@@ -5,9 +5,9 @@
 
 // Return number of cycles of executed instruction
 // returns -1 if encountered fatal error
-int cpu_single_step();
+int cpu_single_step(void);
 
 // Load all instructions
-void cpu_prepare();
+void cpu_prepare(void);
 
 #endif /* CPU_H_ */

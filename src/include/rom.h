@@ -22,8 +22,8 @@ u8 ROM[MAX_ROM_SIZE];
 
 int rom_load(char *path);
 
-int rom_checksum_validate();
+int rom_checksum_validate(void);
 
-void rom_print_title();
+void rom_print_title(void);
 
 #endif /* ROM_H_ */

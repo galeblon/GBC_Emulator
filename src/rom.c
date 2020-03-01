@@ -18,7 +18,7 @@ int rom_load(char *path)
 	return 1;
 }
 
-int rom_checksum_validate()
+int rom_checksum_validate(void)
 {
 	u8 header_checksum = READ_8ROM(ROM_H_CHECKSUM);
 	u8 header_checksum_verify = 0;
@@ -29,7 +29,7 @@ int rom_checksum_validate()
 	return header_checksum == header_checksum_verify;
 }
 
-void rom_print_title()
+void rom_print_title(void)
 {
 	char *title = (void *)(ROM + ROM_H_TITLE);
 	printf("ROM title: %.16s\n", title);
