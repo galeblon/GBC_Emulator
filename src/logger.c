@@ -5,11 +5,14 @@ void emulator_log(enum log_type type, char *title, char *message) {
 	_IO_FILE *output = stdout;
 	if(type == LOG_FATAL)
 		output = stderr;
+	fprintf(output,
+		"GBC_log %s",
+		emulator_log_type_to_text(type));
 	if(title != NULL)
 		fprintf(output,
-			"GBC_log %s:\n%s\n",
-			emulator_log_type_to_text(type),
+			":\n%s",
 			title);
+	fprintf(output, "\n");
 	fprintf(output, "Registers:\n");
 	cpu_register_print(output);
 	if(message != NULL)
