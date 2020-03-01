@@ -23,7 +23,7 @@ void cpu_prepare(){
 	CPU_INSTRUCTION_TABLE[0xC3] = _jp_a16;
 }
 
-void cpu_register_print(_IO_FILE *out) {
+void cpu_register_print(FILE *out) {
 	fprintf(out,
 		"\tA: 0x%02X F: 0x%02X\n"
 		"\tB: 0x%02X C: 0x%02X\n"
@@ -52,9 +52,12 @@ void cpu_register_print(_IO_FILE *out) {
 int not_implemented(){
 	// This  way of accessing memory is temporary
 	d8 instruction_code = read8ROM(REGISTERS.PC);
-	char message[50];
-	sprintf(message, "INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n", instruction_code);
-	emulator_log(LOG_FATAL,
+	char *message = logger_get_msg_buffer();
+	snprintf(message,
+		LOG_MESSAGE_MAX_SIZE,
+		"INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n",
+		instruction_code);
+	logger_log(LOG_FATAL,
 		"UNKOWN INSTRUCTION",
 		message);
 	return -1;

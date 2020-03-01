@@ -19,7 +19,7 @@ CPU_INSTRUCTION CPU_INSTRUCTION_TABLE[INSTRUCTIONS_NUMBER];
 CPU_INSTRUCTION CB_PREFIX_CPU_INSTRUCTION_TABLE[INSTRUCTIONS_NUMBER];
 
 
-void cpu_register_print(_IO_FILE *out);
+void cpu_register_print(FILE *out);
 
 int not_implemented();
 
