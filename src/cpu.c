@@ -55,8 +55,8 @@ int not_implemented(){
 	char message[50];
 	sprintf(message, "INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n", instruction_code);
 	emulator_log(LOG_FATAL,
-			"UNKOWN INSTRUCTION",
-			message);
+		"UNKOWN INSTRUCTION",
+		message);
 	return -1;
 }
 

@@ -6,7 +6,8 @@ void emulator_log(enum log_type type, char *title, char *message) {
 	if(type == LOG_FATAL)
 		output = stderr;
 	if(title != NULL)
-		fprintf(output, "GBC_log %s:\n%s\n",
+		fprintf(output,
+			"GBC_log %s:\n%s\n",
 			emulator_log_type_to_text(type),
 			title);
 	fprintf(output, "Registers:\n");
@@ -17,7 +18,7 @@ void emulator_log(enum log_type type, char *title, char *message) {
 
 
 char *emulator_log_type_to_text(enum log_type type) {
-	switch(type){
+	switch(type) {
 	case LOG_INFO:
 		return "Information";
 	case LOG_WARN:
