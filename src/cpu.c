@@ -41,7 +41,7 @@ void cpu_register_print(FILE *out) {
 static int _cpu_not_implemented(void)
 {
 	// This  way of accessing memory is temporary
-	d8 instruction_code = read8ROM(REGISTERS.PC);
+	d8 instruction_code = READ_8ROM(g_registers.PC);
 	char *message = logger_get_msg_buffer();
 	snprintf(message,
 		LOG_MESSAGE_MAX_SIZE,
