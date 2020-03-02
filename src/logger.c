@@ -3,7 +3,7 @@
 
 static char logger_message_buffer[LOG_MESSAGE_MAX_SIZE];
 
-static char *logger_log_type_to_text(enum logger_log_type type) {
+static char *_logger_log_type_to_text(enum logger_log_type type) {
 	switch(type) {
 	case LOG_INFO:
 		return "Information";
@@ -22,7 +22,7 @@ void logger_log(enum logger_log_type type, char *title, char *message) {
 		output = stderr;
 	fprintf(output,
 		"GBC_log %s",
-		logger_log_type_to_text(type));
+		_logger_log_type_to_text(type));
 	if(title != NULL)
 		fprintf(output,
 			":\n%s",

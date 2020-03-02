@@ -1,7 +1,7 @@
 #ifndef CPU_H_
 #define CPU_H_
 
-#include"stdio.h"
+#include<stdio.h>
 
 #define CPU_CLOCK_SPEED 4194304
 #define INSTRUCTIONS_NUMBER 256
