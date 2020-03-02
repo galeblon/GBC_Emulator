@@ -3,25 +3,14 @@
 #include"regs.h"
 #include"logger.h"
 
-int cpu_single_step(){
-	// Fetch
-	d8 instruction_code = read8ROM(REGISTERS.PC);
-	// Decode & Execute
-	return CPU_INSTRUCTION_TABLE[instruction_code]();
-}
+#define INSTRUCTIONS_NUMBER 256
 
+typedef int (*cpu_instruction_t)(void);
 
-void cpu_prepare(){
-	for(int i=0; i<INSTRUCTIONS_NUMBER; i++){
-		CPU_INSTRUCTION_TABLE[i] = not_implemented;
-		CB_PREFIX_CPU_INSTRUCTION_TABLE[i] = not_implemented;
-	}
+static cpu_instruction_t g_instruction_table[INSTRUCTIONS_NUMBER];
+static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 
-	// TODO fill all instructions
-	CPU_INSTRUCTION_TABLE[0x0] = _cpu_nop;
-	CPU_INSTRUCTION_TABLE[0xC2] = _jp_nz_a16;
-	CPU_INSTRUCTION_TABLE[0xC3] = _jp_a16;
-}
+static struct cpu_registers g_registers;
 
 void cpu_register_print(FILE *out) {
 	fprintf(out,
@@ -33,23 +22,24 @@ void cpu_register_print(FILE *out) {
 		"\tPC: 0x%04X\n"
 		"\tZNHC\n"
 		"\t%d%d%d%d\n",
-		REGISTERS.A,
-		REGISTERS.F,
-		REGISTERS.B,
-		REGISTERS.C,
-		REGISTERS.D,
-		REGISTERS.E,
-		REGISTERS.H,
-		REGISTERS.L,
-		REGISTERS.SP,
-		REGISTERS.PC,
-		REGISTERS.FLAGS.Z,
-		REGISTERS.FLAGS.N,
-		REGISTERS.FLAGS.H,
-		REGISTERS.FLAGS.C);
+		g_registers.A,
+		g_registers.F,
+		g_registers.B,
+		g_registers.C,
+		g_registers.D,
+		g_registers.E,
+		g_registers.H,
+		g_registers.L,
+		g_registers.SP,
+		g_registers.PC,
+		g_registers.FLAGS.Z,
+		g_registers.FLAGS.N,
+		g_registers.FLAGS.H,
+		g_registers.FLAGS.C);
 }
 
-int not_implemented(){
+static int _cpu_not_implemented(void)
+{
 	// This  way of accessing memory is temporary
 	d8 instruction_code = read8ROM(REGISTERS.PC);
 	char *message = logger_get_msg_buffer();
@@ -63,26 +53,51 @@ int not_implemented(){
 	return -1;
 }
 
-
-// Instructions
-int _cpu_nop(){
-	REGISTERS.PC += 1;
+static int _cpu_nop(void)
+{
+	g_registers.PC += 1;
 	return 4;
 }
 
-int _jp_nz_a16(){
-	a16 operand = read16ROM(REGISTERS.PC + 1);
-	REGISTERS.PC += 3;
-	// TODO macro for easy access to flags
-	if((REGISTERS.F & 0b10000000) != 0){
+static int _cpu_jp_nz_a16(void)
+{
+	a16 operand = READ_16ROM(g_registers.PC + 1);
+	g_registers.PC += 3;
+	if(g_registers.FLAGS.Z != 0)
 		return 12;
-	}
-	REGISTERS.PC = operand;
+
+	g_registers.PC = operand;
 	return 16;
 }
 
-int _jp_a16(){
-	a16 operand = read16ROM(REGISTERS.PC + 1);
-	REGISTERS.PC = operand;
+static int _cpu_jp_a16(void)
+{
+	a16 operand = READ_16ROM(g_registers.PC + 1);
+	g_registers.PC = operand;
 	return 16;
+}
+
+
+int cpu_single_step(void)
+{
+	// Fetch
+	d8 instruction_code = READ_8ROM(g_registers.PC);
+	// Decode & Execute
+	return g_instruction_table[instruction_code]();
+}
+
+
+void cpu_prepare(void)
+{
+	for(int i=0; i<INSTRUCTIONS_NUMBER; i++) {
+		g_instruction_table[i] = _cpu_not_implemented;
+		g_cb_prefix_instruction_table[i] = _cpu_not_implemented;
+	}
+
+	// TODO fill all instructions
+	g_instruction_table[0x0] = _cpu_nop;
+	g_instruction_table[0xC2] = _cpu_jp_nz_a16;
+	g_instruction_table[0xC3] = _cpu_jp_a16;
+
+	registers_prepare(&g_registers);
 }
