@@ -1,7 +1,7 @@
-#include<stdio.h>
 #include"cpu.h"
 #include"rom.h"
 #include"regs.h"
+#include"logger.h"
 
 #define INSTRUCTIONS_NUMBER 256
 
@@ -12,14 +12,44 @@ static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 
 static struct cpu_registers g_registers;
 
+void cpu_register_print(FILE *out) {
+	fprintf(out,
+		"\tA: 0x%02X F: 0x%02X\n"
+		"\tB: 0x%02X C: 0x%02X\n"
+		"\tD: 0x%02X E: 0x%02X\n"
+		"\tH: 0x%02X L: 0x%02X\n"
+		"\tSP: 0x%04X\n"
+		"\tPC: 0x%04X\n"
+		"\tZNHC\n"
+		"\t%d%d%d%d\n",
+		g_registers.A,
+		g_registers.F,
+		g_registers.B,
+		g_registers.C,
+		g_registers.D,
+		g_registers.E,
+		g_registers.H,
+		g_registers.L,
+		g_registers.SP,
+		g_registers.PC,
+		g_registers.FLAGS.Z,
+		g_registers.FLAGS.N,
+		g_registers.FLAGS.H,
+		g_registers.FLAGS.C);
+}
 
-// Instructions
 static int _cpu_not_implemented(void)
 {
-	// TODO Print some usefull debug information
 	// This  way of accessing memory is temporary
 	d8 instruction_code = READ_8ROM(g_registers.PC);
-	fprintf(stderr, "INSTRUCTION CODE 0x%X NOT IMPLEMENTED", instruction_code);
+	char *message = logger_get_msg_buffer();
+	snprintf(message,
+		LOG_MESSAGE_MAX_SIZE,
+		"INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n",
+		instruction_code);
+	logger_log(LOG_FATAL,
+		"UNKOWN INSTRUCTION",
+		message);
 	return -1;
 }
 
@@ -33,7 +63,6 @@ static int _cpu_jp_nz_a16(void)
 {
 	a16 operand = READ_16ROM(g_registers.PC + 1);
 	g_registers.PC += 3;
-	// TODO macro for easy access to flags
 	if(g_registers.FLAGS.Z != 0)
 		return 12;
 
