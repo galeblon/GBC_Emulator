@@ -79,7 +79,8 @@ static void mem_write16(a16 address, d16 data)
 	return;
 }
 
-// CPU basic instructions
+
+// CPU specific instructions
 
 static int _cpu_nop(void)
 {
@@ -87,15 +88,10 @@ static int _cpu_nop(void)
 	return 4;
 }
 
-static int _cpu_ld_bc_d16(void)
-{
-	g_registers.PC += 1;
-	d16 operand = mem_read16(g_registers.PC);
-	g_registers.PC += 2;
-	g_registers.BC = operand;
-	return 12;
-}
+// Load instructions
 
+// Special loads from A reg
+//========================================
 static int _cpu_ld_imm_bc_a(void)
 {
 	g_registers.PC += 1;
@@ -104,6 +100,195 @@ static int _cpu_ld_imm_bc_a(void)
 	mem_write8(address, data);
 	return 8;
 }
+
+static int _cpu_ld_imm_de_a(void){
+	g_registers.PC += 1;
+	a16 address = g_registers.DE;
+	d8 data = g_registers.A;
+	mem_write8(address, data);
+	return 8;
+}
+
+static int _cpu_ld_imm_hl_inc_a(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.HL++;
+	d8 data = g_registers.A;
+	mem_write8(address, data);
+	return 8;
+}
+
+static int _cpu_ld_imm_hl_dec_a(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.HL--;
+	d8 data = g_registers.A;
+	mem_write8(address, data);
+	return 8;
+}
+
+// A reg special loads
+// ========================================
+static int _cpu_ld_a_imm_bc(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.BC;
+	d8 data = mem_read8(address);
+	g_registers.A = data;
+	return 8;
+}
+
+static int _cpu_ld_a_imm_de(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.DE;
+	d8 data = mem_read8(address);
+	g_registers.A = data;
+	return 8;
+}
+
+static int _cpu_ld_a_imm_hl_inc(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.HL++;
+	d8 data = mem_read8(address);
+	g_registers.A = data;
+	return 8;
+}
+
+static int _cpu_ld_a_imm_hl_dec(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.HL--;
+	d8 data = mem_read8(address);
+	g_registers.A = data;
+	return 8;
+}
+
+// ld_x_d8
+//=======================================
+static int _cpu_ld_a_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.A = data;
+	return 8;
+}
+
+static int _cpu_ld_b_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.B = data;
+	return 8;
+}
+
+static int _cpu_ld_c_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.C = data;
+	return 8;
+}
+
+static int _cpu_ld_d_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.D = data;
+	return 8;
+}
+
+static int _cpu_ld_e_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.E = data;
+	return 8;
+}
+
+static int _cpu_ld_h_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.H = data;
+	return 8;
+}
+
+static int _cpu_ld_l_d8(void)
+{
+	g_registers.PC += 1;
+	d8 data = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.L = data;
+	return 8;
+}
+
+static int _cpu_ld_imm_hl_d8(void)
+{
+	g_registers.PC += 1;
+	a16 address = g_registers.HL;
+	d8 data= mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	mem_write8(address, data);
+	return 12;
+}
+
+// 16 bit loads
+//========================================
+static int _cpu_ld_bc_d16(void)
+{
+	g_registers.PC += 1;
+	d16 data = mem_read16(g_registers.PC);
+	g_registers.PC += 2;
+	g_registers.BC = data;
+	return 12;
+}
+
+static int _cpu_ld_de_d16(void)
+{
+	g_registers.PC += 1;
+	d16 data = mem_read16(g_registers.PC);
+	g_registers.PC += 2;
+	g_registers.DE = data;
+	return 12;
+}
+
+static int _cpu_ld_hl_d16(void)
+{
+	g_registers.PC += 1;
+	d16 data = mem_read16(g_registers.PC);
+	g_registers.PC += 2;
+	g_registers.HL = data;
+	return 12;
+}
+
+static int _cpu_ld_sp_d16(void)
+{
+	g_registers.PC += 1;
+	d16 data = mem_read16(g_registers.PC);
+	g_registers.PC += 2;
+	g_registers.SP = data;
+	return 12;
+}
+
+static int _cpu_ld_imm_a16_sp(void)
+{
+	g_registers.PC += 1;
+	a16 address = mem_read16(g_registers.PC);
+	d16 data = g_registers.SP;
+	g_registers.PC += 2;
+	mem_write16(address, data);
+	return 20;
+}
+
+// All load dones up to 0x40
+// Rest is ungrouped for now.
 
 static int _cpu_inc_bc(void)
 {
@@ -137,15 +322,6 @@ static int _cpu_dec_b(void)
 	return 4;
 }
 
-static int _cpu_ld_b_d8(void)
-{
-	g_registers.PC += 1;
-	d8 operand = mem_read8(g_registers.PC);
-	g_registers.PC += 1;
-	g_registers.B = operand;
-	return 8;
-}
-
 static int _cpu_rlca(void)
 {
 	g_registers.PC += 1;
@@ -156,16 +332,6 @@ static int _cpu_rlca(void)
 	g_registers.A <<= 1;
 	g_registers.A |= g_registers.FLAGS.C;
 	return 4;
-}
-
-static int _cpu_ld_imm_a16_sp(void)
-{
-	g_registers.PC += 1;
-	a16 address = mem_read16(g_registers.PC);
-	d16 data = g_registers.SP;
-	g_registers.PC += 2;
-	mem_write16(address, data);
-	return 20;
 }
 
 
