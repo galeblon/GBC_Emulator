@@ -1,5 +1,7 @@
 #include"mem.h"
+#include"rom.h"
 #include<stddef.h>
+#include<stdio.h>
 
 #define BASE_ADDR_ROM_BANK0      0x0000
 #define BASE_ADDR_ROM_SWITCH     0x4000
@@ -39,10 +41,10 @@ struct mem_block {
 	u16 size;
 };
 
-static u8 g_rom_bank0[SIZE_ROM_BANK0];
-static u8 g_rom_switch[SIZE_ROM_SWITCH];  // todo: implement proper switchable blocks
+static u8 g_rom[MAX_ROM_SIZE];
 static u8 g_vram[SIZE_VRAM];
-static u8 g_ram_switch[SIZE_RAM_SWITCH];  // todo: implement proper switchable blocks
+// TODO #13: implement proper switchable RAM
+static u8 g_ram_switch[SIZE_RAM_SWITCH];
 static u8 g_inter_ram_8k[SIZE_INTER_RAM_8K];
 static u8 g_sprite_attr[SIZE_SPRITE_ATTR];
 static u8 g_io_ports[SIZE_IO_PORTS];
@@ -63,10 +65,8 @@ static inline void _mem_write_##BLOCK (a16 addr, u8 data)	\
 	g_##BLOCK [addr - BASE_ADDR] = data;	\
 }
 
-// todo: implement proper switchable blocks
-MEM_GENERIC_BLOCK_RW(rom_bank0, BASE_ADDR_ROM_BANK0)
-MEM_GENERIC_BLOCK_RW(rom_switch, BASE_ADDR_ROM_SWITCH)
 MEM_GENERIC_BLOCK_RW(vram, BASE_ADDR_VRAM)
+// TODO #13: implement proper switchable RAM blocks
 MEM_GENERIC_BLOCK_RW(ram_switch, BASE_ADDR_RAM_SWITCH)
 MEM_GENERIC_BLOCK_RW(inter_ram_8k, BASE_ADDR_INTER_RAM_8K)
 MEM_GENERIC_BLOCK_RW(sprite_attr, BASE_ADDR_SPRITE_ATTR)
@@ -74,6 +74,26 @@ MEM_GENERIC_BLOCK_RW(io_ports, BASE_ADDR_IO_PORTS)
 MEM_GENERIC_BLOCK_RW(inter_ram, BASE_ADDR_INTER_RAM)
 
 #undef MEM_GENERIC_BLOCK_RW
+
+static inline u8 _mem_read_rom_bank0(a16 addr)
+{
+	return g_rom[addr - BASE_ADDR_ROM_BANK0];
+}
+
+static inline void _mem_write_rom_bank0(a16 addr, u8 data)
+{
+	g_rom[addr - BASE_ADDR_ROM_BANK0] = data;
+}
+
+static inline u8 _mem_read_rom_switch(a16 addr)
+{
+	return g_rom[addr];  // TODO #13: implement proper switchable rom banks
+}
+
+static inline void _mem_write_rom_switch(a16 addr, u8 data)
+{
+	g_rom[addr] = data;  // TODO #13: implement proper switchable rom banks
+}
 
 static inline u8 _mem_read_inter_ram_echo(a16 addr)
 {
@@ -178,7 +198,6 @@ static void _mem_write_error(a16 addr __attribute__((unused)))
 u8 mem_read8(a16 addr)
 {
 	struct mem_block *block;
-
 	block = _mem_get_block(addr);
 
 	if (block == NULL)
@@ -190,7 +209,6 @@ u8 mem_read8(a16 addr)
 void mem_write8(a16 addr, u8 data)
 {
 	struct mem_block *block;
-
 	block = _mem_get_block(addr);
 
 	if (block == NULL) {
@@ -205,7 +223,6 @@ u16 mem_read16(a16 addr)
 {
 	struct mem_block *block;
 	u16 ret = 0;
-
 	block = _mem_get_block(addr);
 
 	if (block == NULL)
@@ -221,7 +238,6 @@ u16 mem_read16(a16 addr)
 	}
 
 	ret |= block->read(addr + 1);
-
 	return ret;
 }
 
@@ -242,4 +258,28 @@ void mem_write16(a16 addr, u16 data)
 
 	block_1->write(addr, _mem_u16_higher(data));
 	block_2->write(addr + 1, _mem_u16_lower(data));
+}
+
+int mem_load_rom(char *path)
+{
+	long rom_len;
+	FILE *rom_fileptr = fopen(path, "rb");
+
+	if(rom_fileptr == NULL) {
+		fprintf(stderr, "Couldn't open rom file");
+		return 0;
+	}
+
+	fseek(rom_fileptr, 0, SEEK_END);
+	rom_len = ftell(rom_fileptr);
+
+	if (rom_len > MAX_ROM_SIZE) {
+		fclose(rom_fileptr);
+		return 0;
+	}
+
+	rewind(rom_fileptr);
+	fread(g_rom, MAX_ROM_SIZE, 1, rom_fileptr);
+	fclose(rom_fileptr);
+	return 1;
 }

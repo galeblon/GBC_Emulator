@@ -1,29 +1,14 @@
 #include<stdio.h>
 #include"types.h"
 #include"rom.h"
-
-int rom_load(char *path)
-{
-	FILE *rom_fileptr = fopen(path, "rb");
-	if(rom_fileptr == NULL) {
-		fprintf(stderr, "Couldn't open rom file");
-		return 0;
-	}
-	fseek(rom_fileptr, 0, SEEK_END);
-	long rom_len = ftell(rom_fileptr);
-	rewind(rom_fileptr);
-
-	fread(ROM, rom_len, 1, rom_fileptr);
-	fclose(rom_fileptr);
-	return 1;
-}
+#include"mem.h"
 
 int rom_checksum_validate(void)
 {
-	u8 header_checksum = READ_8ROM(ROM_H_CHECKSUM);
+	u8 header_checksum = mem_read8(ROM_CHECKSUM);
 	u8 header_checksum_verify = 0;
 	for (int i=0x134; i<=0x14C; i++)
-		header_checksum_verify -= READ_8ROM(i) + 1;
+		header_checksum_verify -= mem_read8(i) + 1;
 	printf("ROM header checksum: 0x%X\nROM header checksum calculated: 0x%X\n",
 		header_checksum, header_checksum_verify);
 	return header_checksum == header_checksum_verify;
@@ -31,6 +16,8 @@ int rom_checksum_validate(void)
 
 void rom_print_title(void)
 {
-	char *title = (void *)(ROM + ROM_H_TITLE);
+	char title[16];
+	for (a16 i = 0; i < 16; i++)
+		title[i] = mem_read8(ROM_TITLE + i);
 	printf("ROM title: %.16s\n", title);
 }

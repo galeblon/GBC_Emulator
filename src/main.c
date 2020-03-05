@@ -3,6 +3,7 @@
 #include"types.h"
 #include"regs.h"
 #include"rom.h"
+#include"mem.h"
 #include"cpu.h"
 
 int main(int argc, char *argv[])
@@ -12,7 +13,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!rom_load(argv[1]))
+	if (!mem_load_rom(argv[1]))
 		return 1;
 
 	printf("Loaded ROM contents to memory.\n");
