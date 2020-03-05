@@ -1,5 +1,6 @@
 #include"mem.h"
 #include"rom.h"
+#include"logger.h"
 #include<stddef.h>
 #include<stdio.h>
 
@@ -182,17 +183,31 @@ static struct mem_block *_mem_get_block(a16 addr)
 	return NULL;
 }
 
-static u8 _mem_read_error(a16 addr __attribute__((unused)))
+static u8 _mem_read_error(a16 addr)
 {
-	// todo: log error
-	// todo: determine proper erroneous read behavior in GBC
+	// TODO #15: determine proper way to handle error
+	char *msg_buff = logger_get_msg_buffer();
+	snprintf(msg_buff, LOG_MESSAGE_MAX_SIZE,
+		"MEMORY READ ERROR AT ADDRESS 0x%04X\n", addr);
 	return 0;
 }
 
-static void _mem_write_error(a16 addr __attribute__((unused)))
+static void _mem_write8_error(a16 addr, u8 data)
 {
-	// todo: log error
-	// todo: determine proper erroneous write behavior in GBC
+	// TODO #15: determine proper way to handle error
+	char *msg_buff = logger_get_msg_buffer();
+	snprintf(msg_buff, LOG_MESSAGE_MAX_SIZE,
+		"MEMORY U8 WRITE ERROR AT ADDRESS 0x%04X\n, DATA: 0x%02X",
+		addr, data);
+}
+
+static void _mem_write16_error(a16 addr, u16 data)
+{
+	// TODO #15: determine proper way to handle error
+	char *msg_buff = logger_get_msg_buffer();
+	snprintf(msg_buff, LOG_MESSAGE_MAX_SIZE,
+		"MEMORY U16 WRITE ERROR AT ADDRESS 0x%04X\n, DATA: 0x%04X",
+		addr, data);
 }
 
 u8 mem_read8(a16 addr)
@@ -212,7 +227,7 @@ void mem_write8(a16 addr, u8 data)
 	block = _mem_get_block(addr);
 
 	if (block == NULL) {
-		_mem_write_error(addr);
+		_mem_write8_error(addr, data);
 		return;
 	}
 
@@ -247,11 +262,17 @@ void mem_write16(a16 addr, u16 data)
 
 	block_1 = _mem_get_block(addr);
 
-	if (block_1 == NULL) {}  // todo: error
+	if (block_1 == NULL) {
+		_mem_write16_error(addr, data);
+		return;
+	}
 
 	if (addr + 1 == block_1->base_addr + block_1->size) {
 		block_2 = _mem_get_block(addr + 1);
-		if (block_2 == NULL) {}  // todo: error
+		if (block_2 == NULL) {
+			_mem_write16_error(addr, data);
+			return;
+		}
 	} else {
 		block_2 = block_1;
 	}
