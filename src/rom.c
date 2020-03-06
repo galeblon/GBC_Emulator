@@ -1,7 +1,7 @@
 #include<stdio.h>
-#include"types.h"
-#include"rom.h"
 #include"mem.h"
+#include"rom.h"
+#include"types.h"
 
 int rom_checksum_validate(void)
 {

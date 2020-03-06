@@ -1,8 +1,8 @@
-#include"mem.h"
-#include"rom.h"
-#include"logger.h"
 #include<stddef.h>
 #include<stdio.h>
+#include"logger.h"
+#include"mem.h"
+#include"rom.h"
 
 #define BASE_ADDR_ROM_BANK0      0x0000
 #define BASE_ADDR_ROM_SWITCH     0x4000

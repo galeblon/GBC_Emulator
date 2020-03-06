@@ -1,7 +1,7 @@
 #include"cpu.h"
-#include"regs.h"
 #include"logger.h"
 #include"mem.h"
+#include"regs.h"
 
 #define INSTRUCTIONS_NUMBER 256
 

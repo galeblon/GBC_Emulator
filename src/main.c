@@ -1,10 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
-#include"types.h"
+#include"cpu.h"
+#include"mem.h"
 #include"regs.h"
 #include"rom.h"
-#include"mem.h"
-#include"cpu.h"
+#include"types.h"
 
 int main(int argc, char *argv[])
 {
