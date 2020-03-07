@@ -1,5 +1,5 @@
-#include"logger.h"
 #include"cpu.h"
+#include"logger.h"
 
 static char logger_message_buffer[LOG_MESSAGE_MAX_SIZE];
 

@@ -6,7 +6,7 @@
 #define INSTRUCTIONS_NUMBER 256
 
 #define _CPU_IS_HALF_CARRY(a, b) ((((a & 0x0F) + (b & 0x0F)) & 0x10) == 0x10)
-#define _CPU_IS_HALF_BORROW(a, b) (((a & 0x0F) - (b & 0x0F)) < 0)
+#define _CPU_IS_CARRY(a, b) ((((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100)
 
 typedef int (*cpu_instruction_t)(void);
 
@@ -54,29 +54,6 @@ static int _cpu_not_implemented(void)
 		"UNKOWN INSTRUCTION",
 		message);
 	return -1;
-}
-
-// STUB functions, they will be replaced when memory module is done
-static d8 mem_read8(a16 address)
-{
-	return READ_8ROM(address);
-}
-
-static d16 mem_read16(a16 address)
-{
-	return READ_16ROM(address);
-}
-
-static void mem_write8(a16 address, d8 data)
-{
-	data = address + data;
-	return;
-}
-
-static void mem_write16(a16 address, d16 data)
-{
-	data = address + data;
-	return;
 }
 
 
@@ -130,11 +107,10 @@ static int _cpu_ld_imm_hl_dec_a(void)
 static int _cpu_ldh_imm_a8_a(void)
 {
 	g_registers.PC += 1;
-	a8 address = mem_read8(g_registers.PC);
+	a16 address = (a16)mem_read8(g_registers.PC) + 0xFF00;
 	g_registers.PC += 1;
-	a16 extended_address = 0xFF00 + (a16)address;
 	d8 data = g_registers.A;
-	mem_write8(extended_address, data);
+	mem_write8(address, data);
 	return 12;
 }
 
@@ -151,7 +127,7 @@ static int _cpu_ld_imm_a16_a(void)
 static int _cpu_ld_imm_c_a(void)
 {
 	g_registers.PC += 1;
-	a16 address = 0xFF00 + (a16)g_registers.C;
+	a16 address = (a16)g_registers.C + 0xFF00;
 	g_registers.PC += 1;
 	d8 data = g_registers.A;
 	mem_write8(address, data);
@@ -199,10 +175,9 @@ static int _cpu_ld_a_imm_hl_dec(void)
 static int _cpu_ldh_a_imm_a8(void)
 {
 	g_registers.PC += 1;
-	a8 address = mem_read8(g_registers.PC);
+	a8 address = (a16)mem_read8(g_registers.PC) + 0xFF00;
 	g_registers.PC += 1;
-	a16 extended_address = 0xFF00 + (a16)address;
-	g_registers.A = mem_read8(extended_address);
+	g_registers.A = mem_read8(address);
 	return 12;
 }
 
@@ -218,7 +193,7 @@ static int _cpu_ld_a_imm_a16(void)
 static int _cpu_ld_a_imm_c(void)
 {
 	g_registers.PC += 1;
-	a16 address = 0xFF00 + (a16)g_registers.C;
+	a16 address = (a16)g_registers.C + 0xFF00;
 	g_registers.PC += 1;
 	g_registers.A = mem_read8(address);
 	return 8;
@@ -744,7 +719,8 @@ static int _cpu_ld_imm_hl_c(void)
 	a16 address = g_registers.HL;
 	d8 data = g_registers.C;
 	mem_write8(address, data);
-	return 8;}
+	return 8;
+}
 
 static int _cpu_ld_imm_hl_d(void)
 {
@@ -752,7 +728,8 @@ static int _cpu_ld_imm_hl_d(void)
 	a16 address = g_registers.HL;
 	d8 data = g_registers.D;
 	mem_write8(address, data);
-	return 8;}
+	return 8;
+}
 
 static int _cpu_ld_imm_hl_e(void)
 {
@@ -823,8 +800,8 @@ static int _cpu_ld_imm_a16_sp(void)
 {
 	g_registers.PC += 1;
 	a16 address = mem_read16(g_registers.PC);
-	d16 data = g_registers.SP;
 	g_registers.PC += 2;
+	d16 data = g_registers.SP;
 	mem_write16(address, data);
 	return 20;
 }
@@ -836,17 +813,16 @@ static int _cpu_ld_sp_hl(void)
 	return 8;
 }
 
-static int _cpu_ld_hl_sp_and_d8(void)
+static int _cpu_ld_hl_sp_add_d8(void)
 {
 	g_registers.PC += 1;
 	d8 index = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
 	d16 result = g_registers.SP + index;
-	int result_extended = g_registers.SP + index;
 	g_registers.FLAGS.Z = 0;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(g_registers.SP, index);
-	g_registers.FLAGS.C = result != result_extended;
+	g_registers.FLAGS.C = _CPU_IS_CARRY(g_registers.SP, index);
 	g_registers.HL = result;
 	return 12;
 }
@@ -945,7 +921,6 @@ static int _cpu_inc_b(void)
 	return 4;
 }
 
-// TODO find reliable source about when half-borrow should be set
 static int _cpu_dec_b(void)
 {
 	g_registers.PC += 1;
@@ -954,7 +929,7 @@ static int _cpu_dec_b(void)
 	g_registers.B = left_operand - right_operand;
 	g_registers.FLAGS.Z = g_registers.B == 0;
 	g_registers.FLAGS.N = 1;
-	g_registers.FLAGS.H = !_CPU_IS_HALF_BORROW(left_operand, right_operand);
+	g_registers.FLAGS.H = !_CPU_IS_HALF_CARRY(left_operand, right_operand);
 	return 4;
 }
 
@@ -1137,7 +1112,7 @@ void cpu_prepare(void)
 	// Missing
 	g_instruction_table[0xF5] = _cpu_push_af;
 	// Missing
-	g_instruction_table[0xF8] = _cpu_ld_hl_sp_and_d8;
+	g_instruction_table[0xF8] = _cpu_ld_hl_sp_add_d8;
 	g_instruction_table[0xF9] = _cpu_ld_sp_hl;
 	g_instruction_table[0xFA] = _cpu_ld_a_imm_a16;
 	// Missing
