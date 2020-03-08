@@ -8,5 +8,5 @@ void registers_prepare(struct cpu_registers *regs)
 	regs->DE = 0x00D8;
 	regs->HL = 0x014D;
 	regs->SP = 0xFFFE;
-	regs->PC = ROM_H_ENTRY_POINT;
+	regs->PC = ROM_ENTRY_POINT;
 }
