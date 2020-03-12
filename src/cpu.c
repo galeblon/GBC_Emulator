@@ -73,16 +73,14 @@ static int _cpu_ld_imm_bc_a(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.BC;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 8;
 }
 
 static int _cpu_ld_imm_de_a(void){
 	g_registers.PC += 1;
 	a16 address = g_registers.DE;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 8;
 }
 
@@ -90,8 +88,7 @@ static int _cpu_ld_imm_hl_inc_a(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.HL++;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 8;
 }
 
@@ -99,8 +96,7 @@ static int _cpu_ld_imm_hl_dec_a(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.HL--;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 8;
 }
 
@@ -109,8 +105,7 @@ static int _cpu_ldh_imm_a8_a(void)
 	g_registers.PC += 1;
 	a16 address = (a16)mem_read8(g_registers.PC) + 0xFF00;
 	g_registers.PC += 1;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 12;
 }
 
@@ -119,8 +114,7 @@ static int _cpu_ld_imm_a16_a(void)
 	g_registers.PC += 1;
 	a16 address = mem_read16(g_registers.PC);
 	g_registers.PC += 2;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 16;
 }
 
@@ -129,8 +123,7 @@ static int _cpu_ld_imm_c_a(void)
 	g_registers.PC += 1;
 	a16 address = (a16)g_registers.C + 0xFF00;
 	g_registers.PC += 1;
-	d8 data = g_registers.A;
-	mem_write8(address, data);
+	mem_write8(address, g_registers.A);
 	return 8;
 }
 
@@ -140,8 +133,7 @@ static int _cpu_ld_a_imm_bc(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.BC;
-	d8 data = mem_read8(address);
-	g_registers.A = data;
+	g_registers.A = mem_read8(address);
 	return 8;
 }
 
@@ -149,8 +141,7 @@ static int _cpu_ld_a_imm_de(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.DE;
-	d8 data = mem_read8(address);
-	g_registers.A = data;
+	g_registers.A = mem_read8(address);
 	return 8;
 }
 
@@ -158,8 +149,7 @@ static int _cpu_ld_a_imm_hl_inc(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.HL++;
-	d8 data = mem_read8(address);
-	g_registers.A = data;
+	g_registers.A = mem_read8(address);
 	return 8;
 }
 
@@ -167,8 +157,7 @@ static int _cpu_ld_a_imm_hl_dec(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.HL--;
-	d8 data = mem_read8(address);
-	g_registers.A = data;
+	g_registers.A = mem_read8(address);
 	return 8;
 }
 
@@ -204,62 +193,56 @@ static int _cpu_ld_a_imm_c(void)
 static int _cpu_ld_a_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
+	g_registers.A = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
-	g_registers.A = data;
 	return 8;
 }
 
 static int _cpu_ld_b_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
+	g_registers.B = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
-	g_registers.B = data;
 	return 8;
 }
 
 static int _cpu_ld_c_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
+	g_registers.C = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
-	g_registers.C = data;
 	return 8;
 }
 
 static int _cpu_ld_d_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
+	g_registers.D = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
-	g_registers.D = data;
 	return 8;
 }
 
 static int _cpu_ld_e_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
-	g_registers.E = data;
+	g_registers.E = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
 	return 8;
 }
 
 static int _cpu_ld_h_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
+	g_registers.H = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
-	g_registers.H = data;
 	return 8;
 }
 
 static int _cpu_ld_l_d8(void)
 {
 	g_registers.PC += 1;
-	d8 data = mem_read8(g_registers.PC);
+	g_registers.L = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
-	g_registers.L = data;
 	return 8;
 }
 
@@ -267,7 +250,7 @@ static int _cpu_ld_imm_hl_d8(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.HL;
-	d8 data= mem_read8(g_registers.PC);
+	d8 data = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
 	mem_write8(address, data);
 	return 12;
@@ -328,8 +311,7 @@ static int _cpu_ld_a_imm_hl(void)
 {
 	g_registers.PC += 1;
 	a16 address = g_registers.HL;
-	d8 data = mem_read8(address);
-	g_registers.A = data;
+	g_registers.A = mem_read8(address);
 	return 8;
 }
 
@@ -912,24 +894,24 @@ static int _cpu_inc_bc(void)
 static int _cpu_inc_b(void)
 {
 	g_registers.PC += 1;
-	d8 left_operand = g_registers.B;
-	d8 right_operand = 0x01;
-	g_registers.B = left_operand + right_operand;
+	d8 left = g_registers.B;
+	d8 right = 0x01;
+	g_registers.B = left + right;
 	g_registers.FLAGS.Z = g_registers.B == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left_operand, right_operand);
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
 	return 4;
 }
 
 static int _cpu_dec_b(void)
 {
 	g_registers.PC += 1;
-	d8 left_operand = g_registers.B;
-	d8 right_operand = -1;
-	g_registers.B = left_operand - right_operand;
+	d8 left = g_registers.B;
+	d8 right = -1;
+	g_registers.B = left + right;
 	g_registers.FLAGS.Z = g_registers.B == 0;
 	g_registers.FLAGS.N = 1;
-	g_registers.FLAGS.H = !_CPU_IS_HALF_CARRY(left_operand, right_operand);
+	g_registers.FLAGS.H = !_CPU_IS_HALF_CARRY(left, right);
 	return 4;
 }
 
