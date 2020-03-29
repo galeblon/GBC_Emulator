@@ -243,7 +243,7 @@ u16 mem_read16(a16 addr)
 	if (block == NULL)
 		return _mem_read_error(addr);
 
-	ret = block->read(addr) << 8;
+	ret = (u16)block->read(addr);
 
 	if (addr + 1 == block->base_addr + block->size) {
 		block = _mem_get_block(addr + 1);
@@ -252,7 +252,7 @@ u16 mem_read16(a16 addr)
 			return _mem_read_error(addr + 1);
 	}
 
-	ret |= block->read(addr + 1);
+	ret |= ((u16)block->read(addr + 1)) << 8;
 	return ret;
 }
 
@@ -277,8 +277,8 @@ void mem_write16(a16 addr, u16 data)
 		block_2 = block_1;
 	}
 
-	block_1->write(addr, _mem_u16_higher(data));
-	block_2->write(addr + 1, _mem_u16_lower(data));
+	block_1->write(addr, _mem_u16_lower(data));
+	block_2->write(addr + 1, _mem_u16_higher(data));
 }
 
 int mem_load_rom(char *path)
