@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -pedantic -O0
 INCL = -I./include
-SRCS = cpu.c regs.c rom.c main.c
+SRCS = cpu.c logger.c regs.c rom.c ints.c main.c mem.c
 OBJS = $(SRCS:.c=.o)
 BIN = gbc
 
