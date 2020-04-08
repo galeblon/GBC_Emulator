@@ -7,6 +7,8 @@
 
 #define IFAddress 0xFF0F
 #define IEAddress 0xFFFF
+#define IFBase 0x00
+#define IEBase 0x1F
 
 #define readIF mem_read8(IFAddress)
 #define readIE mem_read8(IEAddress)
@@ -21,6 +23,15 @@
 #define isF5(reg) (reg & 0x20) == 1
 #define isF6(reg) (reg & 0x40) == 1
 #define isF7(reg) (reg & 0x80) == 1
+
+#define noF0(reg) (reg & ~0x01)
+#define noF1(reg) (reg & ~0x02)
+#define noF2(reg) (reg & ~0x04)
+#define noF3(reg) (reg & ~0x08)
+#define noF4(reg) (reg & ~0x10)
+#define noF5(reg) (reg & ~0x20)
+#define noF6(reg) (reg & ~0x40)
+#define noF7(reg) (reg & ~0x80)
 
 
 static void _ints_undefined_int_info(d8 i_e, d8 i_f)
@@ -56,8 +67,8 @@ void ints_reset_ime(void)
 void ints_prepare(void)
 {
 	ints_set_ime();
-	writeIF(0x00);
-	writeIE(0x1F);
+	writeIF(IFBase);
+	writeIE(IEBase);
 }
 
 
@@ -76,24 +87,41 @@ void ints_check(void)
 	ints_reset_ime();
 
 	// Resolve interrupt
-	if (isF0(IF))
+	if (isF0(IF)) {
 		cpu_jump_push(0x0040);
-	else if (isF1(IF))
+
+		// Clear interrupt register
+		writeIF(noF0(IF));
+	}
+	else if (isF1(IF)) {
 		cpu_jump_push(0x0048);
-	else if (isF2(IF))
+
+		// Clear interrupt register
+		writeIF(noF1(IF));
+	}
+	else if (isF2(IF)) {
 		cpu_jump_push(0x0050);
-	else if (isF3(IF))
+
+		// Clear interrupt register
+		writeIF(noF2(IF));
+	}
+	else if (isF3(IF)) {
 		cpu_jump_push(0x0058);
-	else if (isF4(IF))
+
+		// Clear interrupt register
+		writeIF(noF3(IF));
+	}
+	else if (isF4(IF)) {
 		cpu_jump_push(0x0060);
+
+		// Clear interrupt register
+		writeIF(noF4(IF));
+	}
 	else {
 		// Logging the problem
 		_ints_undefined_int_info(IE, IF);
 
 		// Clearing IE to default value in attempt of recovery
-		writeIE(0x1F);
+		writeIE(IEBase);
 	}
-
-	// Clear interrupt register
-	writeIF(0x00);
 }
