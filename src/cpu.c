@@ -1310,7 +1310,7 @@ void cpu_jump(a16 addr)
 }
 
 
-void cpu_jump_push(a16 addr)
+void cpu_call(a16 addr)
 {
 	// Push PC onto stack
 	cpu_push16(g_registers.PC);

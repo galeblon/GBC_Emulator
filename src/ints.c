@@ -4,6 +4,7 @@
 #include"mem.h"
 #include"regs.h"
 #include"stdio.h"
+#include"types.h"
 
 #define IFAddress 0xFF0F
 #define IEAddress 0xFFFF
@@ -15,14 +16,14 @@
 #define writeIF(val) mem_write16(IFAddress, val)
 #define writeIE(val) mem_write16(IEAddress, val)
 
-#define isF0(reg) (reg & 0x01) == 1
-#define isF1(reg) (reg & 0x02) == 1
-#define isF2(reg) (reg & 0x04) == 1
-#define isF3(reg) (reg & 0x08) == 1
-#define isF4(reg) (reg & 0x10) == 1
-#define isF5(reg) (reg & 0x20) == 1
-#define isF6(reg) (reg & 0x40) == 1
-#define isF7(reg) (reg & 0x80) == 1
+#define isF0(reg) (reg & 0x01) != 0
+#define isF1(reg) (reg & 0x02) != 0
+#define isF2(reg) (reg & 0x04) != 0
+#define isF3(reg) (reg & 0x08) != 0
+#define isF4(reg) (reg & 0x10) != 0
+#define isF5(reg) (reg & 0x20) != 0
+#define isF6(reg) (reg & 0x40) != 0
+#define isF7(reg) (reg & 0x80) != 0
 
 #define noF0(reg) (reg & ~0x01)
 #define noF1(reg) (reg & ~0x02)
@@ -32,6 +33,8 @@
 #define noF5(reg) (reg & ~0x20)
 #define noF6(reg) (reg & ~0x40)
 #define noF7(reg) (reg & ~0x80)
+
+static bool g_ime;
 
 
 static void _ints_undefined_int_info(d8 i_e, d8 i_f)
@@ -88,31 +91,31 @@ void ints_check(void)
 
 	// Resolve interrupt
 	if (isF0(IF)) {
-		cpu_jump_push(0x0040);
+		cpu_call(0x0040);
 
 		// Clear interrupt register
 		writeIF(noF0(IF));
 	}
 	else if (isF1(IF)) {
-		cpu_jump_push(0x0048);
+		cpu_call(0x0048);
 
 		// Clear interrupt register
 		writeIF(noF1(IF));
 	}
 	else if (isF2(IF)) {
-		cpu_jump_push(0x0050);
+		cpu_call(0x0050);
 
 		// Clear interrupt register
 		writeIF(noF2(IF));
 	}
 	else if (isF3(IF)) {
-		cpu_jump_push(0x0058);
+		cpu_call(0x0058);
 
 		// Clear interrupt register
 		writeIF(noF3(IF));
 	}
 	else if (isF4(IF)) {
-		cpu_jump_push(0x0060);
+		cpu_call(0x0060);
 
 		// Clear interrupt register
 		writeIF(noF4(IF));

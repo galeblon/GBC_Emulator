@@ -15,7 +15,7 @@ void cpu_jump(a16 addr);
 
 // Push current Program Counter on stack
 // Then set Program Counter to given address
-void cpu_jump_push(a16 addr);
+void cpu_call(a16 addr);
 
 // Load all instructions
 void cpu_prepare(void);
