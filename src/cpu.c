@@ -15,7 +15,8 @@ static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 
 static struct cpu_registers g_registers;
 
-void cpu_register_print(FILE *out) {
+void cpu_register_print(FILE *out)
+{
 	fprintf(out,
 		"\tA: 0x%02X F: 0x%02X\n"
 		"\tB: 0x%02X C: 0x%02X\n"
@@ -1303,6 +1304,21 @@ int cpu_single_step(void)
 }
 
 
+void cpu_jump(a16 addr)
+{
+	g_registers.PC = addr;
+}
+
+
+void cpu_call(a16 addr)
+{
+	// Push PC onto stack
+	cpu_push16(g_registers.PC);
+	// Jump to given address
+	cpu_jump(addr);
+}
+
+
 void cpu_prepare(void)
 {
 	for(int i=0; i<INSTRUCTIONS_NUMBER; i++) {
@@ -1484,4 +1500,22 @@ void cpu_prepare(void)
 	g_instruction_table[0xFF] = _cpu_rst_38H;
 
 	registers_prepare(&g_registers);
+}
+
+
+void cpu_push8(u8 data)
+{
+	//Decrement Stack Pointer
+	g_registers.SP -= 1;
+	// Save data at the new location
+	mem_write8(g_registers.SP, data);
+}
+
+
+void cpu_push16(u16 data)
+{
+	//Decrement Stack Pointer
+	g_registers.SP -= 2;
+	// Save data at the new location
+	mem_write16(g_registers.SP, data);
 }

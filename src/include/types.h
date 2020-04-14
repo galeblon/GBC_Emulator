@@ -24,5 +24,8 @@ typedef uint16_t a16;
 // 8 bit signed data, which are added to program counter
 typedef uint8_t r8;
 
+// true-false (0,1) data
+typedef _Bool bool;
+
 
 #endif /* TYPES_H_ */
