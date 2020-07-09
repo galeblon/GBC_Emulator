@@ -1,4 +1,5 @@
 #include"cpu.h"
+#include"ints.h"
 #include"logger.h"
 #include"mem.h"
 #include"regs.h"
@@ -15,8 +16,9 @@ static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 
 static struct cpu_registers g_registers;
 
-static int cpu_halted = 0;
-static int cpu_stopped = 0;
+// cpu state
+static bool cpu_halted = 0;
+static bool cpu_stopped = 0;
 
 void cpu_register_print(FILE *out)
 {
@@ -90,21 +92,19 @@ static int _cpu_prefix_cb(void)
 {
 	g_registers.PC += 1;
 	d8 opcode = mem_read8(g_registers.PC);
-	return g_cb_prefix_instruction_table[opcode];;
+	return g_cb_prefix_instruction_table[opcode]();
 }
 
 static int _cpu_di(void)
 {
-	//TODO waiting on #7
-	// This should not disable immediately(after next instruction)
+	ints_reset_ime();
 	g_registers.PC += 1;
 	return 4;
 }
 
 static int _cpu_ei(void)
 {
-	//TODO waiting on #7
-	// This should not enable immediately(after next instruction)
+	ints_set_ime();
 	g_registers.PC += 1;
 	return 4;
 }
@@ -1342,10 +1342,17 @@ int cpu_single_step(void)
 {
 	if(cpu_stopped) {
 		//TODO check if anything was pressed
+		// should be done in input module when it's implemented
 		// then remove stopped
+		return 0;
 	} else if(cpu_halted) {
 		//TODO check if interrupt occured
-		// then remove halted
+		// then remove halt
+		// this should be done in ints.c using cpu_set_halted
+		// this should only react to new interrupts if any old ones are queued
+		// they should not be executed until new one appears
+		// so ints should also store old value of IF each time it checks
+		return 0;
 	} else {
 		// Fetch
 		d8 instruction_code = mem_read8(g_registers.PC);

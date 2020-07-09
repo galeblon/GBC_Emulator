@@ -25,6 +25,11 @@ void cpu_prepare(void);
 void cpu_push8(u8 data);
 void cpu_push16(u16 data);
 
+// Interface for interacting with the halted state of processor
+bool cpu_get_halted();
+void cpu_set_halted();
+
+// For debugging purposes
 void cpu_register_print(FILE *out);
 
 #endif /* CPU_H_ */
