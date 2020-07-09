@@ -15,6 +15,9 @@ static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 
 static struct cpu_registers g_registers;
 
+static int cpu_halted = 0;
+static int cpu_stopped = 0;
+
 void cpu_register_print(FILE *out)
 {
 	fprintf(out,
@@ -60,8 +63,48 @@ static int _cpu_not_implemented(void)
 
 // CPU specific instructions
 
+// Misc instructions
+//========================================
+
 static int _cpu_nop(void)
 {
+	g_registers.PC += 1;
+	return 4;
+}
+
+static int _cpu_stop(void)
+{
+	cpu_stopped = 1;
+	g_registers.PC += 2;
+	return 4;
+}
+
+static int _cpu_halt(void)
+{
+	cpu_halted = 1;
+	g_registers.PC += 1;
+	return 4;
+}
+
+static int _cpu_prefix_cb(void)
+{
+	g_registers.PC += 1;
+	d8 opcode = mem_read8(g_registers.PC);
+	return g_cb_prefix_instruction_table[opcode];;
+}
+
+static int _cpu_di(void)
+{
+	//TODO waiting on #7
+	// This should not disable immediately(after next instruction)
+	g_registers.PC += 1;
+	return 4;
+}
+
+static int _cpu_ei(void)
+{
+	//TODO waiting on #7
+	// This should not enable immediately(after next instruction)
 	g_registers.PC += 1;
 	return 4;
 }
@@ -1297,10 +1340,18 @@ static int _cpu_rlca(void)
 
 int cpu_single_step(void)
 {
-	// Fetch
-	d8 instruction_code = mem_read8(g_registers.PC);
-	// Decode & Execute
-	return g_instruction_table[instruction_code]();
+	if(cpu_stopped) {
+		//TODO check if anything was pressed
+		// then remove stopped
+	} else if(cpu_halted) {
+		//TODO check if interrupt occured
+		// then remove halted
+	} else {
+		// Fetch
+		d8 instruction_code = mem_read8(g_registers.PC);
+		// Decode & Execute
+		return g_instruction_table[instruction_code]();
+	}
 }
 
 
@@ -1341,6 +1392,7 @@ void cpu_prepare(void)
 	// Missing
 	g_instruction_table[0x0E] = _cpu_ld_c_d8;
 	// Missing
+	g_instruction_table[0x10] = _cpu_stop;
 	g_instruction_table[0x11] = _cpu_ld_de_d16;
 	g_instruction_table[0x12] = _cpu_ld_imm_de_a;
 	// Missing
@@ -1430,7 +1482,7 @@ void cpu_prepare(void)
 	g_instruction_table[0x73] = _cpu_ld_imm_hl_e;
 	g_instruction_table[0x74] = _cpu_ld_imm_hl_h;
 	g_instruction_table[0x75] = _cpu_ld_imm_hl_l;
-	// Missing
+	g_instruction_table[0x76] = _cpu_halt;
 	g_instruction_table[0x77] = _cpu_ld_imm_hl_a;
 	g_instruction_table[0x78] = _cpu_ld_a_b;
 	g_instruction_table[0x79] = _cpu_ld_a_c;
@@ -1452,7 +1504,7 @@ void cpu_prepare(void)
 	g_instruction_table[0xC8] = _cpu_ret_z;
 	g_instruction_table[0xC9] = _cpu_ret;
 	g_instruction_table[0xCA] = _cpu_jp_z_a16;
-	// Missing
+	g_instruction_table[0xCB] = _cpu_prefix_cb;
 	g_instruction_table[0xCC] = _cpu_call_z_a16;
 	g_instruction_table[0xCD] = _cpu_call_a16;
 	// Missing
@@ -1490,13 +1542,15 @@ void cpu_prepare(void)
 	g_instruction_table[0XF0] = _cpu_ldh_a_imm_a8;
 	g_instruction_table[0xF1] = _cpu_pop_af;
 	g_instruction_table[0xF2] = _cpu_ld_a_imm_c;
-	// Missing
+	g_instruction_table[0xF3] = _cpu_di;
 	g_instruction_table[0xF5] = _cpu_push_af;
 	// Missing
 	g_instruction_table[0xF7] = _cpu_rst_30H;
 	g_instruction_table[0xF8] = _cpu_ld_hl_sp_add_d8;
 	g_instruction_table[0xF9] = _cpu_ld_sp_hl;
 	g_instruction_table[0xFA] = _cpu_ld_a_imm_a16;
+	g_instruction_table[0xFB] = _cpu_ei;
+	// Missing
 	g_instruction_table[0xFF] = _cpu_rst_38H;
 
 	registers_prepare(&g_registers);
