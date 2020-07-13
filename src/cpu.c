@@ -17,8 +17,8 @@ static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 static struct cpu_registers g_registers;
 
 // cpu state
-static bool cpu_halted = 0;
-static bool cpu_stopped = 0;
+static bool g_cpu_halted = 0;
+static bool g_cpu_stopped = 0;
 
 void cpu_register_print(FILE *out)
 {
@@ -76,14 +76,14 @@ static int _cpu_nop(void)
 
 static int _cpu_stop(void)
 {
-	cpu_stopped = 1;
+	g_cpu_stopped = 1;
 	g_registers.PC += 2;
 	return 4;
 }
 
 static int _cpu_halt(void)
 {
-	cpu_halted = 1;
+	g_cpu_halted = 1;
 	g_registers.PC += 1;
 	return 4;
 }
@@ -1340,19 +1340,10 @@ static int _cpu_rlca(void)
 
 int cpu_single_step(void)
 {
-	if(cpu_stopped) {
-		//TODO check if anything was pressed
-		// should be done in input module when it's implemented
-		// then remove stopped
-		return 0;
-	} else if(cpu_halted) {
-		//TODO check if interrupt occured
-		// then remove halt
-		// this should be done in ints.c using cpu_set_halted
-		// this should only react to new interrupts if any old ones are queued
-		// they should not be executed until new one appears
-		// so ints should also store old value of IF each time it checks
-		return 0;
+	if(g_cpu_stopped) {
+		return 1;
+	} else if(g_cpu_halted) {
+		return 1;
 	} else {
 		// Fetch
 		d8 instruction_code = mem_read8(g_registers.PC);
@@ -1579,4 +1570,24 @@ void cpu_push16(u16 data)
 	g_registers.SP -= 2;
 	// Save data at the new location
 	mem_write16(g_registers.SP, data);
+}
+
+bool cpu_get_halted()
+{
+	return g_cpu_halted;
+}
+
+void cpu_set_halted(bool val)
+{
+	g_cpu_halted = val;
+}
+
+bool cpu_get_stopped()
+{
+	return g_cpu_stopped;
+}
+
+void cpu_set_stopped(bool val)
+{
+	g_cpu_stopped = val;
 }

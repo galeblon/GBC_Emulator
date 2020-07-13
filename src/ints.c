@@ -36,6 +36,7 @@
 
 static bool g_ime;
 
+static d8 g_old_if = 0;
 
 static void _ints_undefined_int_info(d8 i_e, d8 i_f)
 {
@@ -77,6 +78,15 @@ void ints_prepare(void)
 
 void ints_check(void)
 {
+	// Resolve cpu halted/stopped state
+	// Doesn't require interrupts service to be enabled
+	if (g_old_if != readIF) {
+		cpu_set_halted(0);
+		cpu_set_stopped(0);
+	}
+
+	g_old_if = readIF;
+
 	// Are interrupts enabled at all?
 	if (!g_ime)
 		return;
