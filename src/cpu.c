@@ -1363,6 +1363,7 @@ int cpu_single_step(void)
 			g_ime_delay -= 1;
 		}
 		if(g_ime_delay == 0) {
+			g_ime_delay = -1;
 			g_ime_op == IME_OP_EI ? ints_set_ime() : ints_reset_ime();
 		}
 
