@@ -9,6 +9,9 @@
 #define _CPU_IS_HALF_CARRY(a, b) ((((a & 0x0F) + (b & 0x0F)) & 0x10) == 0x10)
 #define _CPU_IS_CARRY(a, b) ((((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100)
 
+#define IME_OP_DI 0
+#define IME_OP_EI 1
+
 typedef int (*cpu_instruction_t)(void);
 
 static cpu_instruction_t g_instruction_table[INSTRUCTIONS_NUMBER];
@@ -19,6 +22,10 @@ static struct cpu_registers g_registers;
 // cpu state
 static bool g_cpu_halted = 0;
 static bool g_cpu_stopped = 0;
+
+// cpu ime delay
+static int g_ime_delay = 0;
+static int g_ime_op = IME_OP_DI;
 
 void cpu_register_print(FILE *out)
 {
@@ -97,14 +104,16 @@ static int _cpu_prefix_cb(void)
 
 static int _cpu_di(void)
 {
-	ints_reset_ime();
+	g_ime_delay = 2;
+	g_ime_op = IME_OP_DI;
 	g_registers.PC += 1;
 	return 4;
 }
 
 static int _cpu_ei(void)
 {
-	ints_set_ime();
+	g_ime_delay = 2;
+	g_ime_op = IME_OP_EI;
 	g_registers.PC += 1;
 	return 4;
 }
@@ -1348,7 +1357,16 @@ int cpu_single_step(void)
 		// Fetch
 		d8 instruction_code = mem_read8(g_registers.PC);
 		// Decode & Execute
-		return g_instruction_table[instruction_code]();
+		int cycles = g_instruction_table[instruction_code]();
+
+		if(g_ime_delay > 0) {
+			g_ime_delay -= 1;
+		}
+		if(g_ime_delay == 0) {
+			g_ime_op == IME_OP_EI ? ints_set_ime() : ints_reset_ime();
+		}
+
+		return cycles;
 	}
 }
 
