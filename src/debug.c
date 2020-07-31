@@ -1,4 +1,7 @@
+#include<stdlib.h>
+#include<string.h>
 #include"debug.h"
+#include"logger.h"
 
 struct instruction_info {
 	int length;
@@ -538,4 +541,16 @@ char* debug_op_mnemonic_format(d8 opcode)
 char* debug_op_extended_mnemonic_format(d8 opcode)
 {
 	return extended_instruction_infos[opcode].mnemonic_format;
+}
+
+void debug_assert(bool expr, const char *msg)
+{
+#ifdef DEBUG
+	if (!expr) {
+		char *msg_buf = logger_get_msg_buffer();
+		strncpy(msg_buf, msg, LOG_MESSAGE_MAX_SIZE);
+		logger_log(LOG_ASSERT, "ASSERT", msg_buf);
+		exit(1);
+	}
+#endif
 }

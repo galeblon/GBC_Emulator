@@ -11,4 +11,6 @@ char* debug_op_mnemonic_format(d8 opcode);
 
 char* debug_op_extended_mnemonic_format(d8 opcode);
 
+void debug_assert(bool expr, const char *msg);
+
 #endif /* SRC_INCLUDE_DEBUG_H_ */

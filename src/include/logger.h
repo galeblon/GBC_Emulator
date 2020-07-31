@@ -1,12 +1,13 @@
 #ifndef INCLUDE_LOGGER_H_
 #define INCLUDE_LOGGER_H_
 
-#define LOG_MESSAGE_MAX_SIZE 80
+#define LOG_MESSAGE_MAX_SIZE 250
 
 enum logger_log_type {
 	LOG_INFO,
 	LOG_WARN,
 	LOG_FATAL,
+	LOG_ASSERT,
 };
 
 
