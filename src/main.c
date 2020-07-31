@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!mem_load_rom(argv[1]))
+	if (!mem_prepare(argv[1]))
 		return 1;
 
 	printf("Loaded ROM contents to memory.\n");
@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
 	printf("Halting emulation.\n");
 
 	gpu_destroy();
+	mem_destroy();
 
 	return 0;
 }
