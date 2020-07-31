@@ -1,4 +1,5 @@
 #include"cpu.h"
+#include"ints.h"
 #include"logger.h"
 #include"mem.h"
 #include"regs.h"
@@ -8,12 +9,23 @@
 #define _CPU_IS_HALF_CARRY(a, b) ((((a & 0x0F) + (b & 0x0F)) & 0x10) == 0x10)
 #define _CPU_IS_CARRY(a, b) ((((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100)
 
+#define IME_OP_DI 0
+#define IME_OP_EI 1
+
 typedef int (*cpu_instruction_t)(void);
 
 static cpu_instruction_t g_instruction_table[INSTRUCTIONS_NUMBER];
 static cpu_instruction_t g_cb_prefix_instruction_table[INSTRUCTIONS_NUMBER];
 
 static struct cpu_registers g_registers;
+
+// cpu state
+static bool g_cpu_halted = 0;
+static bool g_cpu_stopped = 0;
+
+// cpu ime delay
+static int g_ime_delay = 0;
+static int g_ime_op = IME_OP_DI;
 
 void cpu_register_print(FILE *out)
 {
@@ -60,8 +72,48 @@ static int _cpu_not_implemented(void)
 
 // CPU specific instructions
 
+// Misc instructions
+//========================================
+
 static int _cpu_nop(void)
 {
+	g_registers.PC += 1;
+	return 4;
+}
+
+static int _cpu_stop(void)
+{
+	g_cpu_stopped = 1;
+	g_registers.PC += 2;
+	return 4;
+}
+
+static int _cpu_halt(void)
+{
+	g_cpu_halted = 1;
+	g_registers.PC += 1;
+	return 4;
+}
+
+static int _cpu_prefix_cb(void)
+{
+	g_registers.PC += 1;
+	d8 opcode = mem_read8(g_registers.PC);
+	return g_cb_prefix_instruction_table[opcode]();
+}
+
+static int _cpu_di(void)
+{
+	g_ime_delay = 2;
+	g_ime_op = IME_OP_DI;
+	g_registers.PC += 1;
+	return 4;
+}
+
+static int _cpu_ei(void)
+{
+	g_ime_delay = 2;
+	g_ime_op = IME_OP_EI;
 	g_registers.PC += 1;
 	return 4;
 }
@@ -1297,10 +1349,26 @@ static int _cpu_rlca(void)
 
 int cpu_single_step(void)
 {
-	// Fetch
-	d8 instruction_code = mem_read8(g_registers.PC);
-	// Decode & Execute
-	return g_instruction_table[instruction_code]();
+	if(g_cpu_stopped) {
+		return 1;
+	} else if(g_cpu_halted) {
+		return 1;
+	} else {
+		// Fetch
+		d8 instruction_code = mem_read8(g_registers.PC);
+		// Decode & Execute
+		int cycles = g_instruction_table[instruction_code]();
+
+		if(g_ime_delay > 0) {
+			g_ime_delay -= 1;
+		}
+		if(g_ime_delay == 0) {
+			g_ime_delay = -1;
+			g_ime_op == IME_OP_EI ? ints_set_ime() : ints_reset_ime();
+		}
+
+		return cycles;
+	}
 }
 
 
@@ -1341,6 +1409,7 @@ void cpu_prepare(void)
 	// Missing
 	g_instruction_table[0x0E] = _cpu_ld_c_d8;
 	// Missing
+	g_instruction_table[0x10] = _cpu_stop;
 	g_instruction_table[0x11] = _cpu_ld_de_d16;
 	g_instruction_table[0x12] = _cpu_ld_imm_de_a;
 	// Missing
@@ -1430,7 +1499,7 @@ void cpu_prepare(void)
 	g_instruction_table[0x73] = _cpu_ld_imm_hl_e;
 	g_instruction_table[0x74] = _cpu_ld_imm_hl_h;
 	g_instruction_table[0x75] = _cpu_ld_imm_hl_l;
-	// Missing
+	g_instruction_table[0x76] = _cpu_halt;
 	g_instruction_table[0x77] = _cpu_ld_imm_hl_a;
 	g_instruction_table[0x78] = _cpu_ld_a_b;
 	g_instruction_table[0x79] = _cpu_ld_a_c;
@@ -1452,7 +1521,7 @@ void cpu_prepare(void)
 	g_instruction_table[0xC8] = _cpu_ret_z;
 	g_instruction_table[0xC9] = _cpu_ret;
 	g_instruction_table[0xCA] = _cpu_jp_z_a16;
-	// Missing
+	g_instruction_table[0xCB] = _cpu_prefix_cb;
 	g_instruction_table[0xCC] = _cpu_call_z_a16;
 	g_instruction_table[0xCD] = _cpu_call_a16;
 	// Missing
@@ -1490,13 +1559,15 @@ void cpu_prepare(void)
 	g_instruction_table[0XF0] = _cpu_ldh_a_imm_a8;
 	g_instruction_table[0xF1] = _cpu_pop_af;
 	g_instruction_table[0xF2] = _cpu_ld_a_imm_c;
-	// Missing
+	g_instruction_table[0xF3] = _cpu_di;
 	g_instruction_table[0xF5] = _cpu_push_af;
 	// Missing
 	g_instruction_table[0xF7] = _cpu_rst_30H;
 	g_instruction_table[0xF8] = _cpu_ld_hl_sp_add_d8;
 	g_instruction_table[0xF9] = _cpu_ld_sp_hl;
 	g_instruction_table[0xFA] = _cpu_ld_a_imm_a16;
+	g_instruction_table[0xFB] = _cpu_ei;
+	// Missing
 	g_instruction_table[0xFF] = _cpu_rst_38H;
 
 	registers_prepare(&g_registers);
@@ -1518,4 +1589,24 @@ void cpu_push16(u16 data)
 	g_registers.SP -= 2;
 	// Save data at the new location
 	mem_write16(g_registers.SP, data);
+}
+
+bool cpu_get_halted()
+{
+	return g_cpu_halted;
+}
+
+void cpu_set_halted(bool val)
+{
+	g_cpu_halted = val;
+}
+
+bool cpu_get_stopped()
+{
+	return g_cpu_stopped;
+}
+
+void cpu_set_stopped(bool val)
+{
+	g_cpu_stopped = val;
 }
