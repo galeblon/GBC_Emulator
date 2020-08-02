@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
-#include"cpu.h"
 #include"ints.h"
+#include"gpu.h"
 #include"mem.h"
 #include"regs.h"
 #include"rom.h"
@@ -24,28 +24,32 @@ int main(int argc, char *argv[])
 
 	printf("ROM header checksum passed.\n");
 	rom_print_title();
+	char title[16];
+	rom_get_title(title);
 
 	//TODO prepare memory and fill stack with data according to powerup sequence
-	//TODO prepare gpu
 	//TODO prepare sound
 	//TODO prepare joypads
 	cpu_prepare();
 	ints_prepare();
+	gpu_prepare(title);
 
 	printf("Starting emulation.\n");
-	int cycles_delta = 0;
+	int 	cycles_delta 		= 0;
+	bool 	programme_closed 	= 0;
 
 	// Main Loop
-	while (cycles_delta != -1) {
+	while (cycles_delta != -1 && programme_closed == 0) {
 		cycles_delta = cpu_single_step();
-		// gpu_step(cycles_delta)
+		programme_closed = gpu_step(cycles_delta);
 		// sound_step(cycles_delta)
 		// joypad
-		// interrupts_handling
 		ints_check();
 	}
 
 	printf("Halting emulation.\n");
+
+	gpu_destroy();
 
 	return 0;
 }
