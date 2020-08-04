@@ -1365,7 +1365,7 @@ void _cpu_debug_console(u16 pc_old)
 		break;
 	case 4:
 		// CB prefix special print
-		printf("CB PREFIX TODO");
+		printf("CB %s",debug_op_extended_mnemonic_format(mem_read8(pc_old+1)));
 	}
 	printf("\n");
 }
