@@ -264,12 +264,13 @@ static struct instruction_info instruction_infos[256] = {
 		{1, "RST\t0x38"}
 };
 
+
 int debug_op_length(d8 opcode)
 {
 	return instruction_infos[opcode].length;
 }
 
-// return the mnemonic of given instruction
+
 char* debug_op_mnemonic_format(d8 opcode)
 {
 	return instruction_infos[opcode].mnemonic_format;
