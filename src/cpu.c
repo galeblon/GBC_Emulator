@@ -1,4 +1,5 @@
 #include"cpu.h"
+#include"debug.h"
 #include"ints.h"
 #include"logger.h"
 #include"mem.h"
@@ -1347,6 +1348,29 @@ static int _cpu_rlca(void)
 }
 
 
+void _cpu_debug_console(u16 pc_old)
+{
+	d8 opcode = mem_read8(pc_old);
+	printf("0x%04X\t", pc_old);
+	int len = debug_op_length(opcode);
+	switch(len) {
+	case 1:
+		printf("%s" ,debug_op_mnemonic_format(opcode));
+		break;
+	case 2:
+		printf(debug_op_mnemonic_format(opcode), mem_read8(pc_old+1));
+		break;
+	case 3:
+		printf(debug_op_mnemonic_format(opcode), mem_read16(pc_old+1));
+		break;
+	case 4:
+		// CB prefix special print
+		printf("CB PREFIX TODO");
+	}
+	printf("\n");
+}
+
+
 int cpu_single_step(void)
 {
 	if(g_cpu_stopped) {
@@ -1355,6 +1379,9 @@ int cpu_single_step(void)
 		return 1;
 	} else {
 		// Fetch
+#ifdef DEBUG
+		_cpu_debug_console(g_registers.PC);
+#endif
 		d8 instruction_code = mem_read8(g_registers.PC);
 		// Decode & Execute
 		int cycles = g_instruction_table[instruction_code]();
@@ -1366,7 +1393,6 @@ int cpu_single_step(void)
 			g_ime_delay = -1;
 			g_ime_op == IME_OP_EI ? ints_set_ime() : ints_reset_ime();
 		}
-
 		return cycles;
 	}
 }
