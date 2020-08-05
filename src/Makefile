@@ -5,7 +5,7 @@ SRCS = cpu.c logger.c regs.c rom.c ints.c main.c mem.c debug.c
 OBJS = $(SRCS:.c=.o)
 BIN = gbc
 
-all: gbc
+all: gbc_debug
 
 gbc_debug: CFLAGS += -DDEBUG
 gbc_debug: gbc
