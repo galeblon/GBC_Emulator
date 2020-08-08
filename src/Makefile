@@ -18,4 +18,4 @@ gbc: $(OBJS)
 
 .PHONY: clean
 clean:
-	rm *.o $(BIN)
+	rm -f *.o $(BIN)
