@@ -1573,7 +1573,7 @@ static int _cpu_sub_c(void)
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
-return 4;
+	return 4;
 }
 
 static int _cpu_sub_d(void)
@@ -1599,7 +1599,7 @@ static int _cpu_sub_e(void)
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
-return 4;
+	return 4;
 }
 
 static int _cpu_sub_h(void)
@@ -1612,7 +1612,7 @@ static int _cpu_sub_h(void)
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
-return 4;
+	return 4;
 }
 
 static int _cpu_sub_l(void)
@@ -1786,6 +1786,430 @@ static int _cpu_sbc_a_d8(void)
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW_C(left, right, g_registers.FLAGS.C);
 	g_registers.FLAGS.C = _CPU_IS_BORROW_C(left, right, g_registers.FLAGS.C);
+	return 8;
+}
+
+// AND instructions
+//================================================
+
+static int _cpu_and_b(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.B;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_c(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.C;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_d(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.D;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_e(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.E;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_h(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.H;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_l(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.L;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_imm_hl(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & mem_read8(g_registers.HL);
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 8;
+}
+
+static int _cpu_and_a(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & g_registers.A;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_and_d8(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 1;
+	g_registers.FLAGS.C = 0;
+	return 8;
+}
+
+
+// XOR instructions
+//================================================
+
+static int _cpu_xor_b(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.B;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_c(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.C;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_d(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.D;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_e(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.E;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_h(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.H;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_l(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.L;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_imm_hl(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ mem_read8(g_registers.HL);
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 8;
+}
+
+static int _cpu_xor_a(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ g_registers.A;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_xor_d8(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A ^ mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 8;
+}
+
+
+// OR instructions
+//================================================
+
+static int _cpu_or_b(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.B;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_c(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.C;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_d(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.D;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_e(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.E;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_h(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.H;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_l(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.L;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_imm_hl(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | mem_read8(g_registers.HL);
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 8;
+}
+
+static int _cpu_or_a(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A | g_registers.A;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 4;
+}
+
+static int _cpu_or_d8(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = g_registers.A & mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 0;
+	return 8;
+}
+
+
+// CP instructions
+//================================================
+
+static int _cpu_cp_b(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.B;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_c(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.C;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_d(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.D;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_e(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.E;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_h(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.H;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_l(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.L;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_imm_hl(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = mem_read8(g_registers.HL);
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 8;
+}
+
+static int _cpu_cp_a(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = g_registers.A;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_cp_d8(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
 	return 8;
 }
 
@@ -2056,7 +2480,38 @@ void cpu_prepare(void)
 	g_instruction_table[0x9D] = _cpu_sbc_a_l;
 	g_instruction_table[0x9E] = _cpu_sbc_a_imm_hl;
 	g_instruction_table[0x9F] = _cpu_sbc_a_a;
-	// Missing
+	g_instruction_table[0xA0] = _cpu_and_b;
+	g_instruction_table[0xA1] = _cpu_and_c;
+	g_instruction_table[0xA2] = _cpu_and_d;
+	g_instruction_table[0xA3] = _cpu_and_e;
+	g_instruction_table[0xA4] = _cpu_and_h;
+	g_instruction_table[0xA5] = _cpu_and_l;
+	g_instruction_table[0xA6] = _cpu_and_imm_hl;
+	g_instruction_table[0xA7] = _cpu_and_a;
+	g_instruction_table[0xA8] = _cpu_xor_b;
+	g_instruction_table[0xA9] = _cpu_xor_c;
+	g_instruction_table[0xAA] = _cpu_xor_d;
+	g_instruction_table[0xAB] = _cpu_xor_e;
+	g_instruction_table[0xAC] = _cpu_xor_h;
+	g_instruction_table[0xAD] = _cpu_xor_l;
+	g_instruction_table[0xAE] = _cpu_xor_imm_hl;
+	g_instruction_table[0xAF] = _cpu_xor_a;
+	g_instruction_table[0xB0] = _cpu_or_b;
+	g_instruction_table[0xB1] = _cpu_or_c;
+	g_instruction_table[0xB2] = _cpu_or_d;
+	g_instruction_table[0xB3] = _cpu_or_e;
+	g_instruction_table[0xB4] = _cpu_or_h;
+	g_instruction_table[0xB5] = _cpu_or_l;
+	g_instruction_table[0xB6] = _cpu_or_imm_hl;
+	g_instruction_table[0xB7] = _cpu_or_a;
+	g_instruction_table[0xB8] = _cpu_cp_b;
+	g_instruction_table[0xB9] = _cpu_cp_c;
+	g_instruction_table[0xBA] = _cpu_cp_d;
+	g_instruction_table[0xBB] = _cpu_cp_e;
+	g_instruction_table[0xBC] = _cpu_cp_h;
+	g_instruction_table[0xBD] = _cpu_cp_l;
+	g_instruction_table[0xBE] = _cpu_cp_imm_hl;
+	g_instruction_table[0xBF] = _cpu_cp_a;
 	g_instruction_table[0xC0] = _cpu_ret_nz;
 	g_instruction_table[0xC1] = _cpu_pop_bc;
 	g_instruction_table[0xC2] = _cpu_jp_nz_a16;
@@ -2073,11 +2528,10 @@ void cpu_prepare(void)
 	g_instruction_table[0xCD] = _cpu_call_a16;
 	g_instruction_table[0xCE] = _cpu_adc_a_d8;
 	g_instruction_table[0xCF] = _cpu_rst_08H;
-	// Missing
 	g_instruction_table[0xD0] = _cpu_ret_nc;
 	g_instruction_table[0xD1] = _cpu_pop_de;
 	g_instruction_table[0xD2] = _cpu_jp_nc_a16;
-	// Missing
+	g_instruction_table[0xD3] = _cpu_not_implemented;
 	g_instruction_table[0xD4] = _cpu_call_nc_a16;
 	g_instruction_table[0xD5] = _cpu_push_de;
 	g_instruction_table[0xD6] = _cpu_sub_d8;
@@ -2085,37 +2539,41 @@ void cpu_prepare(void)
 	g_instruction_table[0xD8] = _cpu_ret_c;
 	g_instruction_table[0xD9] = _cpu_reti;
 	g_instruction_table[0xDA] = _cpu_jp_c_a16;
-	// Missing
+	g_instruction_table[0xDB] = _cpu_not_implemented;
 	g_instruction_table[0xDC] = _cpu_call_c_a16;
-	// Missing
+	g_instruction_table[0xDD] = _cpu_not_implemented;
 	g_instruction_table[0xDE] = _cpu_sbc_a_d8;
 	g_instruction_table[0xDF] = _cpu_rst_18H;
-	// Missing
 	g_instruction_table[0XE0] = _cpu_ldh_imm_a8_a;
 	g_instruction_table[0xE1] = _cpu_pop_hl;
 	g_instruction_table[0xE2] = _cpu_ld_imm_c_a;
-	// Missing
+	g_instruction_table[0xE3] = _cpu_not_implemented;
+	g_instruction_table[0xE4] = _cpu_not_implemented;
 	g_instruction_table[0xE5] = _cpu_push_hl;
-	// Missing
+	g_instruction_table[0xE6] = _cpu_and_d8;
 	g_instruction_table[0xE7] = _cpu_rst_20H;
 	// Missing
 	g_instruction_table[0xE9] = _cpu_jp_imm_hl;
 	g_instruction_table[0xEA] = _cpu_ld_imm_a16_a;
-	// Missing
+	g_instruction_table[0xEB] = _cpu_not_implemented;
+	g_instruction_table[0xEC] = _cpu_not_implemented;
+	g_instruction_table[0xED] = _cpu_not_implemented;
+	g_instruction_table[0xEE] = _cpu_xor_d8;
 	g_instruction_table[0xEF] = _cpu_rst_28H;
-	// Missing
 	g_instruction_table[0XF0] = _cpu_ldh_a_imm_a8;
 	g_instruction_table[0xF1] = _cpu_pop_af;
 	g_instruction_table[0xF2] = _cpu_ld_a_imm_c;
 	g_instruction_table[0xF3] = _cpu_di;
 	g_instruction_table[0xF5] = _cpu_push_af;
-	// Missing
+	g_instruction_table[0xF6] = _cpu_or_d8;
 	g_instruction_table[0xF7] = _cpu_rst_30H;
 	g_instruction_table[0xF8] = _cpu_ld_hl_sp_add_d8;
 	g_instruction_table[0xF9] = _cpu_ld_sp_hl;
 	g_instruction_table[0xFA] = _cpu_ld_a_imm_a16;
 	g_instruction_table[0xFB] = _cpu_ei;
-	// Missing
+	g_instruction_table[0xFC] = _cpu_not_implemented;
+	g_instruction_table[0xFD] = _cpu_not_implemented;
+	g_instruction_table[0xFE] = _cpu_cp_d8;
 	g_instruction_table[0xFF] = _cpu_rst_38H;
 
 	registers_prepare(&g_registers);
