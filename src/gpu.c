@@ -199,8 +199,9 @@ static void _gpu_update_lcd_status(void)
 		stat |= B2;
 		if((stat & B6) != 0)
 			ints_request(INT_LCDC);
-	} else
+	} else {
 		stat &= !B2;
+	}
 
 	//Save proper STAT
 	mem_write8(STATAddress, stat);
@@ -257,12 +258,13 @@ void gpu_write_bgpd(d8 new_bgpd)
 			new_bgpi &= !B6;
 			gpu_write_bgpi(new_bgpi);
 		}
-	} else
+	} else {
 		_gpu_error(
 			LOG_FATAL,
 			"GPU SPD",
 			"SPD REGISTER ACCESSED OUTSIDE H- OR V-BLANK"
 		);
+	}
 }
 
 
@@ -316,13 +318,13 @@ void gpu_write_spd(d8 new_spd)
 			new_spi &= !B6;
 			gpu_write_spi(new_spi);
 		}
-	}
-	else
+	} else {
 		_gpu_error(
 			LOG_FATAL,
 			"GPU SPD",
 			"SPD REGISTER ACCESSED OUTSIDE H- OR V-BLANK"
 		);
+	}
 }
 
 
@@ -345,7 +347,7 @@ void gpu_step(int cycles_delta)
 
 	if( g_current_cycles >= _CYCLES_PER_SCANLINE ) {
 		//Reset our counter
-		g_current_cycles = 0;
+		g_current_cycles -= _CYCLES_PER_SCANLINE;
 
 		//Increment the LY register
 		d8 ly = mem_read8(LYAddress);

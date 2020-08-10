@@ -36,10 +36,10 @@ int main(int argc, char *argv[])
 	gpu_prepare(title);
 
 	printf("Starting emulation.\n");
-	int 	cycles_delta 		= 0;
+	int cycles_delta = 0;
 
 	// Main Loop
-	while (cycles_delta != -1 && display_get_closed_status() == 0) {
+	while ( cycles_delta != -1 && !display_get_closed_status() ) {
 		cycles_delta = cpu_single_step();
 		gpu_step(cycles_delta);
 		// sound_step(cycles_delta)

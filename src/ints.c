@@ -153,19 +153,19 @@ void ints_request(enum ints_interrupt_type interrupt)
 {
 	d8 IF = readIF;
 	switch(interrupt) {
-	case 0:
+	case INT_V_BLANK:
 		IF |= B0;
 		break;
-	case 1:
+	case INT_LCDC:
 		IF |= B1;
 		break;
-	case 2:
+	case INT_TIMER_OVERFLOW:
 		IF |= B2;
 		break;
-	case 3:
+	case INT_SERIAL_IO_TRANSFER_COMPLETE:
 		IF |= B3;
 		break;
-	case 4:
+	case INT_HIGH_TO_LOW_P10_P13:
 		IF |= B4;
 		break;
 	case 5:

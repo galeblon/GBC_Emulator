@@ -28,7 +28,7 @@ static void _display_error(enum logger_log_type type, char *title, char *message
 
 void display_prepare(float frequency, char * rom_title)
 {
-	if( !al_init() ) {
+	if(!al_init()) {
 		_display_error(
 			LOG_FATAL,
 			"ALLEGRO INIT",
@@ -48,7 +48,7 @@ void display_prepare(float frequency, char * rom_title)
 	}
 
 	g_display = al_create_display( 160 * SCALING_FACTOR, 144 * SCALING_FACTOR );
-	if( !g_display ) {
+	if(!g_display) {
 		_display_error(
 			LOG_FATAL,
 			"ALLEGRO DISPLAY",
@@ -77,7 +77,6 @@ void display_prepare(float frequency, char * rom_title)
 		return;
 	}
 
-	// Register event sources
 	al_register_event_source(
 		g_close_event_queue,
 		al_get_display_event_source(g_display)
@@ -87,7 +86,6 @@ void display_prepare(float frequency, char * rom_title)
 		al_get_timer_event_source(g_timer)
 	);
 
-	// Start the timer
 	al_start_timer(g_timer);
 
 	// Display a black screen, set the title
