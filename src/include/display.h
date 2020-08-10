@@ -1,12 +1,11 @@
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
 
-#include"cpu.h"
+#include"types.h"
 
 #define SCALING_FACTOR 1
 
-void display_prepare(float frequency);
-void display_create_window(char * rom_title);
+void display_prepare(float frequency, char * rom_title);
 bool display_get_closed_status(void);
 void display_destroy(void);
 

@@ -19,10 +19,3 @@ void rom_get_title(char * title_buffer)
 	for (a16 i = 0; i < 16; i++)
 		title_buffer[i] = mem_read8(ROM_TITLE + i);
 }
-
-void rom_print_title(void)
-{
-	char title[16];
-	rom_get_title(title);
-	printf("ROM title: %.16s\n", title);
-}

@@ -1,12 +1,13 @@
 #include<allegro5/allegro5.h>
+#include"cpu.h"
 #include"display.h"
 #include"logger.h"
 
-ALLEGRO_DISPLAY     *g_display           = NULL;
-ALLEGRO_TIMER       *g_timer             = NULL;
-ALLEGRO_EVENT_QUEUE *g_close_event_queue = NULL;
-ALLEGRO_EVENT_QUEUE *g_event_queue       = NULL;
-ALLEGRO_EVENT       g_event;
+static ALLEGRO_DISPLAY     *g_display           = NULL;
+static ALLEGRO_TIMER       *g_timer             = NULL;
+static ALLEGRO_EVENT_QUEUE *g_close_event_queue = NULL;
+static ALLEGRO_EVENT_QUEUE *g_event_queue       = NULL;
+static ALLEGRO_EVENT       g_event;
 
 
 static void _display_error(enum logger_log_type type, char *title, char *message)
@@ -25,7 +26,7 @@ static void _display_error(enum logger_log_type type, char *title, char *message
 	);
 }
 
-void display_prepare(float frequency)
+void display_prepare(float frequency, char * rom_title)
 {
 	if( !al_init() ) {
 		_display_error(
@@ -88,11 +89,7 @@ void display_prepare(float frequency)
 
 	// Start the timer
 	al_start_timer(g_timer);
-}
 
-
-void display_create_window(char * rom_title)
-{
 	// Display a black screen, set the title
 	al_set_window_title(g_display, rom_title);
 	al_clear_to_color( al_map_rgb(0, 0, 0) );

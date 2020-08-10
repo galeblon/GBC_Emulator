@@ -7,13 +7,6 @@
 
 #define FRAME_RATE 60
 
-enum gpu_mode {
-	GPU_H_BLANK,
-	GPU_V_BLANK,
-	GPU_OAM,
-	GPU_VRAM
-};
-
 
 d8 gpu_read_bgpi();
 void gpu_write_bgpi(d8 new_bgpi);
@@ -26,7 +19,7 @@ void gpu_write_spd(d8 new_spd);
 
 
 void gpu_prepare(char * rom_title);
-bool gpu_step(int cycles_delta);
+void gpu_step(int cycles_delta);
 void gpu_destroy(void);
 
 #endif /* GPU_H_ */

@@ -1,4 +1,5 @@
-#include <stdio.h>
+#include<stdbool.h>
+#include<stdio.h>
 #include"display.h"
 #include"gpu.h"
 #include"ints.h"
@@ -7,8 +8,8 @@
 #include"types.h"
 
 #define _CYCLES_PER_SCANLINE 456
-#define _MODE_2_BOUNDS       _CYCLES_PER_SCANLINE - 80
-#define _MODE_3_BOUNDS       _MODE_2_BOUNDS - 172
+#define _MODE_2_BOUNDS       (_CYCLES_PER_SCANLINE - 80)
+#define _MODE_3_BOUNDS       (_MODE_2_BOUNDS - 172)
 
 #define OAMAddress  0xFE00 	/* Sprite Attribute Table / Object Attribute Memory */
 
@@ -29,8 +30,8 @@
 #define SPIAddress  0xFF6A 	/* Sprite Palette Index */
 #define SPDAddress  0xFF6B 	/* Sprite Palette Data */
 
-#define spriteScreenPosX(ScreenX) SpriteX-8
-#define spriteScreenPosY(ScreenY) SpriteY-16
+#define spriteScreenPosX(ScreenX) (SpriteX-8)
+#define spriteScreenPosY(ScreenY) (SpriteY-16)
 
 #define B0 0x01
 #define B1 0x02
@@ -41,21 +42,30 @@
 #define B6 0x40
 #define B7 0x80
 
-#define isLCDC0(reg) (reg & B0) != 0
-#define isLCDC1(reg) (reg & B1) != 0
-#define isLCDC2(reg) (reg & B2) != 0
-#define isLCDC3(reg) (reg & B3) != 0
-#define isLCDC4(reg) (reg & B4) != 0
-#define isLCDC5(reg) (reg & B5) != 0
-#define isLCDC6(reg) (reg & B6) != 0
-#define isLCDC7(reg) (reg & B7) != 0
+#define isLCDC0(reg) ((reg & B0) != 0)
+#define isLCDC1(reg) ((reg & B1) != 0)
+#define isLCDC2(reg) ((reg & B2) != 0)
+#define isLCDC3(reg) ((reg & B3) != 0)
+#define isLCDC4(reg) ((reg & B4) != 0)
+#define isLCDC5(reg) ((reg & B5) != 0)
+#define isLCDC6(reg) ((reg & B6) != 0)
+#define isLCDC7(reg) ((reg & B7) != 0)
 
-int g_current_cycles                  = 0;
-int g_sprite_width                    = 8;
-int g_sprite_height                   = 0;
-d8  g_window_tile_map_display_address = 0;
-d8  g_bg_window_tile_data_address     = 0;
-d8  g_bg_tile_map_display_address     = 0;
+
+enum gpu_mode {
+	GPU_H_BLANK = 0,
+	GPU_V_BLANK = 1,
+	GPU_OAM     = 2,
+	GPU_VRAM    = 3
+};
+
+
+static int const g_sprite_width              = 8;
+static int g_current_cycles                  = 0;
+static int g_sprite_height                   = 0;
+static d8  g_window_tile_map_display_address = 0;
+static d8  g_bg_window_tile_data_address     = 0;
+static d8  g_bg_tile_map_display_address     = 0;
 
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
@@ -181,14 +191,14 @@ static void _gpu_update_lcd_status(void)
 
 	//Request an interrupt if we have just changed the mode
 	if(request_interrupt && (current_mode != hitherto_mode))
-		ints_request_type(INT_LCDC);
+		ints_request(INT_LCDC);
 
 	//Check the coincidence flag
 	d8 lyc = mem_read8(LYCAddress);
 	if(ly == lyc) {
 		stat |= B2;
 		if((stat & B6) != 0)
-			ints_request_type(INT_LCDC);
+			ints_request(INT_LCDC);
 	} else
 		stat &= !B2;
 
@@ -318,16 +328,11 @@ void gpu_write_spd(d8 new_spd)
 
 void gpu_prepare(char * rom_title)
 {
-	display_prepare(1.0 / FRAME_RATE);
-
-	display_create_window(rom_title);
+	display_prepare(1.0 / FRAME_RATE, rom_title);
 }
 
-bool gpu_step(int cycles_delta)
+void gpu_step(int cycles_delta)
 {
-	//Check whether the window has been closed
-	bool programme_closed = display_get_closed_status();
-	
 	//Get LCD Controller (LCDC) Register
 	d8 lcdc = mem_read8(LCDCAddress);
 
@@ -337,8 +342,6 @@ bool gpu_step(int cycles_delta)
 	//Update cycles only if LCD is enabled
 	if(isLCDC7(lcdc))
 		g_current_cycles += cycles_delta;
-	else
-		return programme_closed;
 
 	if( g_current_cycles >= _CYCLES_PER_SCANLINE ) {
 		//Reset our counter
@@ -353,14 +356,12 @@ bool gpu_step(int cycles_delta)
 		//Reset LY when we reach the end
 		//Draw the current scanline if neither
 		if(ly == 144)
-			ints_request_type(INT_V_BLANK);
+			ints_request(INT_V_BLANK);
 		else if(ly > 153)
 			mem_write8(LYAddress, 0);
 		else
 			_gpu_draw_scanline();
 	}
-
-	return programme_closed;
 }
 
 

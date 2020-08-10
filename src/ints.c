@@ -25,14 +25,14 @@
 #define B6 0x40
 #define B7 0x80
 
-#define isF0(reg) (reg & B0) != 0
-#define isF1(reg) (reg & B1) != 0
-#define isF2(reg) (reg & B2) != 0
-#define isF3(reg) (reg & B3) != 0
-#define isF4(reg) (reg & B4) != 0
-#define isF5(reg) (reg & B5) != 0
-#define isF6(reg) (reg & B6) != 0
-#define isF7(reg) (reg & B7) != 0
+#define isF0(reg) ((reg & B0) != 0)
+#define isF1(reg) ((reg & B1) != 0)
+#define isF2(reg) ((reg & B2) != 0)
+#define isF3(reg) ((reg & B3) != 0)
+#define isF4(reg) ((reg & B4) != 0)
+#define isF5(reg) ((reg & B5) != 0)
+#define isF6(reg) ((reg & B6) != 0)
+#define isF7(reg) ((reg & B7) != 0)
 
 #define noF0(reg) (reg & ~B0)
 #define noF1(reg) (reg & ~B1)
@@ -149,10 +149,10 @@ void ints_check(void)
 }
 
 
-void ints_request(int interrupt_number)
+void ints_request(enum ints_interrupt_type interrupt)
 {
 	d8 IF = readIF;
-	switch(interrupt_number) {
+	switch(interrupt) {
 	case 0:
 		IF |= B0;
 		break;
@@ -179,10 +179,4 @@ void ints_request(int interrupt_number)
 		break;
 	}
 	writeIF(IF);
-}
-
-
-void ints_request_type(enum ints_interrupt_type interrupt)
-{
-	ints_request((int)interrupt);
 }
