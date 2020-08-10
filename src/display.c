@@ -2,11 +2,11 @@
 #include"display.h"
 #include"logger.h"
 
-ALLEGRO_DISPLAY 	*display 			= NULL;
-ALLEGRO_TIMER 		*timer 				= NULL;
-ALLEGRO_EVENT_QUEUE *close_event_queue 	= NULL;
-ALLEGRO_EVENT_QUEUE *event_queue 		= NULL;
-ALLEGRO_EVENT 		event;
+ALLEGRO_DISPLAY     *g_display           = NULL;
+ALLEGRO_TIMER       *g_timer             = NULL;
+ALLEGRO_EVENT_QUEUE *g_close_event_queue = NULL;
+ALLEGRO_EVENT_QUEUE *g_event_queue       = NULL;
+ALLEGRO_EVENT       g_event;
 
 
 static void _display_error(enum logger_log_type type, char *title, char *message)
@@ -36,8 +36,8 @@ void display_prepare(float frequency)
 		return;
 	}
 
-	timer = al_create_timer(frequency);
-	if (!timer) {
+	g_timer = al_create_timer(frequency);
+	if (!g_timer) {
 		_display_error(
 			LOG_FATAL,
 			"ALLEGRO TIMER",
@@ -46,8 +46,8 @@ void display_prepare(float frequency)
 		return;
 	}
 
-	display = al_create_display( 160 * SCALING_FACTOR, 144 * SCALING_FACTOR );
-	if( !display ) {
+	g_display = al_create_display( 160 * SCALING_FACTOR, 144 * SCALING_FACTOR );
+	if( !g_display ) {
 		_display_error(
 			LOG_FATAL,
 			"ALLEGRO DISPLAY",
@@ -56,8 +56,8 @@ void display_prepare(float frequency)
     	return;
 	}
 
-	event_queue = al_create_event_queue();
-	if (!event_queue) {
+	g_event_queue = al_create_event_queue();
+	if (!g_event_queue) {
 		_display_error(
 			LOG_FATAL,
 			"ALLEGRO QUEUE",
@@ -66,8 +66,8 @@ void display_prepare(float frequency)
 		return;
 	}
 
-	close_event_queue = al_create_event_queue();
-	if (!close_event_queue) {
+	g_close_event_queue = al_create_event_queue();
+	if (!g_close_event_queue) {
 		_display_error(
 			LOG_FATAL,
 			"ALLEGRO QUEUE",
@@ -78,23 +78,23 @@ void display_prepare(float frequency)
 
 	// Register event sources
 	al_register_event_source(
-		close_event_queue,
-		al_get_display_event_source(display)
+		g_close_event_queue,
+		al_get_display_event_source(g_display)
 	);
 	al_register_event_source(
-		event_queue,
-		al_get_timer_event_source(timer)
+		g_event_queue,
+		al_get_timer_event_source(g_timer)
 	);
 
 	// Start the timer
-	al_start_timer(timer);
+	al_start_timer(g_timer);
 }
 
 
 void display_create_window(char * rom_title)
 {
 	// Display a black screen, set the title
-	al_set_window_title(display, rom_title);
+	al_set_window_title(g_display, rom_title);
 	al_clear_to_color( al_map_rgb(0, 0, 0) );
 	al_flip_display();
 }
@@ -103,11 +103,11 @@ void display_create_window(char * rom_title)
 bool display_get_closed_status(void)
 {
 	// Fetch the event (if one exists)
-	bool event_exists = al_get_next_event(close_event_queue, &event);
+	bool event_exists = al_get_next_event(g_close_event_queue, &g_event);
 
 	if(event_exists)
 		// Handle the event
-		switch (event.type) {
+		switch (g_event.type) {
 			case ALLEGRO_EVENT_DISPLAY_CLOSE:
 				return true;
 			default:
@@ -120,7 +120,7 @@ bool display_get_closed_status(void)
 
 void display_destroy(void)
 {
-	al_destroy_display(display);
-	al_destroy_event_queue(event_queue);
-	al_destroy_event_queue(close_event_queue);
+	al_destroy_display(g_display);
+	al_destroy_event_queue(g_event_queue);
+	al_destroy_event_queue(g_close_event_queue);
 }

@@ -3,31 +3,31 @@
 #include"gpu.h"
 #include"ints.h"
 #include"logger.h"
-#include"types.h"
 #include"mem.h"
+#include"types.h"
 
 #define _CYCLES_PER_SCANLINE 456
-#define _MODE_2_BOUNDS _CYCLES_PER_SCANLINE - 80
-#define _MODE_3_BOUNDS _MODE_2_BOUNDS - 172
+#define _MODE_2_BOUNDS       _CYCLES_PER_SCANLINE - 80
+#define _MODE_3_BOUNDS       _MODE_2_BOUNDS - 172
 
-#define OAMAddress	0xFE00 	/* Sprite Attribute Table / Object Attribute Memory */
+#define OAMAddress  0xFE00 	/* Sprite Attribute Table / Object Attribute Memory */
 
 #define LCDCAddress 0xFF40 	/* LCD Controller */
 #define STATAddress 0xFF41 	/* LCD Controller Status*/
-#define SCYAddress 	0xFF42 	/* Background Y Scroll position */
-#define SCXAddress 	0xFF43 	/* Background X Scroll position */
-#define LYAddress 	0xFF44 	/* LCD Controller Y-Coordinate */
-#define LYCAddress 	0xFF45 	/* LY Compare */
-#define BGPAddress 	0xFF47 	/* Background & Window Palette Data */
+#define SCYAddress  0xFF42 	/* Background Y Scroll position */
+#define SCXAddress  0xFF43 	/* Background X Scroll position */
+#define LYAddress   0xFF44 	/* LCD Controller Y-Coordinate */
+#define LYCAddress  0xFF45 	/* LY Compare */
+#define BGPAddress  0xFF47 	/* Background & Window Palette Data */
 #define OBP0Address 0xFF48 	/* Object Palette 0 Data */
 #define OBP1Address 0xFF49 	/* Object Palette 1 Data */
-#define WYAddress 	0xFF4A 	/* Window Y Position */
-#define WXAddress 	0xFF4B 	/* Window X Position */
+#define WYAddress   0xFF4A 	/* Window Y Position */
+#define WXAddress   0xFF4B 	/* Window X Position */
 
 #define BGPIAddress 0xFF68 	/* Backgroound Palette Index */
 #define BGPDAddress 0xFF69 	/* Background Palette Data */
-#define SPIAddress 	0xFF6A 	/* Sprite Palette Index */
-#define SPDAddress 	0xFF6B 	/* Sprite Palette Data */
+#define SPIAddress  0xFF6A 	/* Sprite Palette Index */
+#define SPDAddress  0xFF6B 	/* Sprite Palette Data */
 
 #define spriteScreenPosX(ScreenX) SpriteX-8
 #define spriteScreenPosY(ScreenY) SpriteY-16
@@ -50,12 +50,12 @@
 #define isLCDC6(reg) (reg & B6) != 0
 #define isLCDC7(reg) (reg & B7) != 0
 
-int _current_cycles 				= 0;
-int _sprite_width					= 8;
-int _sprite_height					= 0;
-d8 _window_tile_map_display_address = 0;
-d8 _bg_window_tile_data_address		= 0;
-d8 _bg_tile_map_display_address		= 0;
+int g_current_cycles                  = 0;
+int g_sprite_width                    = 8;
+int g_sprite_height                   = 0;
+d8  g_window_tile_map_display_address = 0;
+d8  g_bg_window_tile_data_address     = 0;
+d8  g_bg_tile_map_display_address     = 0;
 
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
@@ -96,30 +96,30 @@ static void _gpu_draw_background(void)
 static void _gpu_draw_scanline(void)
 {
 	//Get LCD Controller (LCDC) Register
-	d8 LCDC = mem_read8(LCDCAddress);
+	d8 lcdc = mem_read8(LCDCAddress);
 
 	//Set correct addresses and values
-	_window_tile_map_display_address 	= isLCDC6(LCDC) ?
+	g_window_tile_map_display_address 	= isLCDC6(lcdc) ?
 			0x9C00 : 0x9800;
-	_bg_window_tile_data_address 		= isLCDC4(LCDC) ?
+	g_bg_window_tile_data_address 		= isLCDC4(lcdc) ?
 			0x8000 : 0x8800;
-	_bg_tile_map_display_address 		= isLCDC3(LCDC) ?
+	g_bg_tile_map_display_address 		= isLCDC3(lcdc) ?
 			0x9C00 : 0x9800;
-	_sprite_height = isLCDC2(LCDC) ? 16 : 8;
+	g_sprite_height = isLCDC2(lcdc) ? 16 : 8;
 
-	if(isLCDC7(LCDC)) {
+	if(isLCDC7(lcdc)) {
 		//Draw background if enabled
-		if(isLCDC0(LCDC)) {
+		if(isLCDC0(lcdc)) {
 			_gpu_draw_background();
 		}
 
 		//Draw window if enabled
-		if(isLCDC5(LCDC)) {
+		if(isLCDC5(lcdc)) {
 			_gpu_draw_window();
 		}
 
 		//Draw sprites if enabled
-		if(isLCDC1(LCDC)) {
+		if(isLCDC1(lcdc)) {
 			_gpu_draw_sprites();
 		}
 	}
@@ -129,28 +129,28 @@ static void _gpu_draw_scanline(void)
 static void _gpu_update_lcd_status(void)
 {
 	//Get required registers
-	d8 LCDC = mem_read8(LCDCAddress);
-	d8 STAT = mem_read8(STATAddress);
+	d8 lcdc = mem_read8(LCDCAddress);
+	d8 stat = mem_read8(STATAddress);
 
 	//If LCD is disabled, set mode to 1, reset scanline
-	if(!isLCDC7(LCDC)) {
-		_current_cycles = 0;
+	if(!isLCDC7(lcdc)) {
+		g_current_cycles = 0;
 		mem_write8(LYAddress, 0);
-		STAT &= 0xFC;
-		STAT |= 0x01;
-		mem_write8(STATAddress, STAT);
+		stat &= 0xFC;
+		stat |= 0x01;
+		mem_write8(STATAddress, stat);
 		return;
 	}
 
 	//Check in which mode are we now
 	int current_mode;
-	int hitherto_mode = STAT & 0x03;
-	d8 LY = mem_read8(LYAddress);
-	if(LY >= 144)
+	int hitherto_mode = stat & 0x03;
+	d8 ly = mem_read8(LYAddress);
+	if(ly >= 144)
 		current_mode = GPU_V_BLANK;
-	else if(_current_cycles >= _MODE_2_BOUNDS)
+	else if(g_current_cycles >= _MODE_2_BOUNDS)
 		current_mode = GPU_OAM;
-	else if(_current_cycles >= _MODE_3_BOUNDS)
+	else if(g_current_cycles >= _MODE_3_BOUNDS)
 		current_mode = GPU_VRAM;
 	else
 		current_mode = GPU_H_BLANK;
@@ -159,23 +159,23 @@ static void _gpu_update_lcd_status(void)
 	bool request_interrupt = 0;
 	switch(current_mode) {
 	case GPU_H_BLANK:
-		STAT &= !B0;
-		STAT &= !B1;
-		request_interrupt = (STAT & B3) != 0;
+		stat &= !B0;
+		stat &= !B1;
+		request_interrupt = (stat & B3) != 0;
 		break;
 	case GPU_V_BLANK:
-		STAT |= B0;
-		STAT &= !B1;
-		request_interrupt = (STAT & B4) != 0;
+		stat |= B0;
+		stat &= !B1;
+		request_interrupt = (stat & B4) != 0;
 		break;
 	case GPU_OAM:
-		STAT &= !B0;
-		STAT |= B1;
-		request_interrupt = (STAT & B5) != 0;
+		stat &= !B0;
+		stat |= B1;
+		request_interrupt = (stat & B5) != 0;
 		break;
 	case GPU_VRAM:
-		STAT |= B0;
-		STAT |= B1;
+		stat |= B0;
+		stat |= B1;
 		break;
 	}
 
@@ -184,16 +184,16 @@ static void _gpu_update_lcd_status(void)
 		ints_request_type(INT_LCDC);
 
 	//Check the coincidence flag
-	d8 LYC = mem_read8(LYCAddress);
-	if(LY == LYC) {
-		STAT |= B2;
-		if((STAT & B6) != 0)
+	d8 lyc = mem_read8(LYCAddress);
+	if(ly == lyc) {
+		stat |= B2;
+		if((stat & B6) != 0)
 			ints_request_type(INT_LCDC);
 	} else
-		STAT &= !B2;
+		stat &= !B2;
 
 	//Save proper STAT
-	mem_write8(STATAddress, STAT);
+	mem_write8(STATAddress, stat);
 }
 
 
@@ -212,9 +212,9 @@ void gpu_write_bgpi(d8 new_bgpi)
 d8 gpu_read_bgpd()
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 STAT = mem_read8(STATAddress);
-	STAT &= 0x03;
-	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK)
+	d8 stat = mem_read8(STATAddress);
+	stat &= 0x03;
+	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
 		return mem_read8(BGPDAddress);
 	else
 		_gpu_error(
@@ -230,19 +230,19 @@ d8 gpu_read_bgpd()
 void gpu_write_bgpd(d8 new_bgpd)
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 STAT = mem_read8(STATAddress);
-	STAT &= 0x03;
-	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK) {
+	d8 stat = mem_read8(STATAddress);
+	stat &= 0x03;
+	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK) {
 		mem_write8(BGPDAddress, new_bgpd);
 
 		//Update BGP
-		d8 BGPI = gpu_read_bgpi();
+		d8 bgpi = gpu_read_bgpi();
 		//TODO: find the address of CGB Background Color Palette Memory.
 		//mem_write8(BGPMAddress + BGPI & 0x1F, new_bgpd);
 
 		//Increment BGPI if required
-		if((BGPI & B7) == B7) {
-			d8 new_bgpi = BGPI;
+		if((bgpi & B7) == B7) {
+			d8 new_bgpi = bgpi;
 			new_bgpi++;
 			new_bgpi &= !B6;
 			gpu_write_bgpi(new_bgpi);
@@ -271,9 +271,9 @@ void gpu_write_spi(d8 new_spi)
 d8 gpu_read_spd()
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 STAT = mem_read8(STATAddress);
-	STAT &= 0x03;
-	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK)
+	d8 stat = mem_read8(STATAddress);
+	stat &= 0x03;
+	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
 		return mem_read8(SPDAddress);
 	else
 		_gpu_error(
@@ -289,19 +289,19 @@ d8 gpu_read_spd()
 void gpu_write_spd(d8 new_spd)
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 STAT = mem_read8(STATAddress);
-	STAT &= 0x03;
-	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK) {
+	d8 stat = mem_read8(STATAddress);
+	stat &= 0x03;
+	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK) {
 		mem_write8(SPDAddress, new_spd);
 
 		//Update SP
-		d8 SPI = gpu_read_spi();
+		d8 spi = gpu_read_spi();
 		//TODO: find the address of CGB Sprite Color Palette Memory.
 		//mem_write8(SPMAddress + SPI & 0x1F, new_spd);
 
 		//Increment BGPI if required
-		if((SPI & B7) == B7) {
-			d8 new_spi = SPI;
+		if((spi & B7) == B7) {
+			d8 new_spi = spi;
 			new_spi++;
 			new_spi &= !B6;
 			gpu_write_spi(new_spi);
@@ -329,32 +329,32 @@ bool gpu_step(int cycles_delta)
 	bool programme_closed = display_get_closed_status();
 	
 	//Get LCD Controller (LCDC) Register
-	d8 LCDC = mem_read8(LCDCAddress);
+	d8 lcdc = mem_read8(LCDCAddress);
 
 	//Update STAT register
 	_gpu_update_lcd_status();
 
 	//Update cycles only if LCD is enabled
-	if(isLCDC7(LCDC))
-		_current_cycles += cycles_delta;
+	if(isLCDC7(lcdc))
+		g_current_cycles += cycles_delta;
 	else
 		return programme_closed;
 
-	if( _current_cycles >= _CYCLES_PER_SCANLINE ) {
+	if( g_current_cycles >= _CYCLES_PER_SCANLINE ) {
 		//Reset our counter
-		_current_cycles = 0;
+		g_current_cycles = 0;
 
 		//Increment the LY register
-		d8 LY = mem_read8(LYAddress);
-		LY++;
-		mem_write8(LYAddress, LY);
+		d8 ly = mem_read8(LYAddress);
+		ly++;
+		mem_write8(LYAddress, ly);
 
 		//Trigger the V-Blank interrupt if in V-Blank
 		//Reset LY when we reach the end
 		//Draw the current scanline if neither
-		if(LY == 144)
+		if(ly == 144)
 			ints_request_type(INT_V_BLANK);
-		else if(LY > 153)
+		else if(ly > 153)
 			mem_write8(LYAddress, 0);
 		else
 			_gpu_draw_scanline();
