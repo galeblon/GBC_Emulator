@@ -14,6 +14,7 @@
 #define ROM_CHECKSUM 0x14D
 
 int rom_checksum_validate(void);
+void rom_get_title(char * title_buffer);
 void rom_print_title(void);
 
 #endif /* ROM_H_ */

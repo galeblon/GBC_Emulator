@@ -14,10 +14,8 @@ int rom_checksum_validate(void)
 	return header_checksum == header_checksum_verify;
 }
 
-void rom_print_title(void)
+void rom_get_title(char * title_buffer)
 {
-	char title[16];
 	for (a16 i = 0; i < 16; i++)
-		title[i] = mem_read8(ROM_TITLE + i);
-	printf("ROM title: %.16s\n", title);
+		title_buffer[i] = mem_read8(ROM_TITLE + i);
 }

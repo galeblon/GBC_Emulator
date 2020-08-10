@@ -1,7 +1,8 @@
 #include<stdio.h>
 #include<stdlib.h>
-#include"cpu.h"
+#include"display.h"
 #include"ints.h"
+#include"gpu.h"
 #include"mem.h"
 #include"regs.h"
 #include"rom.h"
@@ -23,29 +24,32 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "ROM header checksum failed.\n");
 
 	printf("ROM header checksum passed.\n");
-	rom_print_title();
+	char title[16];
+	rom_get_title(title);
+	printf("ROM title: %.16s\n", title);
 
 	//TODO prepare memory and fill stack with data according to powerup sequence
-	//TODO prepare gpu
 	//TODO prepare sound
 	//TODO prepare joypads
 	cpu_prepare();
 	ints_prepare();
+	gpu_prepare(title);
 
 	printf("Starting emulation.\n");
 	int cycles_delta = 0;
 
 	// Main Loop
-	while (cycles_delta != -1) {
+	while ( cycles_delta != -1 && !display_get_closed_status() ) {
 		cycles_delta = cpu_single_step();
-		// gpu_step(cycles_delta)
+		gpu_step(cycles_delta);
 		// sound_step(cycles_delta)
 		// joypad
-		// interrupts_handling
 		ints_check();
 	}
 
 	printf("Halting emulation.\n");
+
+	gpu_destroy();
 
 	return 0;
 }

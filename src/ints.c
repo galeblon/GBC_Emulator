@@ -13,26 +13,35 @@
 
 #define readIF mem_read8(IFAddress)
 #define readIE mem_read8(IEAddress)
-#define writeIF(val) mem_write16(IFAddress, val)
-#define writeIE(val) mem_write16(IEAddress, val)
+#define writeIF(val) mem_write8(IFAddress, val)
+#define writeIE(val) mem_write8(IEAddress, val)
 
-#define isF0(reg) (reg & 0x01) != 0
-#define isF1(reg) (reg & 0x02) != 0
-#define isF2(reg) (reg & 0x04) != 0
-#define isF3(reg) (reg & 0x08) != 0
-#define isF4(reg) (reg & 0x10) != 0
-#define isF5(reg) (reg & 0x20) != 0
-#define isF6(reg) (reg & 0x40) != 0
-#define isF7(reg) (reg & 0x80) != 0
+#define B0 0x01
+#define B1 0x02
+#define B2 0x04
+#define B3 0x08
+#define B4 0x10
+#define B5 0x20
+#define B6 0x40
+#define B7 0x80
 
-#define noF0(reg) (reg & ~0x01)
-#define noF1(reg) (reg & ~0x02)
-#define noF2(reg) (reg & ~0x04)
-#define noF3(reg) (reg & ~0x08)
-#define noF4(reg) (reg & ~0x10)
-#define noF5(reg) (reg & ~0x20)
-#define noF6(reg) (reg & ~0x40)
-#define noF7(reg) (reg & ~0x80)
+#define isF0(reg) ((reg & B0) != 0)
+#define isF1(reg) ((reg & B1) != 0)
+#define isF2(reg) ((reg & B2) != 0)
+#define isF3(reg) ((reg & B3) != 0)
+#define isF4(reg) ((reg & B4) != 0)
+#define isF5(reg) ((reg & B5) != 0)
+#define isF6(reg) ((reg & B6) != 0)
+#define isF7(reg) ((reg & B7) != 0)
+
+#define noF0(reg) (reg & ~B0)
+#define noF1(reg) (reg & ~B1)
+#define noF2(reg) (reg & ~B2)
+#define noF3(reg) (reg & ~B3)
+#define noF4(reg) (reg & ~B4)
+#define noF5(reg) (reg & ~B5)
+#define noF6(reg) (reg & ~B6)
+#define noF7(reg) (reg & ~B7)
 
 static bool g_ime;
 
@@ -137,4 +146,37 @@ void ints_check(void)
 		// Clearing IE to default value in attempt of recovery
 		writeIE(IEBase);
 	}
+}
+
+
+void ints_request(enum ints_interrupt_type interrupt)
+{
+	d8 IF = readIF;
+	switch(interrupt) {
+	case INT_V_BLANK:
+		IF |= B0;
+		break;
+	case INT_LCDC:
+		IF |= B1;
+		break;
+	case INT_TIMER_OVERFLOW:
+		IF |= B2;
+		break;
+	case INT_SERIAL_IO_TRANSFER_COMPLETE:
+		IF |= B3;
+		break;
+	case INT_HIGH_TO_LOW_P10_P13:
+		IF |= B4;
+		break;
+	case 5:
+		IF |= B5;
+		break;
+	case 6:
+		IF |= B6;
+		break;
+	case 7:
+		IF |= B7;
+		break;
+	}
+	writeIF(IF);
 }
