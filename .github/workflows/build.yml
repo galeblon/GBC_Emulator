@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Install Allegro
+      run: sudo apt-get update && sudo apt-get install liballegro-acodec5-dev liballegro-audio5-dev liballegro-image5-dev liballegro-dialog5-dev liballegro-ttf5-dev liballegro-physfs5-dev
     - uses: actions/checkout@v2
     - name: make
       run: make
