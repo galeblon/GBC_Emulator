@@ -6,9 +6,9 @@
 #include"types.h"
 #include"mem.h"
 
-#define CYCLES_PER_SCANLINE 456
-#define MODE_2_BOUNDS CYCLES_PER_SCANLINE - 80
-#define MODE_3_BOUNDS MODE_2_BOUNDS - 172
+#define _CYCLES_PER_SCANLINE 456
+#define _MODE_2_BOUNDS _CYCLES_PER_SCANLINE - 80
+#define _MODE_3_BOUNDS _MODE_2_BOUNDS - 172
 
 #define OAMAddress	0xFE00 	/* Sprite Attribute Table / Object Attribute Memory */
 
@@ -75,10 +75,26 @@ static void _gpu_error(enum logger_log_type type, char *title, char *message)
 }
 
 
+static void _gpu_draw_sprites(void)
+{
+	//TODO
+}
+
+
+static void _gpu_draw_window(void)
+{
+	//TODO
+}
+
+
+static void _gpu_draw_background(void)
+{
+	//TODO
+}
+
+
 static void _gpu_draw_scanline(void)
 {
-	//22-27 GBMan, 51-52
-
 	//Get LCD Controller (LCDC) Register
 	d8 LCDC = mem_read8(LCDCAddress);
 
@@ -94,17 +110,17 @@ static void _gpu_draw_scanline(void)
 	if(isLCDC7(LCDC)) {
 		//Draw background if enabled
 		if(isLCDC0(LCDC)) {
-
+			_gpu_draw_background();
 		}
 
 		//Draw window if enabled
 		if(isLCDC5(LCDC)) {
-
+			_gpu_draw_window();
 		}
 
 		//Draw sprites if enabled
 		if(isLCDC1(LCDC)) {
-
+			_gpu_draw_sprites();
 		}
 	}
 }
@@ -127,37 +143,37 @@ static void _gpu_update_lcd_status(void)
 	}
 
 	//Check in which mode are we now
-	int current_mode = 0;
+	int current_mode;
 	int hitherto_mode = STAT & 0x03;
 	d8 LY = mem_read8(LYAddress);
 	if(LY >= 144)
-		current_mode = 1;
-	else if(_current_cycles >= MODE_2_BOUNDS)
-		current_mode = 2;
-	else if(_current_cycles >= MODE_3_BOUNDS)
-		current_mode = 3;
+		current_mode = GPU_V_BLANK;
+	else if(_current_cycles >= _MODE_2_BOUNDS)
+		current_mode = GPU_OAM;
+	else if(_current_cycles >= _MODE_3_BOUNDS)
+		current_mode = GPU_VRAM;
 	else
-		current_mode = 0;
+		current_mode = GPU_H_BLANK;
 
 	//Change STAT and determine whether interrupt is needed
 	bool request_interrupt = 0;
 	switch(current_mode) {
-	case 0:
+	case GPU_H_BLANK:
 		STAT &= !B0;
 		STAT &= !B1;
 		request_interrupt = (STAT & B3) != 0;
 		break;
-	case 1:
+	case GPU_V_BLANK:
 		STAT |= B0;
 		STAT &= !B1;
 		request_interrupt = (STAT & B4) != 0;
 		break;
-	case 2:
+	case GPU_OAM:
 		STAT &= !B0;
 		STAT |= B1;
 		request_interrupt = (STAT & B5) != 0;
 		break;
-	case 3:
+	case GPU_VRAM:
 		STAT |= B0;
 		STAT |= B1;
 		break;
@@ -165,14 +181,14 @@ static void _gpu_update_lcd_status(void)
 
 	//Request an interrupt if we have just changed the mode
 	if(request_interrupt && (current_mode != hitherto_mode))
-		ints_request_type(LCDC_STAT);
+		ints_request_type(INT_LCDC);
 
 	//Check the coincidence flag
 	d8 LYC = mem_read8(LYCAddress);
 	if(LY == LYC) {
 		STAT |= B2;
 		if((STAT & B6) != 0)
-			ints_request_type(LCDC_STAT);
+			ints_request_type(INT_LCDC);
 	} else
 		STAT &= !B2;
 
@@ -183,7 +199,7 @@ static void _gpu_update_lcd_status(void)
 
 d8 gpu_read_bgpi()
 {
-	mem_read8(BGPIAddress);
+	return mem_read8(BGPIAddress);
 }
 
 
@@ -198,8 +214,8 @@ d8 gpu_read_bgpd()
 	//Only accessible during H-BLANK or V-BLANK
 	d8 STAT = mem_read8(STATAddress);
 	STAT &= 0x03;
-	if(STAT == 0 || STAT == 1)
-		mem_read8(BGPDAddress);
+	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK)
+		return mem_read8(BGPDAddress);
 	else
 		_gpu_error(
 			LOG_FATAL,
@@ -216,13 +232,13 @@ void gpu_write_bgpd(d8 new_bgpd)
 	//Only accessible during H-BLANK or V-BLANK
 	d8 STAT = mem_read8(STATAddress);
 	STAT &= 0x03;
-	if(STAT == 0 || STAT == 1) {
+	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK) {
 		mem_write8(BGPDAddress, new_bgpd);
 
 		//Update BGP
 		d8 BGPI = gpu_read_bgpi();
-		//I can't find the address of CGB Color Palette Memory.
-		//TODO: mem_write8(BGPMAddress + BGPI & 0x1F, new_bgpd);
+		//TODO: find the address of CGB Background Color Palette Memory.
+		//mem_write8(BGPMAddress + BGPI & 0x1F, new_bgpd);
 
 		//Increment BGPI if required
 		if((BGPI & B7) == B7) {
@@ -242,7 +258,7 @@ void gpu_write_bgpd(d8 new_bgpd)
 
 d8 gpu_read_spi()
 {
-	mem_read8(SPIAddress);
+	return mem_read8(SPIAddress);
 }
 
 
@@ -257,7 +273,7 @@ d8 gpu_read_spd()
 	//Only accessible during H-BLANK or V-BLANK
 	d8 STAT = mem_read8(STATAddress);
 	STAT &= 0x03;
-	if(STAT == 0 || STAT == 1)
+	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK)
 		return mem_read8(SPDAddress);
 	else
 		_gpu_error(
@@ -275,13 +291,13 @@ void gpu_write_spd(d8 new_spd)
 	//Only accessible during H-BLANK or V-BLANK
 	d8 STAT = mem_read8(STATAddress);
 	STAT &= 0x03;
-	if(STAT == 0 || STAT == 1) {
+	if(STAT == GPU_H_BLANK || STAT == GPU_V_BLANK) {
 		mem_write8(SPDAddress, new_spd);
 
 		//Update SP
 		d8 SPI = gpu_read_spi();
-		//I can't find the address of CGB Sprite Color Palette Memory.
-		//TODO: mem_write8(SPMAddress + SPI & 0x1F, new_spd);
+		//TODO: find the address of CGB Sprite Color Palette Memory.
+		//mem_write8(SPMAddress + SPI & 0x1F, new_spd);
 
 		//Increment BGPI if required
 		if((SPI & B7) == B7) {
@@ -324,7 +340,7 @@ bool gpu_step(int cycles_delta)
 	else
 		return programme_closed;
 
-	if( _current_cycles >= CYCLES_PER_SCANLINE ) {
+	if( _current_cycles >= _CYCLES_PER_SCANLINE ) {
 		//Reset our counter
 		_current_cycles = 0;
 
@@ -337,7 +353,7 @@ bool gpu_step(int cycles_delta)
 		//Reset LY when we reach the end
 		//Draw the current scanline if neither
 		if(LY == 144)
-			ints_request_type(V_BLANK);
+			ints_request_type(INT_V_BLANK);
 		else if(LY > 153)
 			mem_write8(LYAddress, 0);
 		else

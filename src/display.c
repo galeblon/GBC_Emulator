@@ -103,7 +103,7 @@ void display_create_window(char * rom_title)
 bool display_get_closed_status(void)
 {
 	// Fetch the event (if one exists)
-	bool event_exists = al_get_next_event(close_event_queue, event);
+	bool event_exists = al_get_next_event(close_event_queue, &event);
 
 	if(event_exists)
 		// Handle the event

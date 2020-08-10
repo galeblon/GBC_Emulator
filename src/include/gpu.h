@@ -7,6 +7,13 @@
 
 #define FRAME_RATE 60
 
+enum gpu_mode {
+	GPU_H_BLANK,
+	GPU_V_BLANK,
+	GPU_OAM,
+	GPU_VRAM
+};
+
 
 d8 gpu_read_bgpi();
 void gpu_write_bgpi(d8 new_bgpi);
