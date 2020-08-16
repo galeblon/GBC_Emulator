@@ -23,7 +23,7 @@ typedef uint8_t a8;
 typedef uint16_t a16;
 
 // 8 bit signed data, which are added to program counter
-typedef uint8_t r8;
+typedef int8_t r8;
 
 
 #endif /* TYPES_H_ */
