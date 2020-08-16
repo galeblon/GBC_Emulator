@@ -2485,7 +2485,7 @@ static int _cpu_dec_sp(void)
 static int _cpu_daa(void)
 {
 	g_registers.PC += 1;
-	if(g_registers.FLAGS.N) {
+	if(!g_registers.FLAGS.N) {
 		// After BCD addition
 		if(g_registers.FLAGS.C || g_registers.A > 0x99) {
 			g_registers.A += 0x60;
