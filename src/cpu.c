@@ -2522,7 +2522,7 @@ static int _cpu_ccf(void)
 	g_registers.PC += 1;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
-	g_registers.FLAGS.C = ~g_register.FLAGS.C;
+	g_registers.FLAGS.C = ~g_registers.FLAGS.C;
 	return 4;
 }
 
