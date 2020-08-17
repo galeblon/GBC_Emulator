@@ -2511,6 +2511,8 @@ static int _cpu_daa(void)
 static int _cpu_scf(void)
 {
 	g_registers.PC += 1;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = 1;
 	return 4;
 }
@@ -2518,7 +2520,9 @@ static int _cpu_scf(void)
 static int _cpu_ccf(void)
 {
 	g_registers.PC += 1;
-	g_registers.FLAGS.C = 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = ~g_register.FLAGS.C;
 	return 4;
 }
 
@@ -2630,7 +2634,7 @@ static int _cpu_rrca(void)
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = (g_registers.A & 0x01) != 0;
 	g_registers.A >>= 1;
-	g_registers.A |= g_registers.FLAGS.C;
+	g_registers.A |= g_registers.FLAGS.C << 7;
 	return 4;
 }
 
@@ -2762,7 +2766,7 @@ void cpu_prepare(void)
 	g_instruction_table[0x26] = _cpu_ld_h_d8;
 	g_instruction_table[0x27] = _cpu_daa;
 	g_instruction_table[0x28] = _cpu_jr_z_r8;
-	g_instruction_table[0x0B] = _cpu_add_hl_hl;
+	g_instruction_table[0x29] = _cpu_add_hl_hl;
 	g_instruction_table[0x2A] = _cpu_ld_a_imm_hl_inc;
 	g_instruction_table[0x2B] = _cpu_dec_hl;
 	g_instruction_table[0x2C] = _cpu_inc_l;
