@@ -10,6 +10,9 @@
 #define _CPU_IS_HALF_CARRY(a, b) ((((a & 0x0F) + (b & 0x0F)) & 0x10) == 0x10)
 #define _CPU_IS_CARRY(a, b) ((((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100)
 
+#define _CPU_IS_HALF_CARRY16(a, b) ((((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000) == 0x1000)
+#define _CPU_IS_CARRY16(a, b) ((((a & 0xFFFF) + (b & 0xFFFF)) & 0x10000) == 0x10000)
+
 #define _CPU_IS_HALF_CARRY_C(a, b, carry) ((((a & 0x0F) + (b & 0x0F) + carry) & 0x10) == 0x10)
 #define _CPU_IS_CARRY_C(a, b, carry) ((((a & 0xFF) + (b & 0xFF) + carry) & 0x100) == 0x100)
 
@@ -875,8 +878,8 @@ static int _cpu_ld_hl_sp_add_d8(void)
 static int _cpu_pop_bc(void)
 {
 	g_registers.PC += 1;
-	g_registers.B = mem_read8(g_registers.SP);
-	g_registers.C = mem_read8(g_registers.SP + 1);
+	g_registers.C = mem_read8(g_registers.SP);
+	g_registers.B = mem_read8(g_registers.SP + 1);
 	g_registers.SP += 2;
 	return 12;
 }
@@ -884,8 +887,8 @@ static int _cpu_pop_bc(void)
 static int _cpu_pop_de(void)
 {
 	g_registers.PC += 1;
-	g_registers.D = mem_read8(g_registers.SP);
-	g_registers.E = mem_read8(g_registers.SP + 1);
+	g_registers.E = mem_read8(g_registers.SP);
+	g_registers.D = mem_read8(g_registers.SP + 1);
 	g_registers.SP += 2;
 	return 12;
 }
@@ -893,8 +896,8 @@ static int _cpu_pop_de(void)
 static int _cpu_pop_hl(void)
 {
 	g_registers.PC += 1;
-	g_registers.H = mem_read8(g_registers.SP);
-	g_registers.L = mem_read8(g_registers.SP + 1);
+	g_registers.L = mem_read8(g_registers.SP);
+	g_registers.H = mem_read8(g_registers.SP + 1);
 	g_registers.SP += 2;
 	return 12;
 }
@@ -902,8 +905,8 @@ static int _cpu_pop_hl(void)
 static int _cpu_pop_af(void)
 {
 	g_registers.PC += 1;
-	g_registers.A = mem_read8(g_registers.SP);
-	g_registers.F = mem_read8(g_registers.SP + 1);
+	g_registers.F = mem_read8(g_registers.SP);
+	g_registers.A = mem_read8(g_registers.SP + 1);
 	g_registers.SP += 2;
 	return 12;
 }
@@ -2213,16 +2216,8 @@ static int _cpu_cp_d8(void)
 	return 8;
 }
 
-
+// 8-bit INC instructions
 //================================================
-// Rest is ungrouped for now.
-
-static int _cpu_inc_bc(void)
-{
-	g_registers.PC += 1;
-	g_registers.BC += 1;
-	return 8;
-}
 
 static int _cpu_inc_b(void)
 {
@@ -2236,17 +2231,375 @@ static int _cpu_inc_b(void)
 	return 4;
 }
 
+static int _cpu_inc_c(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.C;
+	d8 right = 0x01;
+	g_registers.C = left + right;
+	g_registers.FLAGS.Z = g_registers.C == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 4;
+}
+
+static int _cpu_inc_d(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.D;
+	d8 right = 0x01;
+	g_registers.D = left + right;
+	g_registers.FLAGS.Z = g_registers.D == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 4;
+}
+
+static int _cpu_inc_e(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.E;
+	d8 right = 0x01;
+	g_registers.E = left + right;
+	g_registers.FLAGS.Z = g_registers.E == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 4;
+}
+
+static int _cpu_inc_h(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.H;
+	d8 right = 0x01;
+	g_registers.H = left + right;
+	g_registers.FLAGS.Z = g_registers.H == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 4;
+}
+
+static int _cpu_inc_l(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.L;
+	d8 right = 0x01;
+	g_registers.L = left + right;
+	g_registers.FLAGS.Z = g_registers.L == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 4;
+}
+
+static int _cpu_inc_imm_hl(void)
+{
+	g_registers.PC += 1;
+	d8 left = mem_read8(g_registers.HL);
+	d8 right = 0x01;
+	d8 temp = left + right;
+	mem_write8(g_registers.HL, temp);
+	g_registers.FLAGS.Z = temp == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 12;
+}
+
+static int _cpu_inc_a(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = 0x01;
+	g_registers.A = left + right;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	return 4;
+}
+
+// 8-bit DEC instructions
+//================================================
+
 static int _cpu_dec_b(void)
 {
 	g_registers.PC += 1;
 	d8 left = g_registers.B;
-	d8 right = -1;
-	g_registers.B = left + right;
+	d8 right = 0x01;
+	g_registers.B = left - right;
 	g_registers.FLAGS.Z = g_registers.B == 0;
 	g_registers.FLAGS.N = 1;
-	g_registers.FLAGS.H = !_CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	return 4;
 }
+
+static int _cpu_dec_c(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.C;
+	d8 right = 0x01;
+	g_registers.C = left - right;
+	g_registers.FLAGS.Z = g_registers.C == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_dec_d(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.D;
+	d8 right = 0x01;
+	g_registers.D = left - right;
+	g_registers.FLAGS.Z = g_registers.D == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_dec_e(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.E;
+	d8 right = 0x01;
+	g_registers.E = left - right;
+	g_registers.FLAGS.Z = g_registers.E == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_dec_h(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.H;
+	d8 right = 0x01;
+	g_registers.H = left - right;
+	g_registers.FLAGS.Z = g_registers.H == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_dec_l(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.L;
+	d8 right = 0x01;
+	g_registers.L = left - right;
+	g_registers.FLAGS.Z = g_registers.L == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 4;
+}
+
+static int _cpu_dec_imm_hl(void)
+{
+	g_registers.PC += 1;
+	d8 left = mem_read8(g_registers.HL);
+	d8 right = 0x01;
+	d8 temp = left - right;
+	mem_write8(g_registers.HL, temp);
+	g_registers.FLAGS.Z = temp == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 12;
+}
+
+static int _cpu_dec_a(void)
+{
+	g_registers.PC += 1;
+	d8 left = g_registers.A;
+	d8 right = 0x01;
+	g_registers.A = left - right;
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
+	return 4;
+}
+
+
+//16-bit INC instructions
+//================================================
+
+static int _cpu_inc_bc(void)
+{
+	g_registers.PC += 1;
+	g_registers.BC += 1;
+	return 8;
+}
+
+static int _cpu_inc_de(void)
+{
+	g_registers.PC += 1;
+	g_registers.DE += 1;
+	return 8;
+}
+
+static int _cpu_inc_hl(void)
+{
+	g_registers.PC += 1;
+	g_registers.HL += 1;
+	return 8;
+}
+
+static int _cpu_inc_sp(void)
+{
+	g_registers.PC += 1;
+	g_registers.SP += 1;
+	return 8;
+}
+
+//16-bit DEC instructions
+//================================================
+
+static int _cpu_dec_bc(void)
+{
+	g_registers.PC += 1;
+	g_registers.BC -= 1;
+	return 8;
+}
+
+static int _cpu_dec_de(void)
+{
+	g_registers.PC += 1;
+	g_registers.DE -= 1;
+	return 8;
+}
+
+static int _cpu_dec_hl(void)
+{
+	g_registers.PC += 1;
+	g_registers.HL -= 1;
+	return 8;
+}
+
+static int _cpu_dec_sp(void)
+{
+	g_registers.PC += 1;
+	g_registers.SP -= 1;
+	return 8;
+}
+
+// 8-bit primary arithmethic and logical
+//================================================
+
+static int _cpu_daa(void)
+{
+	g_registers.PC += 1;
+	if(!g_registers.FLAGS.N) {
+		// After BCD addition
+		if(g_registers.FLAGS.C || g_registers.A > 0x99) {
+			g_registers.A += 0x60;
+			g_registers.FLAGS.C = 1;
+		}
+		if(g_registers.FLAGS.H || (g_registers.A & 0x0F) > 0x09) {
+			g_registers.A += 0x06;
+		}
+	} else {
+		// After BCD subtraction
+		if(g_registers.FLAGS.C) {
+			g_registers.A -= 0x60;
+		}
+		if(g_registers.FLAGS.H) {
+			g_registers.A -= 0x06;
+		}
+	}
+	g_registers.FLAGS.Z = g_registers.A == 0;
+	g_registers.FLAGS.H = 0;
+	return 4;
+}
+
+static int _cpu_scf(void)
+{
+	g_registers.PC += 1;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = 1;
+	return 4;
+}
+
+static int _cpu_ccf(void)
+{
+	g_registers.PC += 1;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = ~g_registers.FLAGS.C;
+	return 4;
+}
+
+static int _cpu_cpl(void)
+{
+	g_registers.PC += 1;
+	g_registers.A = ~g_registers.A;
+	return 4;
+}
+
+// 16-bit ADD instructions
+//================================================
+
+static int _cpu_add_hl_bc(void)
+{
+	g_registers.PC += 1;
+	d16 left = g_registers.HL;
+	d16 right = g_registers.BC;
+	g_registers.HL = left + right;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY16(left, right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY16(left, right);
+	return 8;
+}
+
+static int _cpu_add_hl_de(void)
+{
+	g_registers.PC += 1;
+	d16 left = g_registers.HL;
+	d16 right = g_registers.DE;
+	g_registers.HL = left + right;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY16(left, right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY16(left, right);
+	return 8;
+}
+
+static int _cpu_add_hl_hl(void)
+{
+	g_registers.PC += 1;
+	d16 left = g_registers.HL;
+	d16 right = g_registers.HL;
+	g_registers.HL = left + right;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY16(left, right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY16(left, right);
+	return 8;
+}
+
+static int _cpu_add_hl_sp(void)
+{
+	g_registers.PC += 1;
+	d16 left = g_registers.HL;
+	d16 right = g_registers.SP;
+	g_registers.HL = left + right;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY16(left, right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY16(left, right);
+	return 8;
+}
+
+static int _cpu_add_sp_r8(void)
+{
+	g_registers.PC += 1;
+	d16 left = g_registers.SP;
+	r8 right = mem_read8(g_registers.PC);
+	g_registers.PC += 1;
+	g_registers.SP = left + right;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY(left, right);
+	return 16;
+}
+
+// 8-bit rotation/shifts and bit instructions
+//================================================
+
 
 static int _cpu_rlca(void)
 {
@@ -2257,6 +2610,44 @@ static int _cpu_rlca(void)
 	g_registers.FLAGS.C = (g_registers.A & 0x80) != 0;
 	g_registers.A <<= 1;
 	g_registers.A |= g_registers.FLAGS.C;
+	return 4;
+}
+
+static int _cpu_rla(void)
+{
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	d8 temp = g_registers.FLAGS.C;
+	g_registers.FLAGS.C = (g_registers.A & 0x80) != 0;
+	g_registers.A <<= 1;
+	g_registers.A |= temp;
+	return 4;
+}
+
+static int _cpu_rrca(void)
+{
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	g_registers.FLAGS.C = (g_registers.A & 0x01) != 0;
+	g_registers.A >>= 1;
+	g_registers.A |= g_registers.FLAGS.C << 7;
+	return 4;
+}
+
+static int _cpu_rra(void)
+{
+	g_registers.PC += 1;
+	g_registers.FLAGS.Z = 0;
+	g_registers.FLAGS.N = 0;
+	g_registers.FLAGS.H = 0;
+	d8 temp = g_registers.FLAGS.C;
+	g_registers.FLAGS.C = (g_registers.A & 0x01) != 0;
+	g_registers.A >>= 1;
+	g_registers.A |= temp << 7;
 	return 4;
 }
 
@@ -2343,47 +2734,61 @@ void cpu_prepare(void)
 	g_instruction_table[0x06] = _cpu_ld_b_d8;
 	g_instruction_table[0x07] = _cpu_rlca;
 	g_instruction_table[0x08] = _cpu_ld_imm_a16_sp;
-	// Missing
+	g_instruction_table[0x09] = _cpu_add_hl_bc;
 	g_instruction_table[0x0A] = _cpu_ld_a_imm_bc;
-	// Missing
+	g_instruction_table[0x0B] = _cpu_dec_bc;
+	g_instruction_table[0x0C] = _cpu_inc_c;
+	g_instruction_table[0x0D] = _cpu_dec_c;
 	g_instruction_table[0x0E] = _cpu_ld_c_d8;
-	// Missing
+	g_instruction_table[0x0F] = _cpu_rrca;
 	g_instruction_table[0x10] = _cpu_stop;
 	g_instruction_table[0x11] = _cpu_ld_de_d16;
 	g_instruction_table[0x12] = _cpu_ld_imm_de_a;
-	// Missing
+	g_instruction_table[0x13] = _cpu_inc_de;
+	g_instruction_table[0x14] = _cpu_inc_d;
+	g_instruction_table[0x15] = _cpu_dec_d;
 	g_instruction_table[0x16] = _cpu_ld_d_d8;
-	// Missing
+	g_instruction_table[0x17] = _cpu_rla;
 	g_instruction_table[0x18] = _cpu_jr_r8;
-	// Missing
+	g_instruction_table[0x19] = _cpu_add_hl_de;
 	g_instruction_table[0x1A] = _cpu_ld_a_imm_de;
-	// Missing
+	g_instruction_table[0x1B] = _cpu_dec_de;
+	g_instruction_table[0x1C] = _cpu_inc_e;
+	g_instruction_table[0x1D] = _cpu_dec_e;
 	g_instruction_table[0x1E] = _cpu_ld_e_d8;
-	// Missing
+	g_instruction_table[0x1F] = _cpu_rra;
 	g_instruction_table[0x20] = _cpu_jr_nz_r8;
 	g_instruction_table[0x21] = _cpu_ld_hl_d16;
 	g_instruction_table[0x22] = _cpu_ld_imm_hl_inc_a;
-	// Missing
+	g_instruction_table[0x23] = _cpu_inc_hl;
+	g_instruction_table[0x24] = _cpu_inc_h;
+	g_instruction_table[0x25] = _cpu_dec_h;
 	g_instruction_table[0x26] = _cpu_ld_h_d8;
-	// Missing
+	g_instruction_table[0x27] = _cpu_daa;
 	g_instruction_table[0x28] = _cpu_jr_z_r8;
-	// Missing
+	g_instruction_table[0x29] = _cpu_add_hl_hl;
 	g_instruction_table[0x2A] = _cpu_ld_a_imm_hl_inc;
-	// Missing
+	g_instruction_table[0x2B] = _cpu_dec_hl;
+	g_instruction_table[0x2C] = _cpu_inc_l;
+	g_instruction_table[0x2D] = _cpu_dec_l;
 	g_instruction_table[0x2E] = _cpu_ld_l_d8;
-	// Missing
+	g_instruction_table[0x2F] = _cpu_cpl;
 	g_instruction_table[0x30] = _cpu_jr_nc_r8;
 	g_instruction_table[0x31] = _cpu_ld_sp_d16;
 	g_instruction_table[0x32] = _cpu_ld_imm_hl_dec_a;
-	// Missing
+	g_instruction_table[0x33] = _cpu_inc_sp;
+	g_instruction_table[0x34] = _cpu_inc_imm_hl;
+	g_instruction_table[0x35] = _cpu_dec_imm_hl;
 	g_instruction_table[0x36] = _cpu_ld_imm_hl_d8;
-	// Missing
+	g_instruction_table[0x37] = _cpu_scf;
 	g_instruction_table[0x38] = _cpu_jr_c_r8;
-	// Missing
+	g_instruction_table[0x39] = _cpu_add_hl_sp;
 	g_instruction_table[0x3A] = _cpu_ld_a_imm_hl_dec;
-	// Missing
+	g_instruction_table[0x3B] = _cpu_dec_sp;
+	g_instruction_table[0x3C] = _cpu_inc_a;
+	g_instruction_table[0x3D] = _cpu_dec_a;
 	g_instruction_table[0x3E] = _cpu_ld_a_d8;
-	// Missing
+	g_instruction_table[0x3F] = _cpu_ccf;
 	g_instruction_table[0x40] = _cpu_ld_b_b;
 	g_instruction_table[0x41] = _cpu_ld_b_c;
 	g_instruction_table[0x42] = _cpu_ld_b_d;
@@ -2552,7 +2957,7 @@ void cpu_prepare(void)
 	g_instruction_table[0xE5] = _cpu_push_hl;
 	g_instruction_table[0xE6] = _cpu_and_d8;
 	g_instruction_table[0xE7] = _cpu_rst_20H;
-	// Missing
+	g_instruction_table[0xE8] = _cpu_add_sp_r8;
 	g_instruction_table[0xE9] = _cpu_jp_imm_hl;
 	g_instruction_table[0xEA] = _cpu_ld_imm_a16_a;
 	g_instruction_table[0xEB] = _cpu_not_implemented;

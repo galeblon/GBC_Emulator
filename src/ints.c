@@ -168,14 +168,7 @@ void ints_request(enum ints_interrupt_type interrupt)
 	case INT_HIGH_TO_LOW_P10_P13:
 		IF |= B4;
 		break;
-	case 5:
-		IF |= B5;
-		break;
-	case 6:
-		IF |= B6;
-		break;
-	case 7:
-		IF |= B7;
+	default:
 		break;
 	}
 	writeIF(IF);
