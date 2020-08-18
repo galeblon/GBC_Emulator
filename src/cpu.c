@@ -3207,7 +3207,7 @@ static int _cpu_sra_h(void)
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = (g_registers.H & 0x01) != 0;
-	d8 old_bit = g_registers.B & 0x80;
+	d8 old_bit = g_registers.h & 0x80;
 	g_registers.H >>= 1;
 	g_registers.H |= old_bit;
 	g_registers.FLAGS.Z = g_registers.H == 0;
@@ -3274,7 +3274,7 @@ static int _cpu_swap_c(void)
 	d8 upper_nibble = (g_registers.C & 0xF0) >> 4;
 	d8 lower_nibble = g_registers.C & 0x0F;
 	g_registers.C = (lower_nibble << 4) | upper_nibble;
-	g_registers.FLAGS.Z = g_registers.B == 0;
+	g_registers.FLAGS.Z = g_registers.C == 0;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = 0;
@@ -3300,7 +3300,7 @@ static int _cpu_swap_e(void)
 	d8 upper_nibble = (g_registers.E & 0xF0) >> 4;
 	d8 lower_nibble = g_registers.E & 0x0F;
 	g_registers.E = (lower_nibble << 4) | upper_nibble;
-	g_registers.FLAGS.Z = g_registers.D == 0;
+	g_registers.FLAGS.Z = g_registers.E == 0;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = 0;
@@ -3313,7 +3313,7 @@ static int _cpu_swap_h(void)
 	d8 upper_nibble = (g_registers.H & 0xF0) >> 4;
 	d8 lower_nibble = g_registers.H & 0x0F;
 	g_registers.H = (lower_nibble << 4) | upper_nibble;
-	g_registers.FLAGS.Z = g_registers.D == 0;
+	g_registers.FLAGS.Z = g_registers.H == 0;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = 0;
@@ -3326,7 +3326,7 @@ static int _cpu_swap_l(void)
 	d8 upper_nibble = (g_registers.L & 0xF0) >> 4;
 	d8 lower_nibble = g_registers.L & 0x0F;
 	g_registers.L = (lower_nibble << 4) | upper_nibble;
-	g_registers.FLAGS.Z = g_registers.D == 0;
+	g_registers.FLAGS.Z = g_registers.L == 0;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = 0;
