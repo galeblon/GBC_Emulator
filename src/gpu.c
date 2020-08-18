@@ -11,6 +11,10 @@
 #define _MODE_2_BOUNDS       (_CYCLES_PER_SCANLINE - 80)
 #define _MODE_3_BOUNDS       (_MODE_2_BOUNDS - 172)
 
+#define CGBFAddress 0x0143 	/* CGB Flag */
+
+#define BGPDefault 0xE4 	/* Default value for BGP, b11100100 */
+
 #define OAMAddress  0xFE00 	/* Sprite Attribute Table / Object Attribute Memory */
 
 #define LCDCAddress 0xFF40 	/* LCD Controller */
@@ -25,10 +29,14 @@
 #define WYAddress   0xFF4A 	/* Window Y Position */
 #define WXAddress   0xFF4B 	/* Window X Position */
 
-#define BGPIAddress 0xFF68 	/* Backgroound Palette Index */
+#define BGPIAddress 0xFF68 	/* Background Palette Index */
 #define BGPDAddress 0xFF69 	/* Background Palette Data */
 #define SPIAddress  0xFF6A 	/* Sprite Palette Index */
 #define SPDAddress  0xFF6B 	/* Sprite Palette Data */
+
+//TODO: Find proper values
+#define SPMAddress  0x0 /* CGB Sprite Color Palette Memory */
+#define BGPMAddress 0x0 /* CGB Background Color Palette Memory */
 
 #define spriteScreenPosX(ScreenX) (SpriteX-8)
 #define spriteScreenPosY(ScreenY) (SpriteY-16)
@@ -60,12 +68,34 @@ enum gpu_mode {
 };
 
 
-static int const g_sprite_width              = 8;
-static int g_current_cycles                  = 0;
-static int g_sprite_height                   = 0;
-static d8  g_window_tile_map_display_address = 0;
-static d8  g_bg_window_tile_data_address     = 0;
-static d8  g_bg_tile_map_display_address     = 0;
+enum gpu_drawing_type {
+	BACKGROUND,
+	WINDOW,
+	SPRITE
+};
+
+
+typedef struct colour {
+	d8   r;
+	d8   g;
+	d8   b;
+	bool a;
+} colour;
+
+
+static int const    g_sprite_width  = 8;
+static colour const g_gb_black      = {0, 0, 0, false};
+static colour const g_gb_dark_gray  = {85, 85, 85, false};
+static colour const g_gb_light_gray = {170, 170, 170, false};
+static colour const g_gb_white      = {255, 255, 255, false};
+
+
+static int       g_current_cycles                  = 0;
+static int       g_sprite_height                   = 0;
+static d8        g_window_tile_map_display_address = 0;
+static d8        g_bg_window_tile_data_address     = 0;
+static d8        g_bg_tile_map_display_address     = 0;
+static bool      g_cgb_enabled                     = true;
 
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
@@ -82,6 +112,148 @@ static void _gpu_error(enum logger_log_type type, char *title, char *message)
 		title,
 		full_message
 	);
+}
+
+
+static colour _gpu_get_colour_cgb_sprite(int colour_number, int palette_number)
+{
+	//Setup
+	colour found_colour;
+	found_colour.a = (colour_number == 0) ? true : false;
+	d16 bgp = mem_read16(SPMAddress + palette_number * 8 + colour_number * 2);
+
+	//Acquire colour value
+	found_colour.r = bgp & (B4 | B3 | B2 | B1 | B0);
+	found_colour.g = (bgp >> 5) & (B4 | B3 | B2 | B1 | B0);
+	found_colour.b = (bgp >> 10) & (B4 | B3 | B2 | B1 | B0);
+
+	//Translate colour value to a colour variable
+	found_colour.r = (found_colour.r << 3) + ( (found_colour.r >> 2) & (B2 | B1 | B0) );
+	found_colour.g = (found_colour.g << 3) + ( (found_colour.g >> 2) & (B2 | B1 | B0) );
+	found_colour.b = (found_colour.b << 3) + ( (found_colour.b >> 2) & (B2 | B1 | B0) );
+
+	return found_colour;
+}
+
+
+static colour _gpu_get_colour_cgb(int colour_number, int palette_number)
+{
+	//Setup
+	colour found_colour;
+	found_colour.a = false;
+	d16 bgp = mem_read16(BGPMAddress + palette_number * 8 + colour_number * 2);
+
+	//Acquire colour value
+	found_colour.r = bgp & (B4 | B3 | B2 | B1 | B0);
+	found_colour.g = (bgp >> 5) & (B4 | B3 | B2 | B1 | B0);
+	found_colour.b = (bgp >> 10) & (B4 | B3 | B2 | B1 | B0);
+
+	//Translate colour value to a colour variable
+	found_colour.r = (found_colour.r << 3) + ( (found_colour.r >> 2) & (B2 | B1 | B0) );
+	found_colour.g = (found_colour.g << 3) + ( (found_colour.g >> 2) & (B2 | B1 | B0) );
+	found_colour.b = (found_colour.b << 3) + ( (found_colour.b >> 2) & (B2 | B1 | B0) );
+
+	return found_colour;
+}
+
+
+static colour _gpu_get_colour_gb_sprite(int colour_number, int palette_number)
+{
+	//Setup
+	colour found_colour;
+	found_colour.a = (colour_number == 0) ? true : false;;
+	a16 address;
+	switch(palette_number) {
+	case 0:
+		address = OBP0Address;
+		break;
+	case 1:
+		address = OBP1Address;
+	}
+	d8 bgp = mem_read8(address);
+
+	//Acquire colour value
+	bgp >>= colour_number * 2;
+	bgp &= (B0 | B1);
+
+	//Translate colour value to a colour variable
+	switch(bgp) {
+	case 0:
+		found_colour = g_gb_white;
+		break;
+	case 1:
+		found_colour = g_gb_light_gray;
+		break;
+	case 2:
+		found_colour = g_gb_dark_gray;
+		break;
+	case 3:
+		found_colour = g_gb_black;
+		break;
+	}
+
+	return found_colour;
+}
+
+
+static colour _gpu_get_colour_gb(int colour_number)
+{
+	//Setup
+	colour found_colour;
+	found_colour.a = false;
+	d8 bgp = mem_read8(BGPAddress);
+
+	//Acquire colour value
+	bgp >>= colour_number * 2;
+	bgp &= (B0 | B1);
+
+	//Translate colour value to a colour variable
+	switch(bgp) {
+	case 0:
+		found_colour = g_gb_white;
+		break;
+	case 1:
+		found_colour = g_gb_light_gray;
+		break;
+	case 2:
+		found_colour = g_gb_dark_gray;
+		break;
+	case 3:
+		found_colour = g_gb_black;
+		break;
+	}
+
+	return found_colour;
+}
+
+
+static colour _gpu_get_colour(int colour_number, int palette_number, enum gpu_drawing_type type)
+{
+	colour found_colour;
+	if( (colour_number < 0) || (colour_number > 3) ) {
+		_gpu_error(
+			LOG_FATAL,
+			"INVALID COLOUR",
+			"AN INVALID COLOUR HAS BEEN RECEIVED BY _gpu_get_colour()."
+		);
+		return found_colour;
+	}
+
+	if(g_cgb_enabled) {
+		if(type == SPRITE) {
+			found_colour = _gpu_get_colour_cgb_sprite(colour_number, palette_number);
+		} else {
+			found_colour = _gpu_get_colour_cgb(colour_number, palette_number);
+		}
+	} else {
+		if(type == SPRITE) {
+			found_colour = _gpu_get_colour_gb_sprite(colour_number, palette_number);
+		} else {
+			found_colour = _gpu_get_colour_gb(colour_number);
+		}
+	}
+
+	return found_colour;
 }
 
 
@@ -208,6 +380,20 @@ static void _gpu_update_lcd_status(void)
 }
 
 
+static void _gpu_check_cgb_flag()
+{
+	d8 cgb_flag = mem_read8(CGBFAddress);
+	//Determine whether CGB functions are enabled
+	g_cgb_enabled = (cgb_flag & B7) == B7;
+
+	//Check for special, non-initialised Non-CGB mode
+	if( (g_cgb_enabled) && ( (cgb_flag & (B2 | B3) ) != 0 ) )
+		g_cgb_enabled = false;
+	else
+		mem_write8(BGPAddress, BGPDefault);
+}
+
+
 d8 gpu_read_bgpi()
 {
 	return mem_read8(BGPIAddress);
@@ -248,8 +434,7 @@ void gpu_write_bgpd(d8 new_bgpd)
 
 		//Update BGP
 		d8 bgpi = gpu_read_bgpi();
-		//TODO: find the address of CGB Background Color Palette Memory.
-		//mem_write8(BGPMAddress + BGPI & 0x1F, new_bgpd);
+		mem_write8(BGPMAddress + (bgpi & 0x1F), new_bgpd);
 
 		//Increment BGPI if required
 		if((bgpi & B7) == B7) {
@@ -308,8 +493,7 @@ void gpu_write_spd(d8 new_spd)
 
 		//Update SP
 		d8 spi = gpu_read_spi();
-		//TODO: find the address of CGB Sprite Color Palette Memory.
-		//mem_write8(SPMAddress + SPI & 0x1F, new_spd);
+		mem_write8(SPMAddress + (spi & 0x1F), new_spd);
 
 		//Increment BGPI if required
 		if((spi & B7) == B7) {
@@ -330,6 +514,8 @@ void gpu_write_spd(d8 new_spd)
 
 void gpu_prepare(char * rom_title)
 {
+	_gpu_check_cgb_flag();
+
 	display_prepare(1.0 / FRAME_RATE, rom_title);
 }
 
