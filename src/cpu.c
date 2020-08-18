@@ -3207,7 +3207,7 @@ static int _cpu_sra_h(void)
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
 	g_registers.FLAGS.C = (g_registers.H & 0x01) != 0;
-	d8 old_bit = g_registers.h & 0x80;
+	d8 old_bit = g_registers.H & 0x80;
 	g_registers.H >>= 1;
 	g_registers.H |= old_bit;
 	g_registers.FLAGS.Z = g_registers.H == 0;
