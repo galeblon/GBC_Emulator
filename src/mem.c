@@ -9,31 +9,34 @@
 #define BASE_ADDR_CART_MEM       0x0000
 #define BASE_ADDR_VRAM           0x8000
 #define BASE_ADDR_RAM_SWITCH     0xA000
-#define BASE_ADDR_INTER_RAM_8K   0xC000
-#define BASE_ADDR_INTER_RAM_ECHO 0xE000
+#define BASE_ADDR_WRAM0          0xC000
+#define BASE_ADDR_WRAM           0xD000
+#define BASE_ADDR_WRAM_ECHO      0xE000
 #define BASE_ADDR_SPRITE_ATTR    0xFE00
 #define BASE_ADDR_EMPTY0         0xFEA0
 #define BASE_ADDR_IO_PORTS       0xFF00
 #define BASE_ADDR_EMPTY1         0xFF4C
-#define BASE_ADDR_INTER_RAM      0xFF80
+#define BASE_ADDR_HRAM           0xFF80
 #define BASE_ADDR_INT_ENABLE     0xFFFF
 
 #define SIZE_CART_MEM       0x8000
 #define SIZE_VRAM           0x2000
 #define SIZE_RAM_SWITCH     0x2000
-#define SIZE_INTER_RAM_8K   0x2000
-#define SIZE_INTER_RAM_ECHO 0x1E00
+#define SIZE_WRAM0          0x1000
+#define SIZE_WRAM           0x1000
+#define SIZE_WRAM_ECHO      0x1E00
 #define SIZE_SPRITE_ATTR    0x00A0
 #define SIZE_EMPTY0         0x0060
 #define SIZE_IO_PORTS       0x004C
 #define SIZE_EMPTY1         0x0034
-#define SIZE_INTER_RAM      0x007F
+#define SIZE_HRAM           0x007F
 #define SIZE_INT_ENABLE     0x0001
 
-#define NUM_MEM_BLOCKS  11
+#define NUM_MEM_BLOCKS  12
 
 #define MAX_ROM_BANKS  0x200
 #define MAX_RAM_BANKS  0x10
+#define NUM_WRAM_BANKS 0x08
 
 #define KB	1024
 
@@ -96,6 +99,7 @@ static bool g_ram_enable = 0;
 static u8 g_int_enable = true;
 static u8 g_rom_bank = 1;
 static u8 g_ram_bank = 0;
+static u8 g_wram_bank = 1;
 static enum mem_banking_mode g_banking_mode = ROM_BANKING_MODE;
 static enum mem_rtc_state g_rtc_state = RTC_NONE;
 
@@ -103,8 +107,8 @@ static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
 static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
 static u8 g_rtc_latch[5];
 
-static u8 g_inter_ram_8k[SIZE_INTER_RAM_8K] = {0};
-static u8 g_inter_ram[SIZE_INTER_RAM] = {0};
+static u8 g_wram[NUM_WRAM_BANKS][SIZE_WRAM0] = {0};
+static u8 g_hram[SIZE_HRAM] = {0};
 static u8 g_vram[SIZE_VRAM] = {0};
 
 static void _mem_cart_type_not_implemented(void)
@@ -589,34 +593,38 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 	}
 }
 
-static inline u8 _mem_read_inter_ram_8k(a16 addr)
+static inline u8 _mem_read_wram0(a16 addr)
+{
+	return g_wram[0][addr - BASE_ADDR_WRAM0];
+}
+
+static inline void _mem_write_wram0(a16 addr, u8 data)
+{
+	g_wram[0][addr - BASE_ADDR_WRAM0] = data;
+}
+
+static inline u8 _mem_read_wram(a16 addr)
+{
+	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_read_wram: incorrect WRAM Bank number");
+	return g_wram[g_wram_bank][addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM];
+}
+
+static inline void _mem_write_wram(a16 addr, u8 data)
+{
+	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_write_wram: incorrect WRAM Bank number");
+	g_wram[g_wram_bank][addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM] = data;
+}
+
+static inline u8 _mem_read_wram_echo(a16 addr)
 {
 	// TODO: add switchable internal RAM banks
-#if DEBUG
-	if (addr >= 0xD000)
-		_mem_not_implemented("Switchable internal RAM Banks");  // TODO: implement switchable internal RAM (#42)
-#endif
-	return g_inter_ram_8k[addr - BASE_ADDR_INTER_RAM_8K];
+	return _mem_read_wram0(addr);
 }
 
-static inline void _mem_write_inter_ram_8k(a16 addr, u8 data)
+static inline void _mem_write_wram_echo(a16 addr, u8 data)
 {
 	// TODO: add switchable internal RAM banks
-#if DEBUG
-	if (addr >= 0xD000)
-		_mem_not_implemented("Switchable internal RAM Banks");  // TODO: implement switchable internal RAM (#42)
-#endif
-	g_inter_ram_8k[addr - BASE_ADDR_INTER_RAM_8K] = data;
-}
-
-static inline u8 _mem_read_inter_ram_echo(a16 addr)
-{
-	return _mem_read_inter_ram_8k(addr);
-}
-
-static inline void _mem_write_inter_ram_echo(a16 addr, u8 data)
-{
-	_mem_write_inter_ram_8k(addr, data);
+	_mem_write_wram0(addr, data);
 }
 
 static inline u8 _mem_read_sprite_attr(a16 addr __attribute__((unused)))
@@ -668,14 +676,14 @@ static inline void _mem_write_empty1(a16 addr __attribute__((unused)),
 {
 }
 
-static inline u8 _mem_read_inter_ram(a16 addr)
+static inline u8 _mem_read_hram(a16 addr)
 {
-	return g_inter_ram[addr - BASE_ADDR_INTER_RAM];
+	return g_hram[addr - BASE_ADDR_HRAM];
 }
 
-static inline void _mem_write_inter_ram(a16 addr, u8 data)
+static inline void _mem_write_hram(a16 addr, u8 data)
 {
-	g_inter_ram[addr - BASE_ADDR_INTER_RAM] = data;
+	g_hram[addr - BASE_ADDR_HRAM] = data;
 }
 
 static inline u8 _mem_read_int_enable(a16 addr __attribute__((unused)))
@@ -702,13 +710,14 @@ struct mem_block g_mem_blocks[NUM_MEM_BLOCKS] = {
 	MEM_BLOCK_DEF(cart_mem, CART_MEM)
 	MEM_BLOCK_DEF(vram, VRAM)
 	MEM_BLOCK_DEF(ram_switch, RAM_SWITCH)
-	MEM_BLOCK_DEF(inter_ram_8k, INTER_RAM_8K)
-	MEM_BLOCK_DEF(inter_ram_echo, INTER_RAM_ECHO)
+	MEM_BLOCK_DEF(wram0, WRAM0)
+	MEM_BLOCK_DEF(wram, WRAM)
+	MEM_BLOCK_DEF(wram_echo, WRAM_ECHO)
 	MEM_BLOCK_DEF(sprite_attr, SPRITE_ATTR)
 	MEM_BLOCK_DEF(empty0, EMPTY0)
 	MEM_BLOCK_DEF(io_ports, IO_PORTS)
 	MEM_BLOCK_DEF(empty1, EMPTY1)
-	MEM_BLOCK_DEF(inter_ram, INTER_RAM)
+	MEM_BLOCK_DEF(hram, HRAM)
 	MEM_BLOCK_DEF(int_enable, INT_ENABLE)
 };
 
