@@ -697,9 +697,14 @@ static inline u8 _mem_read_empty1(a16 addr __attribute__((unused)))
 	return 0;
 }
 
-static inline void _mem_write_empty1(a16 addr __attribute__((unused)),
-	u8 data __attribute__((unused)))
+static inline void _mem_write_empty1(a16 addr, u8 data)
 {
+	// SVBK: WRAM Bank selection
+	if (g_mem_cart_type.cgb_mode != NON_CGB && addr == 0xFF70) {
+		g_wram_bank = data & 0x03;
+		if (g_wram_bank == 0)
+			g_wram_bank = 1;
+	}
 }
 
 static inline u8 _mem_read_hram(a16 addr)
