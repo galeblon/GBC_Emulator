@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -g -Wall -Wextra -pedantic -O0
+CFLAGS = -Wall -Wextra -pedantic
+CFLAGS_DEBUG = -g -O0 -DDEBUG
 INCL = -I./include
 SRCS = mem.c cpu.c logger.c regs.c rom.c ints.c gpu.c display.c main.c debug.c
 PKG = $$(pkg-config --libs allegro-5)
@@ -8,7 +9,7 @@ BIN = gbc
 
 all: gbc_debug
 
-gbc_debug: CFLAGS += -DDEBUG
+gbc_debug: CFLAGS += $(CFLAGS_DEBUG)
 gbc_debug: gbc
 
 gbc: $(OBJS)
