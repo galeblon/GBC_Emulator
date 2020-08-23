@@ -104,13 +104,13 @@ static u8 g_wram_bank = 1;
 static enum mem_banking_mode g_banking_mode = ROM_BANKING_MODE;
 static enum mem_rtc_state g_rtc_state = RTC_NONE;
 
-static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
-static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
-static u8 g_rtc_latch[5];
-
-static u8 g_wram[NUM_WRAM_BANKS][SIZE_WRAM0] = {0};
 static u8 g_hram[SIZE_HRAM] = {0};
 static u8 g_vram[SIZE_VRAM] = {0};
+static u8 g_rtc_latch[5];
+
+static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
+static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
+static struct mem_bank g_wram[NUM_WRAM_BANKS] = {0};
 
 static void _mem_cart_type_not_implemented(void)
 {
@@ -608,36 +608,49 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 
 static inline u8 _mem_read_wram0(a16 addr)
 {
-	return g_wram[0][addr - BASE_ADDR_WRAM0];
+	return _mem_read_bank(g_wram[0], addr - BASE_ADDR_WRAM0);
 }
 
 static inline void _mem_write_wram0(a16 addr, u8 data)
 {
-	g_wram[0][addr - BASE_ADDR_WRAM0] = data;
+	_mem_write_bank(g_wram[0], addr - BASE_ADDR_WRAM0, data);
 }
 
 static inline u8 _mem_read_wram(a16 addr)
 {
 	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_read_wram: incorrect WRAM Bank number");
-	return g_wram[g_wram_bank][addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM];
+
+	if (g_mem_cart_type.cgb_mode == NON_CGB)
+		return _mem_read_bank(g_wram[1], addr - BASE_ADDR_WRAM);
+
+	return _mem_read_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM);
 }
 
 static inline void _mem_write_wram(a16 addr, u8 data)
 {
 	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_write_wram: incorrect WRAM Bank number");
-	g_wram[g_wram_bank][addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM] = data;
+
+	if (g_mem_cart_type.cgb_mode == NON_CGB) {
+		_mem_write_bank(g_wram[1], addr - BASE_ADDR_WRAM, data);
+	} else {
+		_mem_write_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM, data);
+	}
 }
 
 static inline u8 _mem_read_wram_echo(a16 addr)
 {
-	// TODO: add switchable internal RAM banks
-	return _mem_read_wram0(addr);
+	if (addr < BASE_ADDR_WRAM)
+		return _mem_read_wram0(addr);
+
+	return _mem_read_wram(addr);
 }
 
 static inline void _mem_write_wram_echo(a16 addr, u8 data)
 {
-	// TODO: add switchable internal RAM banks
-	_mem_write_wram0(addr, data);
+	if (addr < BASE_ADDR_WRAM)
+		_mem_write_wram0(addr, data);
+
+	_mem_write_wram(addr, data);
 }
 
 static inline u8 _mem_read_sprite_attr(a16 addr __attribute__((unused)))
@@ -911,16 +924,35 @@ int mem_prepare(char *rom_path)
 		g_ram[i].size = g_mem_cart_type.ram_bank_size;
 	}
 
+	if (g_mem_cart_type.cgb_mode == NON_CGB) {
+		g_wram[0].mem = (u8 *)calloc(1, SIZE_WRAM0);
+		g_wram[0].size = SIZE_WRAM0;
+		g_wram[1].mem = (u8 *)calloc(1, SIZE_WRAM);
+		g_wram[1].size = SIZE_WRAM;
+	} else {
+		for (int i = 0; i < NUM_WRAM_BANKS; i++) {
+			g_wram[i].mem = (u8 *)calloc(1, SIZE_WRAM);
+			g_wram[i].size = SIZE_WRAM;
+		}
+	}
+
 	return 1;
 }
 
 void mem_destroy(void)
 {
 	for (int i = 0; i < g_mem_cart_type.num_rom_banks; i++) {
+		debug_assert(g_rom[i].mem != NULL, "mem_destroy: null ROM Bank memory");
 		free(g_rom[i].mem);
 	}
 
 	for (int i = 0; i < g_mem_cart_type.num_ram_banks; i++) {
+		debug_assert(g_rom[i].mem != NULL, "mem_destroy: null RAM Bank memory");
 		free(g_ram[i].mem);
+	}
+
+	for (int i = 0; i < NUM_WRAM_BANKS; i++) {
+		if (g_wram[i].mem)
+			free(g_wram[i].mem);
 	}
 }
