@@ -75,6 +75,7 @@ struct mem_cart_type {
 	bool sram;
 	bool rumble;
 	bool timer;
+	enum rom_cgb_mode cgb_mode;
 	int num_rom_banks;
 	int rom_bank_size;
 	int num_ram_banks;
@@ -193,9 +194,21 @@ static struct mem_cart_type _mem_parse_cart_type(struct mem_bank rom0)
 {
 	struct mem_cart_type cart_type = {0};
 
-	u8 type_byte = _mem_read_bank(rom0, 0x0147),
-		rom_size_byte = _mem_read_bank(rom0, 0x0148),
-		ram_size_byte = _mem_read_bank(rom0, 0x0149);
+	u8 cgb_mode_byte = _mem_read_bank(rom0, ROM_CGB_MODE),
+		type_byte = _mem_read_bank(rom0, ROM_CART_TYPE),
+		rom_size_byte = _mem_read_bank(rom0, ROM_ROM_BANK_SIZE),
+		ram_size_byte = _mem_read_bank(rom0, ROM_RAM_BANK_SIZE);
+
+	switch(cgb_mode_byte) {
+		case 0x80:
+			cart_type.cgb_mode = CGB_SUPPORT;
+			break;
+		case 0xC0:
+			cart_type.cgb_mode = CGB_ONLY;
+			break;
+		default:
+			cart_type.cgb_mode = NON_CGB;
+	}
 
 	switch(type_byte) {
 		case 0x00: // ROM_ONLY
