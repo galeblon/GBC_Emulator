@@ -1,6 +1,7 @@
 #include<stddef.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include"cpu.h"
 #include"debug.h"
 #include"logger.h"
 #include"mem.h"
@@ -15,7 +16,6 @@
 #define BASE_ADDR_SPRITE_ATTR    0xFE00
 #define BASE_ADDR_EMPTY0         0xFEA0
 #define BASE_ADDR_IO_PORTS       0xFF00
-#define BASE_ADDR_EMPTY1         0xFF4C
 #define BASE_ADDR_HRAM           0xFF80
 #define BASE_ADDR_INT_ENABLE     0xFFFF
 
@@ -27,18 +27,19 @@
 #define SIZE_WRAM_ECHO      0x1E00
 #define SIZE_SPRITE_ATTR    0x00A0
 #define SIZE_EMPTY0         0x0060
-#define SIZE_IO_PORTS       0x004C
-#define SIZE_EMPTY1         0x0034
+#define SIZE_IO_PORTS       0x0080
 #define SIZE_HRAM           0x007F
 #define SIZE_INT_ENABLE     0x0001
 
-#define NUM_MEM_BLOCKS  12
+#define NUM_MEM_BLOCKS  11
 
 #define MAX_ROM_BANKS  0x200
 #define MAX_RAM_BANKS  0x10
 #define NUM_WRAM_BANKS 0x08
 
 #define KB	1024
+
+#define DMA_CYCLES_PER_10H	8
 
 typedef u8 (*mem_block_read_t)(a16 addr);
 typedef void (*mem_block_write_t)(a16 addr, u8 data);
@@ -94,6 +95,15 @@ enum mem_rtc_state {
 	RTC_LATCHED_00
 };
 
+enum mem_dma_state {
+	DMA_NONE                = 1 << 0,
+	DMA_GENERAL_IN_PROGRESS = 1 << 1,
+	DMA_H_BLANK_IN_PROGRESS = 1 << 2,
+	DMA_VRAM_SUCCESS        = 1 << 3,
+	DMA_H_BLANK_TERMINATED  = 1 << 4,
+	DMA_AVAILIBLE           = DMA_NONE | DMA_VRAM_SUCCESS | DMA_H_BLANK_TERMINATED,
+};
+
 // Memory module state
 static struct mem_cart_type g_mem_cart_type = {0};
 static bool g_ram_enable = 0;
@@ -102,10 +112,15 @@ static u8 g_rom_bank = 1;
 static u8 g_ram_bank = 0;
 static u8 g_wram_bank = 1;
 static u8 g_vram_bank = 0;
+static int g_dma_lock = 0;
+static u16 g_dma_length = 0, g_dma_remaining = 0;
+static a16 g_dma_src = 0, g_dma_dst = 0;
 static enum mem_banking_mode g_banking_mode = ROM_BANKING_MODE;
 static enum mem_rtc_state g_rtc_state = RTC_NONE;
+static enum mem_dma_state g_dma_state = DMA_NONE;
 
 static u8 g_hram[SIZE_HRAM] = {0};
+static u8 g_sprite_attr[SIZE_SPRITE_ATTR] = {0};
 static u8 g_rtc_latch[5];
 
 static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
@@ -190,6 +205,33 @@ static void _mem_write_bank(struct mem_bank bank, a16 addr, u8 data)
 	debug_assert(addr < bank.size, "_mem_write_bank: address out of bounds");
 	bank.mem[addr] = data;
 }
+
+static inline void _mem_dma_start(a16 total_length)
+{
+	debug_assert(g_dma_state & DMA_AVAILIBLE, "_mem_dma_start: DMA in progress");
+
+	g_dma_length = g_dma_remaining = total_length;
+}
+
+static void _mem_dma(a16 length)
+{
+	u8 data;
+	a16 offset = g_dma_length - g_dma_remaining;
+
+	debug_assert(length <= g_dma_remaining, "_mem_dma: invalid DMA length");
+
+	for (u16 i = 0; i < length; i++) {
+		data = mem_read8(g_dma_src + offset + i);
+		mem_write8(g_dma_dst + offset + i, data);
+	}
+
+	g_dma_remaining -= length;
+
+	if (g_dma_remaining == 0) {
+		g_dma_state = DMA_VRAM_SUCCESS;
+	}
+}
+
 
 static struct mem_cart_type _mem_parse_cart_type(struct mem_bank rom0)
 {
@@ -367,8 +409,16 @@ static struct mem_cart_type _mem_parse_cart_type(struct mem_bank rom0)
 	return cart_type;
 }
 
+static inline bool _mem_is_cart_cgb(struct mem_cart_type type)
+{
+	return type.cgb_mode != NON_CGB;
+}
+
 static u8 _mem_read_cart_mem(a16 addr)
 {
+	if (g_dma_lock)
+		return 0;
+
 	switch (g_mem_cart_type.mbc) {
 		case ROM_ONLY:
 			return _mem_read_bank(g_rom[0], addr - BASE_ADDR_CART_MEM);
@@ -399,6 +449,9 @@ static u8 _mem_read_cart_mem(a16 addr)
 
 static void _mem_write_cart_mem(a16 addr, u8 data)
 {
+	if (g_dma_lock)
+		return;
+
 	switch(g_mem_cart_type.mbc) {
 		case ROM_ONLY:
 			// read only
@@ -524,26 +577,25 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 
 static inline u8 _mem_read_vram(a16 addr)
 {
+	if (g_dma_lock)
+		return 0;
+
 	return _mem_read_bank(g_vram[g_vram_bank], addr - BASE_ADDR_VRAM);
 }
 
 static inline void _mem_write_vram(a16 addr, u8 data)
 {
+	if (g_dma_lock)
+		return;
+
 	_mem_write_bank(g_vram[g_vram_bank], addr - BASE_ADDR_VRAM, data);
-}
-
-u8 mem_vram_read8(int bank, a16 addr)
-{
-	return _mem_read_bank(g_vram[bank], addr - BASE_ADDR_VRAM);
-}
-
-void mem_vram_write8(int bank, a16 addr, u8 data)
-{
-	_mem_write_bank(g_vram[bank], addr - BASE_ADDR_VRAM, data);
 }
 
 static u8 _mem_read_ram_switch(a16 addr)
 {
+	if (g_dma_lock)
+		return 0;
+
 	switch(g_mem_cart_type.mbc) {
 		case ROM_ONLY:
 			return _mem_read_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH);
@@ -586,6 +638,9 @@ static u8 _mem_read_ram_switch(a16 addr)
 
 static void _mem_write_ram_switch(a16 addr, u8 data)
 {
+	if (g_dma_lock)
+		return;
+
 	switch(g_mem_cart_type.mbc) {
 		case ROM_ONLY:
 			_mem_write_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH, data);
@@ -619,11 +674,17 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 
 static inline u8 _mem_read_wram0(a16 addr)
 {
+	if (g_dma_lock)
+		return 0;
+
 	return _mem_read_bank(g_wram[0], addr - BASE_ADDR_WRAM0);
 }
 
 static inline void _mem_write_wram0(a16 addr, u8 data)
 {
+	if (g_dma_lock)
+		return;
+
 	_mem_write_bank(g_wram[0], addr - BASE_ADDR_WRAM0, data);
 }
 
@@ -631,20 +692,28 @@ static inline u8 _mem_read_wram(a16 addr)
 {
 	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_read_wram: incorrect WRAM Bank number");
 
-	if (g_mem_cart_type.cgb_mode == NON_CGB)
-		return _mem_read_bank(g_wram[1], addr - BASE_ADDR_WRAM);
+	if (g_dma_lock)
+		return 0;
 
-	return _mem_read_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM);
+	if (_mem_is_cart_cgb(g_mem_cart_type))
+		return _mem_read_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM);
+
+	return _mem_read_bank(g_wram[1], addr - BASE_ADDR_WRAM);
 }
 
 static inline void _mem_write_wram(a16 addr, u8 data)
 {
 	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_write_wram: incorrect WRAM Bank number");
 
-	if (g_mem_cart_type.cgb_mode == NON_CGB) {
-		_mem_write_bank(g_wram[1], addr - BASE_ADDR_WRAM, data);
+	if (g_dma_lock)
+		return;
+
+	if (_mem_is_cart_cgb(g_mem_cart_type)) {
+		_mem_write_bank(g_wram[g_wram_bank],
+				addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM,
+				data);
 	} else {
-		_mem_write_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM, data);
+		_mem_write_bank(g_wram[1], addr - BASE_ADDR_WRAM, data);
 	}
 }
 
@@ -664,18 +733,20 @@ static inline void _mem_write_wram_echo(a16 addr, u8 data)
 	_mem_write_wram(addr, data);
 }
 
-static inline u8 _mem_read_sprite_attr(a16 addr __attribute__((unused)))
+static inline u8 _mem_read_sprite_attr(a16 addr)
 {
-	// TODO: Sprite attribute table support (#43)
-	_mem_not_implemented("Sprite attribute table");
-	return 0;
+	if (g_dma_lock)
+		return 0;
+
+	return g_sprite_attr[addr - BASE_ADDR_SPRITE_ATTR];
 }
 
-static inline void _mem_write_sprite_attr(a16 addr __attribute__((unused)),
-	u8 data __attribute__((unused)))
+static inline void _mem_write_sprite_attr(a16 addr, u8 data)
 {
-	// TODO: Sprite attribute table support (#43)
-	_mem_not_implemented("Sprite attribute table");
+	if (g_dma_lock)
+		return;
+
+	g_sprite_attr[addr - BASE_ADDR_SPRITE_ATTR] = data;
 }
 
 static inline u8 _mem_read_empty0(a16 addr __attribute__((unused)))
@@ -691,35 +762,147 @@ static inline void _mem_write_empty0(a16 addr __attribute__((unused)),
 
 static inline u8 _mem_read_io_ports(a16 addr __attribute__((unused)))
 {
+	if (g_dma_lock)
+		return 0;
+
 	// TODO: IO ports (#44)
 	_mem_not_implemented("IO ports");
+
+	switch (addr) {
+		case 0xFF55:
+			// VRAM DMA transfer remaining
+			// Returns:
+			//   0xFF: when transfer completed
+			//   (length_remaining / 0x10) - 1: while transfer in progress
+			//   0x80 + (length_remaining / 0x10) - 1:
+			//		after terminated H-blank transfer
+			// Bit 7 signifies if transfer is active (0) or not (1).
+			//
+			// Right now all VRAM DMA is instant, so we always return 0xFF.
+			if (_mem_is_cart_cgb(g_mem_cart_type))
+				switch (g_dma_state) {
+					case DMA_NONE:
+					case DMA_VRAM_SUCCESS:
+						return 0xFF;
+					case DMA_GENERAL_IN_PROGRESS:
+					case DMA_H_BLANK_IN_PROGRESS:
+						return (g_dma_remaining / 0x10) - 1;
+					case DMA_H_BLANK_TERMINATED:
+						return 0x80 | ((g_dma_remaining / 0x10) - 1);
+					default:
+						debug_assert(false, "_mem_read_io_ports: invalid DMA state");
+						g_dma_state = DMA_NONE;
+				}
+			break;
+	}
+
 	return 0;
 }
 
 static inline void _mem_write_io_ports(a16 addr __attribute__((unused)),
 	u8 data __attribute__((unused)))
 {
+	if (g_dma_lock)
+		return;
+
 	// TODO: IO ports (#44)
 	_mem_not_implemented("IO ports");
-}
 
-static inline u8 _mem_read_empty1(a16 addr __attribute__((unused)))
-{
-	return 0;
-}
+	switch (addr) {
+		case 0xFF46:
+			// DMA: OAM DMA transfer address
+			if (data <= 0xF1) {
+				g_dma_src = BASE_ADDR_SPRITE_ATTR;
+				g_dma_dst = (a16)data << 8;
+				_mem_dma_start(SIZE_SPRITE_ATTR);
+				_mem_dma(SIZE_SPRITE_ATTR);
+				g_dma_lock = 160;
+			} else {
+				debug_assert(true, "_mem_write_empty1: invalid OAM DMA address");
+			}
+			break;
+		case 0xFF4F:
+			// VBK: VRAM Bank selection
+			if (_mem_is_cart_cgb(g_mem_cart_type))
+				g_vram_bank = data & 0x01;
+			break;
+		case 0xFF51:
+			// HDMA1: VRAM DMA Source address, higher
+			if (_mem_is_cart_cgb(g_mem_cart_type))
+				g_dma_src = (g_dma_src & 0x00FF) | ((a16)data << 8);
+			break;
+		case 0xFF52:
+			// HDMA2: VRAM DMA Source address, lower
+			// Bits 0-3 are ignored (zeros are used)
+			if (_mem_is_cart_cgb(g_mem_cart_type))
+				g_dma_src = (g_dma_src & 0xFF00) | data;
+			break;
+		case 0xFF53:
+			// HDMA3: VRAM DMA Destination address, higher
+			// Bits 5-7 are ignored (0x80 is used)
+			if (_mem_is_cart_cgb(g_mem_cart_type))
+				g_dma_dst = (g_dma_dst & 0x00FF) | ((a16)data << 8);
+			break;
+		case 0xFF54:
+			// HDMA4: VRAM DMA Destination address, lower
+			// Bits 0-3 are ignored (zeros are used)
+			if (_mem_is_cart_cgb(g_mem_cart_type))
+				g_dma_dst = (g_dma_dst & 0xFF00) | data;
+			break;
+		case 0xFF55:
+			// HDMA5: VRAM DMA mode/length
+			// Bit 7 is DMA Mode:
+			//     0 - General DMA - blocks execution and transfers right away
+			//     1 - H-blank DMA - tranfers 0x10 bytes on each H-blank
+			// Bits 0-6 are (transfer_length / 0x10) - 1
+			if (_mem_is_cart_cgb(g_mem_cart_type)) {
+				a16 length;
 
-static inline void _mem_write_empty1(a16 addr, u8 data)
-{
-	// VBK: VRAM Bank selection
-	if (g_mem_cart_type.cgb_mode != NON_CGB && addr == 0xFF4F) {
-		g_vram_bank = data & 0x01;
-	}
+				switch (g_dma_state) {
+					case DMA_NONE:
+					case DMA_VRAM_SUCCESS:
+					case DMA_H_BLANK_TERMINATED:
+						g_dma_dst &= 0x1FF0;
+						g_dma_src &= 0xFFF0;
+						length = ((data & 0x7F) + 1) << 8;
 
-	// SVBK: WRAM Bank selection
-	if (g_mem_cart_type.cgb_mode != NON_CGB && addr == 0xFF70) {
-		g_wram_bank = data & 0x03;
-		if (g_wram_bank == 0)
-			g_wram_bank = 1;
+						// Prevent DMA from overflowing beyond VRAM
+						if (g_dma_dst + length > SIZE_VRAM)
+							length = SIZE_VRAM - g_dma_dst;
+
+						_mem_dma_start(length);
+
+						if ((data & 0x80) == 0) {
+							// Execute General DMA all at once
+							g_dma_state = DMA_GENERAL_IN_PROGRESS;
+							g_dma_lock = DMA_CYCLES_PER_10H * (g_dma_length / 0x10);
+							cpu_set_halted(true);
+							_mem_dma(length);
+						} else {
+							g_dma_state = DMA_H_BLANK_IN_PROGRESS;
+						}
+						break;
+					case DMA_H_BLANK_IN_PROGRESS:
+						// Assuming writes with bit 7 = 1 are ignored
+						if ((data & 0x80) == 0)
+							g_dma_state = DMA_H_BLANK_TERMINATED;
+						break;
+					default:
+						debug_assert(false, "_mem_write_io_ports: invalid DMA state");
+						g_dma_state = DMA_NONE;
+				}
+			}
+			break;
+		case 0xFF70:
+			if (_mem_is_cart_cgb(g_mem_cart_type)) {
+				// SVBK: WRAM Bank selection
+				g_wram_bank = data & 0x03;
+				if (g_wram_bank == 0)
+					g_wram_bank = 1;
+			}
+			break;
+		default:
+			break;
 	}
 }
 
@@ -735,12 +918,18 @@ static inline void _mem_write_hram(a16 addr, u8 data)
 
 static inline u8 _mem_read_int_enable(a16 addr __attribute__((unused)))
 {
+	if (g_dma_lock)
+		return 0;
+
 	return g_int_enable;
 }
 
 static inline void _mem_write_int_enable(a16 addr __attribute__((unused)),
 	u8 data)
 {
+	if (g_dma_lock)
+		return;
+
 	g_int_enable = data;
 }
 
@@ -763,7 +952,6 @@ struct mem_block g_mem_blocks[NUM_MEM_BLOCKS] = {
 	MEM_BLOCK_DEF(sprite_attr, SPRITE_ATTR)
 	MEM_BLOCK_DEF(empty0, EMPTY0)
 	MEM_BLOCK_DEF(io_ports, IO_PORTS)
-	MEM_BLOCK_DEF(empty1, EMPTY1)
 	MEM_BLOCK_DEF(hram, HRAM)
 	MEM_BLOCK_DEF(int_enable, INT_ENABLE)
 };
@@ -948,19 +1136,19 @@ int mem_prepare(char *rom_path)
 	g_vram[0].mem = (u8 *)calloc(1, SIZE_VRAM);
 	g_vram[0].size = SIZE_VRAM;
 
-	if (g_mem_cart_type.cgb_mode == NON_CGB) {
-		g_wram[0].mem = (u8 *)calloc(1, SIZE_WRAM0);
-		g_wram[0].size = SIZE_WRAM0;
-		g_wram[1].mem = (u8 *)calloc(1, SIZE_WRAM);
-		g_wram[1].size = SIZE_WRAM;
-	} else {
-		g_vram[1].mem = (u8 *)calloc(1, SIZE_VRAM);
-		g_vram[1].size = SIZE_VRAM;
-
+	if (_mem_is_cart_cgb(g_mem_cart_type)) {
 		for (int i = 0; i < NUM_WRAM_BANKS; i++) {
 			g_wram[i].mem = (u8 *)calloc(1, SIZE_WRAM);
 			g_wram[i].size = SIZE_WRAM;
 		}
+
+		g_vram[1].mem = (u8 *)calloc(1, SIZE_VRAM);
+		g_vram[1].size = SIZE_VRAM;
+	} else {
+		g_wram[0].mem = (u8 *)calloc(1, SIZE_WRAM0);
+		g_wram[0].size = SIZE_WRAM0;
+		g_wram[1].mem = (u8 *)calloc(1, SIZE_WRAM);
+		g_wram[1].size = SIZE_WRAM;
 	}
 
 	return 1;
@@ -987,4 +1175,36 @@ void mem_destroy(void)
 
 	if (g_vram[1].mem)
 		free(g_vram[1].mem);
+}
+
+void mem_step(int cycles_delta)
+{
+	if (g_dma_lock > cycles_delta) {
+		g_dma_lock -= cycles_delta;
+	} else {
+		g_dma_lock = 0;
+	}
+
+	if (g_dma_state == DMA_GENERAL_IN_PROGRESS && g_dma_lock == 0) {
+		cpu_set_halted(false);
+		g_dma_state = DMA_VRAM_SUCCESS;
+	}
+}
+
+u8 mem_vram_read8(int bank, a16 addr)
+{
+	return _mem_read_bank(g_vram[bank], addr - BASE_ADDR_VRAM);
+}
+
+void mem_vram_write8(int bank, a16 addr, u8 data)
+{
+	_mem_write_bank(g_vram[bank], addr - BASE_ADDR_VRAM, data);
+}
+
+void mem_h_blank_notify(void)
+{
+	if (g_dma_state != DMA_H_BLANK_IN_PROGRESS)
+		return;
+
+	_mem_dma(0x10);
 }

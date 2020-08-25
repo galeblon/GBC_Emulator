@@ -12,4 +12,6 @@ void mem_write16(a16 addr, u16 data);
 int mem_prepare(char *rom_path);
 void mem_destroy(void);
 
+void mem_step(int cycles_delta);
+
 #endif // __MEM_H_

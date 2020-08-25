@@ -507,6 +507,8 @@ static void _gpu_update_lcd_status(void)
 		stat &= !B0;
 		stat &= !B1;
 		request_interrupt = (stat & B3) != 0;
+		if (current_mode != hitherto_mode)
+			mem_h_blank_notify();
 		break;
 	case GPU_V_BLANK:
 		stat |= B0;
