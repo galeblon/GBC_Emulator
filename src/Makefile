@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall -Wextra -pedantic -O0
 INCL = -I./include
 SRCS = mem.c cpu.c logger.c regs.c rom.c ints.c gpu.c display.c main.c debug.c
-PKG = $$(pkg-config --libs allegro-5)
+PKG = $$(pkg-config --libs allegro-5 allegro_primitives-5)
 OBJS = $(SRCS:.c=.o)
 BIN = gbc
 

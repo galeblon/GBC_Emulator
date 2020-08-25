@@ -1,4 +1,5 @@
 #include<allegro5/allegro5.h>
+#include<allegro5/allegro_primitives.h>
 #include"cpu.h"
 #include"display.h"
 #include"logger.h"
@@ -92,6 +93,29 @@ void display_prepare(float frequency, char * rom_title)
 	al_set_window_title(g_display, rom_title);
 	al_clear_to_color( al_map_rgb(0, 0, 0) );
 	al_flip_display();
+}
+
+
+void display_draw_line(colour line[160], int index)
+{
+	ALLEGRO_COLOR current_colour;
+	for(int i=0; i<160; i++)
+	{
+		current_colour = al_map_rgba(
+			line[i].r,
+			line[i].g,
+			line[i].b,
+			(line[i].a) ? 255 : 0
+		);
+
+		al_draw_filled_rectangle(
+			index       * SCALING_FACTOR,
+			i           * SCALING_FACTOR,
+			(index + 1) * SCALING_FACTOR,
+			(i + 1)     * SCALING_FACTOR,
+			current_colour
+		);
+	}
 }
 
 
