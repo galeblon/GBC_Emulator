@@ -244,7 +244,7 @@ static colour _gpu_get_colour_gb(int colour_number)
 
 static colour _gpu_get_colour(int colour_number, int palette_number, enum gpu_drawing_type type)
 {
-	colour found_colour;
+	colour found_colour = {255, 255, 255, true};
 	if( (colour_number < 0) || (colour_number > 3) ) {
 		_gpu_error(
 			LOG_FATAL,
@@ -356,7 +356,7 @@ static void _gpu_put_sprites(
 			tile_number = sprites[i].tile_number;
 
 		//Get line
-		//TODO: Figure out how to change VRAM Banks
+		//TODO: VRAM Banking - Issue #52
 		a16 tile_address_base;
 		if(sprites[i].vram_bank_number == 0)
 			tile_address_base = OAMAddress;
