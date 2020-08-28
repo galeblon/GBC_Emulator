@@ -96,6 +96,15 @@ typedef struct sprite {
 } sprite;
 
 
+typedef struct bg_attr {
+	d8   bgp_number;
+	d8   vram_bank_number;
+	bool flipped_x;
+	bool flipped_y;
+	bool has_priority_over_oam;
+} bg_attr;
+
+
 static int const    g_sprite_width  = 8;
 static colour const g_gb_black      = {0, 0, 0, false};
 static colour const g_gb_dark_gray  = {85, 85, 85, false};
@@ -407,15 +416,77 @@ static void _gpu_put_sprites(
 }
 
 
-static void _gpu_draw_window(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
+static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
 	//TODO
 }
 
 
-static void _gpu_draw_background(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
+static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
-	//TODO
+	//Get tiles
+	d8 ly  = mem_read8(LYAddress);
+	d8 scy = mem_read8(SCYAddress);
+	d8 scx = mem_read8(SCXAddress);
+	d8 tile_map_y = (scy + ly) % 256;
+	d8 tile_map_x = scx;
+	d8 tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
+	d8 tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
+
+	//Get proper tile from tile map
+	d8  tile_map_number;
+	d8  tile_number;
+	int tile_colour_numbers[8];
+	d8  line_upper;
+	d8  line_lower;
+	for(int i = 0; i < 20; i++)
+	{
+		//What's our tile map number (index)
+		tile_map_number = tile_map_tile_x + tile_map_tile_y * 32;
+
+		//Get tile number and attributes, if able
+		if(g_cgb_enabled) {
+
+		} else {
+			tile_number = mem_read8(g_bg_tile_map_display_address + tile_map_number);
+		}
+
+		//Acquire colour numbers
+		if(g_cgb_enabled) {
+
+		} else {
+			line_lower = mem_read8(
+				g_bg_window_tile_data_address + tile_number * 2 + (((tile_map_y % 8) * 2) % 8 )
+			);
+			line_upper = mem_read8(
+				g_bg_window_tile_data_address + tile_number * 2 + (((tile_map_y % 8) * 2) % 8 ) + 1
+			);
+
+			for(int j = 0; j < 8; j++)
+			{
+				tile_colour_numbers[j]
+					= ( ( line_upper & (B7 >> j) ) << (j-1) )
+					| ( ( line_lower & (B7 >> j) ) << j )
+				;
+			}
+		}
+
+		//Set colours on the line
+		if(g_cgb_enabled) {
+
+		} else {
+			int current_index;
+			for(int j = 0; j < 8; j++)
+			{
+				current_index = (scx + i * 8 + j) % 160;
+				line[current_index] = _gpu_get_colour(
+					tile_colour_numbers[j],
+					0,
+					BACKGROUND
+				);
+			}
+		}
+	}
 }
 
 
@@ -449,11 +520,11 @@ static void _gpu_draw_scanline(void)
 
 		//Check if the screen is not fully white
 		if(!g_cgb_enabled && !isLCDC0(lcdc)) {
-			_gpu_draw_background(line, bg_colour_is_0, bg_bit_7);
+			_gpu_put_background(line, bg_colour_is_0, bg_bit_7);
 
 			//Draw window if enabled
 			if(isLCDC5(lcdc)) {
-				_gpu_draw_window(line, bg_colour_is_0, bg_bit_7);
+				_gpu_put_window(line, bg_colour_is_0, bg_bit_7);
 			}
 		} else {
 			for(int i = 0; i < 160; i++)
