@@ -4,7 +4,7 @@
 #include"gpu.h"
 #include"ints.h"
 #include"logger.h"
-#include"mem.h"
+#include"mem_gpu.h"
 #include"types.h"
 
 #define _CLOCKS_PER_SCANLINE 456
@@ -356,15 +356,11 @@ static void _gpu_put_sprites(
 			tile_number = sprites[i].tile_number;
 
 		//Get line
-		//TODO: VRAM Banking - Issue #52
-		a16 tile_address_base;
-		if(sprites[i].vram_bank_number == 0)
-			tile_address_base = OAMAddress;
-		else if(sprites[i].vram_bank_number == 1)
-			tile_address_base = OAMAddress;
 		d8 line_upper, line_lower;
-		line_lower = mem_read8( tile_address_base + tile_number * 2 + ((line_index * 2) % 8 ) );
-		line_upper = mem_read8( tile_address_base + tile_number * 2 + ((line_index * 2) % 8 ) + 1 );
+		line_lower = mem_vram_read8( sprites[i].vram_bank_number,
+				OAMAddress + tile_number * 2 + ((line_index * 2) % 8 ) );
+		line_upper = mem_vram_read8( sprites[i].vram_bank_number,
+				OAMAddress + tile_number * 2 + ((line_index * 2) % 8 ) + 1 );
 		for(int j = 0; j < 8; j++)
 		{
 			colour_numbers[j][i]
