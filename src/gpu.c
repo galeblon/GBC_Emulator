@@ -30,13 +30,6 @@
 #define WYAddress   0xFF4A 	/* Window Y Position */
 #define WXAddress   0xFF4B 	/* Window X Position */
 
-#define VBKAddress   0xFF4F /* VRAM Bank */
-#define HDMA1Address 0xFF51 /* New DMA Source, High */
-#define HDMA2Address 0xFF52 /* New DMA Source, Low */
-#define HDMA3Address 0xFF53 /* New DMA Destination, High */
-#define HDMA4Address 0xFF54 /* New DMA Destination, Low */
-#define HDMA5Address 0xFF55 /* New DMA Length/Mode/Start, High */
-
 #define BGPIAddress 0xFF68 	/* Background Palette Index */
 #define BGPDAddress 0xFF69 	/* Background Palette Data */
 #define SPIAddress  0xFF6A 	/* Sprite Palette Index */
@@ -105,20 +98,19 @@ typedef struct bg_attr {
 } bg_attr;
 
 
-static int const    g_sprite_width  = 8;
 static colour const g_gb_black      = {0, 0, 0, false};
 static colour const g_gb_dark_gray  = {85, 85, 85, false};
 static colour const g_gb_light_gray = {170, 170, 170, false};
 static colour const g_gb_white      = {255, 255, 255, false};
 
 
-static int       g_current_clocks                  = 0;
-static int       g_sprite_height                   = 0;
-static int       g_mode_2_boundary                 = 0;
-static int       g_mode_3_boundary                 = 0;
-static d16       g_window_tile_map_display_address = 0;
-static d16       g_bg_window_tile_data_address     = 0;
-static d16       g_bg_tile_map_display_address     = 0;
+static u16       g_current_clocks                  = 0;
+static u8        g_sprite_height                   = 0;
+static u16       g_mode_2_boundary                 = 0;
+static u16       g_mode_3_boundary                 = 0;
+static a16       g_window_tile_map_display_address = 0;
+static a16       g_bg_window_tile_data_address     = 0;
+static a16       g_bg_tile_map_display_address     = 0;
 static bool      g_cgb_enabled                     = true;
 
 
@@ -139,7 +131,7 @@ static void _gpu_error(enum logger_log_type type, char *title, char *message)
 }
 
 
-static colour _gpu_get_colour_cgb_sprite(int colour_number, int palette_number)
+static colour _gpu_get_colour_cgb_sprite(u8 colour_number, u8 palette_number)
 {
 	//Setup
 	colour found_colour;
@@ -160,7 +152,7 @@ static colour _gpu_get_colour_cgb_sprite(int colour_number, int palette_number)
 }
 
 
-static colour _gpu_get_colour_cgb(int colour_number, int palette_number)
+static colour _gpu_get_colour_cgb(u8 colour_number, u8 palette_number)
 {
 	//Setup
 	colour found_colour;
@@ -181,7 +173,7 @@ static colour _gpu_get_colour_cgb(int colour_number, int palette_number)
 }
 
 
-static colour _gpu_get_colour_gb_sprite(int colour_number, int palette_number)
+static colour _gpu_get_colour_gb_sprite(u8 colour_number, u8 palette_number)
 {
 	//Setup
 	colour found_colour;
@@ -220,7 +212,7 @@ static colour _gpu_get_colour_gb_sprite(int colour_number, int palette_number)
 }
 
 
-static colour _gpu_get_colour_gb(int colour_number)
+static colour _gpu_get_colour_gb(u8 colour_number)
 {
 	//Setup
 	colour found_colour;
@@ -251,10 +243,10 @@ static colour _gpu_get_colour_gb(int colour_number)
 }
 
 
-static colour _gpu_get_colour(int colour_number, int palette_number, enum gpu_drawing_type type)
+static colour _gpu_get_colour(u8 colour_number, u8 palette_number, enum gpu_drawing_type type)
 {
 	colour found_colour = {255, 255, 255, true};
-	if( (colour_number < 0) || (colour_number > 3) ) {
+	if(colour_number > 3) {
 		_gpu_error(
 			LOG_FATAL,
 			"INVALID COLOUR",
@@ -281,7 +273,7 @@ static colour _gpu_get_colour(int colour_number, int palette_number, enum gpu_dr
 }
 
 
-static sprite _gpu_get_sprite(int number)
+static sprite _gpu_get_sprite(u8 number)
 {
 	sprite current_sprite;
 
@@ -304,6 +296,57 @@ static sprite _gpu_get_sprite(int number)
 }
 
 
+//vram_bank_number is 255-nullable
+static void _gpu_get_colour_numbers(
+	a16 base_address,
+	u8 tile_number,
+	u8 line_index,
+	u8 vram_bank_number,
+	bool flip_x,
+	u8 dst[8]
+)
+{
+	//Get line
+	d8  line_upper, line_lower;
+	a16 first_addr = base_address + tile_number * 2 + ((line_index * 2) % 8 );
+	if(vram_bank_number == 255) {
+		line_lower = mem_read8(first_addr);
+		line_upper = mem_read8(first_addr + 1);
+	} else {
+		line_lower = mem_vram_read8(
+			vram_bank_number,
+			first_addr
+		);
+		line_upper = mem_vram_read8(
+			vram_bank_number,
+			first_addr + 1
+		);
+	}
+
+	u8 current_index;
+	for(u8 i = 0; i < 8; i++)
+	{
+		current_index = flip_x ? 7 - i : i;
+		if(current_index < 6) {
+			dst[i] = (
+				  ( ( line_upper & (B7 >> current_index) ) << (6 - current_index) )
+				| ( ( line_lower & (B7 >> current_index) ) << (7 - current_index) )
+			);
+		} else if(current_index < 7) {
+			dst[i] = (
+				  ( ( line_upper & (B7 >> current_index) ) >> (6 - current_index) )
+				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
+			);
+		} else {
+			dst[i] = (
+				  ( ( line_upper & (B7 >> current_index) ) << (current_index - 6) )
+				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
+			);
+		}
+	}
+}
+
+
 static void _gpu_put_sprites(
 	colour line[160],
 	bool bg_bit_7[160],
@@ -313,10 +356,10 @@ static void _gpu_put_sprites(
 {
 	//Get up to 10 sprites in current scanline
 	d8 ly = mem_read8(LYAddress);
-	int sprite_index = 0;
+	u8 sprite_index = 0;
 	sprite sprites[10];
 	sprite current_sprite;
-	for(int i = 0; i < 40; i++)
+	for(u8 i = 0; i < 40; i++)
 	{
 		current_sprite = _gpu_get_sprite(i);
 
@@ -329,10 +372,10 @@ static void _gpu_put_sprites(
 	}
 
 	//Sort based on Z-priority
-	if(!g_cgb_enabled) {
-		for(int i = 0; i < sprite_index; i++)
+	if(!g_cgb_enabled)
+		for(u8 i = 0; i < sprite_index; i++)
 		{
-			for(int j = 1; j < sprite_index - i; j++)
+			for(s8 j = 1; j < sprite_index - i; j++)
 			{
 				if(sprites[j-1].x > sprites[j].x) {
 					current_sprite = sprites[j-1];
@@ -341,13 +384,12 @@ static void _gpu_put_sprites(
 				}
 			}
 		}
-	}
 
 	//Get colour numbers
-	int colour_numbers[8][10];
+	u8 colour_numbers[10][8];
 	d8 tile_number;
 	d8 line_index;
-	for(int i = 0; i < sprite_index; i++)
+	for(u8 i = 0; i < sprite_index; i++)
 	{
 		//Check which line we are getting
 		line_index = sprites[i].flipped_y
@@ -364,35 +406,23 @@ static void _gpu_put_sprites(
 		else
 			tile_number = sprites[i].tile_number;
 
-		//Get line
-		d8 line_upper, line_lower;
-		line_lower = mem_vram_read8( sprites[i].vram_bank_number,
-				OAMAddress + tile_number * 2 + ((line_index * 2) % 8 ) );
-		line_upper = mem_vram_read8( sprites[i].vram_bank_number,
-				OAMAddress + tile_number * 2 + ((line_index * 2) % 8 ) + 1 );
-		for(int j = 0; j < 8; j++)
-		{
-			colour_numbers[j][i]
-				= ( ( line_upper & (B7 >> j) ) << (j-1) )
-				| ( ( line_lower & (B7 >> j) ) << j )
-			;
-		}
-		int swap;
-		if(sprites[i].flipped_x)
-			for(int j = 0; j < 4; j++)
-			{
-				swap                   = colour_numbers[j][i];
-				colour_numbers[j][i]   = colour_numbers[7-j][i];
-				colour_numbers[7-j][i] = swap;
-			}
+		//Get single sprite colour numbers
+		_gpu_get_colour_numbers(
+			OAMAddress,
+			tile_number,
+			line_index,
+			g_cgb_enabled ? sprites[i].vram_bank_number : 255,
+			sprites[i].flipped_x,
+			colour_numbers[i]
+		);
 	}
 
 
 	//Set colours on the line
-	int current_index;
-	for(int i = sprite_index - 1; i >= 0; i--)
+	u8 current_index;
+	for(s8 i = sprite_index - 1; i >= 0; i--)
 	{
-		for(int j = 0; j < 8; j++)
+		for(u8 j = 0; j < 8; j++)
 		{
 			current_index = sprites[i].x + j;
 			if(
@@ -402,7 +432,7 @@ static void _gpu_put_sprites(
 				|| ( !bg_colour_is_0[current_index] && sprites[i].has_priority_over_bg_1_3 )
 			) {
 				line[current_index] = _gpu_get_colour(
-					colour_numbers[j][i],
+					colour_numbers[i][j],
 					g_cgb_enabled ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
 					SPRITE
 				);
@@ -412,16 +442,45 @@ static void _gpu_put_sprites(
 }
 
 
+static void _gpu_get_tile_number_attr(
+	a16 map_address,
+	u8 tile_map_number,
+	a16 data_address,
+	s16* tile_number,
+	bg_attr* tile_attr
+)
+{
+	u8  u_tile_number;
+	s8  s_tile_number;
+	d8 tile_attr_byte;
+
+	if(g_cgb_enabled) {
+		u_tile_number = (u8) mem_vram_read8(0, map_address + tile_map_number);
+		s_tile_number = (s8) u_tile_number;
+		*tile_number   = (s16) ((data_address == 0x9000) ? s_tile_number : u_tile_number);
+
+		tile_attr_byte = mem_vram_read8(1, map_address + tile_map_number);
+		tile_attr->bgp_number            =  tile_attr_byte & (B2 | B1 | B0);
+		tile_attr->vram_bank_number      = (tile_attr_byte & (B3)) >> 3;
+		tile_attr->flipped_x             = (tile_attr_byte & (B5)) == B5;
+		tile_attr->flipped_y             = (tile_attr_byte & (B6)) == B6;
+		tile_attr->has_priority_over_oam = (tile_attr_byte & (B7)) == B7;
+	} else {
+		*tile_number   = (s16) mem_read8(map_address + tile_map_number);
+	}
+}
+
+
 static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
 	//Get data
-	d8 ly = mem_read8(LYAddress);
-	d8 wy = mem_read8(WYAddress);
-	int wx = mem_read8(WXAddress) - 7;
-	d8 tile_map_y = ly - wy;
-	d8 tile_map_x = (wx < 0) ? 7 : wx;
-	d8 tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
-	d8 tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
+	d8  ly = mem_read8(LYAddress);
+	d8  wy = mem_read8(WYAddress);
+	s16 wx = mem_read8(WXAddress) - 7;
+	s16 tile_map_y = ly - wy;
+	u8  tile_map_x = (wx < 0) ? 7 : wx;
+	u8  tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
+	u8  tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
 
 	//Is the window on screen right now?
 	if((ly < wy) || (wy > 143) || (wx > 159)) {
@@ -429,104 +488,46 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 	}
 
 	//Get proper tile from tile map
-	d8  tile_map_number;
-	d8  u_tile_number;
-	int s_tile_number;
-	int tile_number;
-	d8  tile_attr_byte;
-	int tile_colour_numbers[8];
-	d8  line_upper;
-	d8  line_lower;
-	bg_attr tile_attr;
-	for(int i = 0; i < 20; i++)
+	u8  tile_map_number;
+	s16 tile_number;
+	u8  tile_colour_numbers[8];
+	bg_attr tile_attr = {0};
+	for(u8 i = 0; i < 20; i++)
 	{
 		//What's our tile map number (index)
 		tile_map_number = tile_map_tile_x + tile_map_tile_y * 32;
-			//Get tile number and attributes, if able
-		if(g_cgb_enabled) {
-			u_tile_number = s_tile_number = mem_vram_read8(0, g_window_tile_map_display_address + tile_map_number);
-			tile_attr_byte = mem_vram_read8(1, g_window_tile_map_display_address + tile_map_number);
-			tile_attr = (bg_attr) {
-				tile_attr_byte & (B2 | B1 | B0),
-				(tile_attr_byte & (B3)) >> 3,
-				(tile_attr_byte & (B5)) == B5,
-				(tile_attr_byte & (B6)) == B6,
-				(tile_attr_byte & (B7)) == B7
-			};
-		} else {
-			u_tile_number = s_tile_number = mem_read8(g_bg_tile_map_display_address + tile_map_number);
-		}
-		tile_number = (g_bg_window_tile_data_address == 0x9000) ?
-			s_tile_number :
-			u_tile_number
-		;
+
+		//Get tile number and attributes, if able
+		_gpu_get_tile_number_attr(
+			g_window_tile_map_display_address,
+			tile_map_number,
+			g_bg_window_tile_data_address,
+			&tile_number,
+			&tile_attr
+		);
 
 		//Acquire colour numbers
-		if(g_cgb_enabled) {
-			d8 tile_intra_y = tile_attr.flipped_y ? 7 - (tile_map_y % 8) : tile_map_y % 8;
-			line_lower = mem_vram_read8(
-				tile_attr.vram_bank_number,
-				g_bg_window_tile_data_address + tile_number * 2 + ((tile_intra_y * 2) % 8 )
-			);
-			line_upper = mem_vram_read8(
-				tile_attr.vram_bank_number,
-				g_bg_window_tile_data_address + tile_number * 2 + ((tile_intra_y * 2) % 8 ) + 1
-			);
-			d8 current_index;
-			for(int j = 0; j < 8; j++)
-			{
-				current_index = tile_attr.flipped_x ? 7 - j : j;
-				tile_colour_numbers[current_index]
-					= ( ( line_upper & (B7 >> current_index) ) << (j-1) )
-					| ( ( line_lower & (B7 >> j) ) << j )
-				;
-			}
-		} else {
-			line_lower = mem_read8(
-				g_bg_window_tile_data_address + tile_number * 2 + (((tile_map_y % 8) * 2) % 8 )
-			);
-			line_upper = mem_read8(
-				g_bg_window_tile_data_address + tile_number * 2 + (((tile_map_y % 8) * 2) % 8 ) + 1
-			);
-				for(int j = 0; j < 8; j++)
-			{
-				tile_colour_numbers[j]
-					= ( ( line_upper & (B7 >> j) ) << (j-1) )
-					| ( ( line_lower & (B7 >> j) ) << j )
-				;
-			}
-		}
+		_gpu_get_colour_numbers(
+			g_bg_window_tile_data_address,
+			tile_number,
+			(g_cgb_enabled && tile_attr.flipped_y) ? 7 - (tile_map_y % 8) : tile_map_y % 8,
+			g_cgb_enabled ? tile_attr.vram_bank_number : 255,
+			tile_attr.flipped_x,
+			tile_colour_numbers
+		);
 
 		//Set colours on the line
-		int current_index;
-		if(g_cgb_enabled) {
-			for(int j = 0; j < 8; j++)
-			{
-				current_index = (wx + i * 8 + j);
-				if((current_index < 0) || (current_index > 159))
-					continue;
-				bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
-				bg_bit_7[current_index]       = tile_attr.has_priority_over_oam;
-				line[current_index] = _gpu_get_colour(
-					tile_colour_numbers[j],
-					tile_attr.bgp_number,
-					WINDOW
-				);
-			}
-		} else {
-			for(int j = 0; j < 8; j++)
-			{
-				current_index = (wx + i * 8 + j);
-				if((current_index < 0) || (current_index > 159))
-					continue;
-				bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
-				bg_bit_7[current_index]       = false;
-				line[current_index] = _gpu_get_colour(
-					tile_colour_numbers[j],
-					0,
-					WINDOW
-				);
-			}
+		u8 current_index;
+		for(u8 j = 0; j < 8; j++)
+		{
+			current_index = (wx + i * 8 + j);
+			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
+			bg_bit_7[current_index]       = g_cgb_enabled ? tile_attr.has_priority_over_oam : false;
+			line[current_index] = _gpu_get_colour(
+				tile_colour_numbers[j],
+				g_cgb_enabled ? tile_attr.bgp_number : 0,
+				WINDOW
+			);
 		}
 	}
 }
@@ -538,102 +539,52 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 	d8 ly  = mem_read8(LYAddress);
 	d8 scy = mem_read8(SCYAddress);
 	d8 scx = mem_read8(SCXAddress);
-	d8 tile_map_y = (scy + ly) % 256;
-	d8 tile_map_x = scx;
-	d8 tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
-	d8 tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
+	u8 tile_map_y = (scy + ly) % 256;
+	u8 tile_map_x = scx;
+	u8 tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
+	u8 tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
 
 	//Get proper tile from tile map
-	d8  tile_map_number;
-	d8  tile_number;
-	d8  tile_attr_byte;
-	int tile_colour_numbers[8];
-	d8  line_upper;
-	d8  line_lower;
-	bg_attr tile_attr;
-	for(int i = 0; i < 20; i++)
+	u8 tile_map_number;
+	s16 tile_number;
+	u8 tile_colour_numbers[8];
+	bg_attr tile_attr = {0};
+	for(u8 i = 0; i < 20; i++)
 	{
 		//What's our tile map number (index)
 		tile_map_number = tile_map_tile_x + tile_map_tile_y * 32;
 
 		//Get tile number and attributes, if able
-		if(g_cgb_enabled) {
-			tile_number    = mem_vram_read8(0, g_bg_tile_map_display_address + tile_map_number);
-			tile_attr_byte = mem_vram_read8(1, g_bg_tile_map_display_address + tile_map_number);
-			tile_attr = (bg_attr) {
-				tile_attr_byte & (B2 | B1 | B0),
-				(tile_attr_byte & (B3)) >> 3,
-				(tile_attr_byte & (B5)) == B5,
-				(tile_attr_byte & (B6)) == B6,
-				(tile_attr_byte & (B7)) == B7
-			};
-		} else {
-			tile_number = mem_read8(g_bg_tile_map_display_address + tile_map_number);
-		}
+		_gpu_get_tile_number_attr(
+			g_bg_tile_map_display_address,
+			tile_map_number,
+			g_bg_window_tile_data_address,
+			&tile_number,
+			&tile_attr
+		);
 
 		//Acquire colour numbers
-		if(g_cgb_enabled) {
-			d8 tile_intra_y = tile_attr.flipped_y ? 7 - (tile_map_y % 8) : tile_map_y % 8;
-			line_lower = mem_vram_read8(
-				tile_attr.vram_bank_number,
-				g_bg_window_tile_data_address + tile_number * 2 + ((tile_intra_y * 2) % 8 )
-			);
-			line_upper = mem_vram_read8(
-				tile_attr.vram_bank_number,
-				g_bg_window_tile_data_address + tile_number * 2 + ((tile_intra_y * 2) % 8 ) + 1
-			);
-			d8 current_index;
-			for(int j = 0; j < 8; j++)
-			{
-				current_index = tile_attr.flipped_x ? 7 - j : j;
-				tile_colour_numbers[current_index]
-					= ( ( line_upper & (B7 >> current_index) ) << (j-1) )
-					| ( ( line_lower & (B7 >> j) ) << j )
-				;
-			}
-		} else {
-			line_lower = mem_read8(
-				g_bg_window_tile_data_address + tile_number * 2 + (((tile_map_y % 8) * 2) % 8 )
-			);
-			line_upper = mem_read8(
-				g_bg_window_tile_data_address + tile_number * 2 + (((tile_map_y % 8) * 2) % 8 ) + 1
-			);
-
-			for(int j = 0; j < 8; j++)
-			{
-				tile_colour_numbers[j]
-					= ( ( line_upper & (B7 >> j) ) << (j-1) )
-					| ( ( line_lower & (B7 >> j) ) << j )
-				;
-			}
-		}
+		_gpu_get_colour_numbers(
+			g_bg_window_tile_data_address,
+			tile_number,
+			(g_cgb_enabled && tile_attr.flipped_y) ? 7 - (tile_map_y % 8) : tile_map_y % 8,
+			g_cgb_enabled ? tile_attr.vram_bank_number : 255,
+			tile_attr.flipped_x,
+			tile_colour_numbers
+		);
 
 		//Set colours on the line
-		int current_index;
-		if(g_cgb_enabled) {
-			for(int j = 0; j < 8; j++)
-			{
-				current_index = (scx + i * 8 + j) % 160;
-				bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
-				bg_bit_7[current_index]       = tile_attr.has_priority_over_oam;
-				line[current_index] = _gpu_get_colour(
-					tile_colour_numbers[j],
-					tile_attr.bgp_number,
-					BACKGROUND
-				);
-			}
-		} else {
-			for(int j = 0; j < 8; j++)
-			{
-				current_index = (scx + i * 8 + j) % 160;
-				bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
-				bg_bit_7[current_index]       = false;
-				line[current_index] = _gpu_get_colour(
-					tile_colour_numbers[j],
-					0,
-					BACKGROUND
-				);
-			}
+		u8 current_index;
+		for(u8 j = 0; j < 8; j++)
+		{
+			current_index = (scx + i * 8 + j) % 160;
+			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
+			bg_bit_7[current_index]       = g_cgb_enabled ? tile_attr.has_priority_over_oam : false;
+			line[current_index] = _gpu_get_colour(
+				tile_colour_numbers[j],
+				g_cgb_enabled ? tile_attr.bgp_number : 0,
+				BACKGROUND
+			);
 		}
 	}
 }
@@ -676,7 +627,7 @@ static void _gpu_draw_scanline(void)
 				_gpu_put_window(line, bg_colour_is_0, bg_bit_7);
 			}
 		} else {
-			for(int i = 0; i < 160; i++)
+			for(u8 i = 0; i < 160; i++)
 			{
 				line[i]           = g_gb_white;
 				bg_colour_is_0[i] = true;
@@ -716,8 +667,8 @@ static void _gpu_update_lcd_status(void)
 	}
 
 	//Check in which mode are we now
-	int current_mode;
-	int hitherto_mode = stat & 0x03;
+	u8 current_mode;
+	u8 hitherto_mode = stat & 0x03;
 	d8 ly = mem_read8(LYAddress);
 	if(ly >= 144)
 		current_mode = GPU_V_BLANK;
@@ -912,7 +863,7 @@ void gpu_prepare(char * rom_title)
 	display_prepare(1.0 / FRAME_RATE, rom_title);
 }
 
-void gpu_step(int cycles_delta)
+void gpu_step(s8 cycles_delta)
 {
 	//Get LCD Controller (LCDC) Register
 	d8 lcdc = mem_read8(LCDCAddress);
