@@ -101,16 +101,17 @@ static u8 g_int_enable = true;
 static u8 g_rom_bank = 1;
 static u8 g_ram_bank = 0;
 static u8 g_wram_bank = 1;
+static u8 g_vram_bank = 0;
 static enum mem_banking_mode g_banking_mode = ROM_BANKING_MODE;
 static enum mem_rtc_state g_rtc_state = RTC_NONE;
 
 static u8 g_hram[SIZE_HRAM] = {0};
-static u8 g_vram[SIZE_VRAM] = {0};
 static u8 g_rtc_latch[5];
 
 static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
 static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
 static struct mem_bank g_wram[NUM_WRAM_BANKS] = {0};
+static struct mem_bank g_vram[2] = {0};
 
 static void _mem_cart_type_not_implemented(void)
 {
@@ -523,12 +524,22 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 
 static inline u8 _mem_read_vram(a16 addr)
 {
-	return g_vram[addr - BASE_ADDR_VRAM];
+	return _mem_read_bank(g_vram[g_vram_bank], addr - BASE_ADDR_VRAM);
 }
 
 static inline void _mem_write_vram(a16 addr, u8 data)
 {
-	g_vram[addr - BASE_ADDR_VRAM] = data;
+	_mem_write_bank(g_vram[g_vram_bank], addr - BASE_ADDR_VRAM, data);
+}
+
+u8 mem_vram_read8(int bank, a16 addr)
+{
+	return _mem_read_bank(g_vram[bank], addr - BASE_ADDR_VRAM);
+}
+
+void mem_vram_write8(int bank, a16 addr, u8 data)
+{
+	_mem_write_bank(g_vram[bank], addr - BASE_ADDR_VRAM, data);
 }
 
 static u8 _mem_read_ram_switch(a16 addr)
@@ -699,6 +710,11 @@ static inline u8 _mem_read_empty1(a16 addr __attribute__((unused)))
 
 static inline void _mem_write_empty1(a16 addr, u8 data)
 {
+	// VBK: VRAM Bank selection
+	if (g_mem_cart_type.cgb_mode != NON_CGB && addr == 0xFF4F) {
+		g_vram_bank = data & 0x01;
+	}
+
 	// SVBK: WRAM Bank selection
 	if (g_mem_cart_type.cgb_mode != NON_CGB && addr == 0xFF70) {
 		g_wram_bank = data & 0x03;
@@ -929,12 +945,18 @@ int mem_prepare(char *rom_path)
 		g_ram[i].size = g_mem_cart_type.ram_bank_size;
 	}
 
+	g_vram[0].mem = (u8 *)calloc(1, SIZE_VRAM);
+	g_vram[0].size = SIZE_VRAM;
+
 	if (g_mem_cart_type.cgb_mode == NON_CGB) {
 		g_wram[0].mem = (u8 *)calloc(1, SIZE_WRAM0);
 		g_wram[0].size = SIZE_WRAM0;
 		g_wram[1].mem = (u8 *)calloc(1, SIZE_WRAM);
 		g_wram[1].size = SIZE_WRAM;
 	} else {
+		g_vram[1].mem = (u8 *)calloc(1, SIZE_VRAM);
+		g_vram[1].size = SIZE_VRAM;
+
 		for (int i = 0; i < NUM_WRAM_BANKS; i++) {
 			g_wram[i].mem = (u8 *)calloc(1, SIZE_WRAM);
 			g_wram[i].size = SIZE_WRAM;
@@ -960,4 +982,9 @@ void mem_destroy(void)
 		if (g_wram[i].mem)
 			free(g_wram[i].mem);
 	}
+
+	free(g_vram[0].mem);
+
+	if (g_vram[1].mem)
+		free(g_vram[1].mem);
 }
