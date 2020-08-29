@@ -424,7 +424,7 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 	d8 tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
 
 	//Is the window on screen right now?
-	if((ly < wy) || (wy > 143) || (wx > 166)) {
+	if((ly < wy) || (wy > 143) || (wx > 159)) {
 		return;
 	}
 
