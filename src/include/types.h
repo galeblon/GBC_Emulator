@@ -10,6 +10,12 @@ typedef uint8_t u8;
 // 16 bits
 typedef uint16_t u16;
 
+// 8 bit signed data
+typedef int8_t s8;
+
+// 16 bit signed data
+typedef int16_t s16;
+
 // immediate 8 bit data
 typedef uint8_t d8;
 
