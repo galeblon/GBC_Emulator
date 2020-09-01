@@ -863,7 +863,7 @@ void gpu_prepare(char * rom_title)
 	display_prepare(1.0 / FRAME_RATE, rom_title);
 }
 
-void gpu_step(s8 cycles_delta)
+void gpu_step(int cycles_delta)
 {
 	//Get LCD Controller (LCDC) Register
 	d8 lcdc = mem_read8(LCDCAddress);
@@ -873,7 +873,7 @@ void gpu_step(s8 cycles_delta)
 
 	//Update cycles only if LCD is enabled
 	if(isLCDC7(lcdc))
-		g_current_clocks += cycles_delta;
+		g_current_clocks += (u16)cycles_delta;
 
 	if( g_current_clocks >= _CLOCKS_PER_SCANLINE ) {
 		//Reset our counter
