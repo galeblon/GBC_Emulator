@@ -5,13 +5,12 @@
 #include"ints.h"
 #include"logger.h"
 #include"mem_gpu.h"
+#include"rom.h"
 #include"types.h"
 
 #define _CLOCKS_PER_SCANLINE 456
 #define _MODE_2_BOUNDS       (_CLOCKS_PER_SCANLINE - 80)
 #define _MODE_3_BOUNDS       (_MODE_2_BOUNDS - 172)
-
-#define CGBFAddress 0x0143 	/* CGB Flag */
 
 #define BGPDefault 0xE4 	/* Default value for BGP, b11100100 */
 
@@ -111,7 +110,6 @@ static u16       g_mode_3_boundary                 = 0;
 static a16       g_window_tile_map_display_address = 0;
 static a16       g_bg_window_tile_data_address     = 0;
 static a16       g_bg_tile_map_display_address     = 0;
-static bool      g_cgb_enabled                     = true;
 
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
@@ -255,7 +253,7 @@ static colour _gpu_get_colour(u8 colour_number, u8 palette_number, enum gpu_draw
 		return found_colour;
 	}
 
-	if(g_cgb_enabled) {
+	if(rom_is_cgb()) {
 		if(type == SPRITE) {
 			found_colour = _gpu_get_colour_cgb_sprite(colour_number, palette_number);
 		} else {
@@ -372,7 +370,7 @@ static void _gpu_put_sprites(
 	}
 
 	//Sort based on Z-priority
-	if(!g_cgb_enabled)
+	if(!rom_is_cgb())
 		for(u8 i = 0; i < sprite_index; i++)
 		{
 			for(s8 j = 1; j < sprite_index - i; j++)
@@ -411,7 +409,7 @@ static void _gpu_put_sprites(
 			OAMAddress,
 			tile_number,
 			line_index,
-			g_cgb_enabled ? sprites[i].vram_bank_number : 255,
+			rom_is_cgb() ? sprites[i].vram_bank_number : 255,
 			sprites[i].flipped_x,
 			colour_numbers[i]
 		);
@@ -433,7 +431,7 @@ static void _gpu_put_sprites(
 			) {
 				line[current_index] = _gpu_get_colour(
 					colour_numbers[i][j],
-					g_cgb_enabled ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
+					rom_is_cgb() ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
 					SPRITE
 				);
 			}
@@ -454,7 +452,7 @@ static void _gpu_get_tile_number_attr(
 	s8  s_tile_number;
 	d8 tile_attr_byte;
 
-	if(g_cgb_enabled) {
+	if(rom_is_cgb()) {
 		u_tile_number = (u8) mem_vram_read8(0, map_address + tile_map_number);
 		s_tile_number = (s8) u_tile_number;
 		*tile_number   = (s16) ((data_address == 0x9000) ? s_tile_number : u_tile_number);
@@ -510,8 +508,8 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 		_gpu_get_colour_numbers(
 			g_bg_window_tile_data_address,
 			tile_number,
-			(g_cgb_enabled && tile_attr.flipped_y) ? 7 - (tile_map_y % 8) : tile_map_y % 8,
-			g_cgb_enabled ? tile_attr.vram_bank_number : 255,
+			(rom_is_cgb() && tile_attr.flipped_y) ? 7 - (tile_map_y % 8) : tile_map_y % 8,
+			rom_is_cgb() ? tile_attr.vram_bank_number : 255,
 			tile_attr.flipped_x,
 			tile_colour_numbers
 		);
@@ -522,10 +520,10 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 		{
 			current_index = (wx + i * 8 + j);
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
-			bg_bit_7[current_index]       = g_cgb_enabled ? tile_attr.has_priority_over_oam : false;
+			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
 			line[current_index] = _gpu_get_colour(
 				tile_colour_numbers[j],
-				g_cgb_enabled ? tile_attr.bgp_number : 0,
+				rom_is_cgb() ? tile_attr.bgp_number : 0,
 				WINDOW
 			);
 		}
@@ -567,8 +565,8 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 		_gpu_get_colour_numbers(
 			g_bg_window_tile_data_address,
 			tile_number,
-			(g_cgb_enabled && tile_attr.flipped_y) ? 7 - (tile_map_y % 8) : tile_map_y % 8,
-			g_cgb_enabled ? tile_attr.vram_bank_number : 255,
+			(rom_is_cgb() && tile_attr.flipped_y) ? 7 - (tile_map_y % 8) : tile_map_y % 8,
+			rom_is_cgb() ? tile_attr.vram_bank_number : 255,
 			tile_attr.flipped_x,
 			tile_colour_numbers
 		);
@@ -579,10 +577,10 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 		{
 			current_index = (scx + i * 8 + j) % 160;
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
-			bg_bit_7[current_index]       = g_cgb_enabled ? tile_attr.has_priority_over_oam : false;
+			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
 			line[current_index] = _gpu_get_colour(
 				tile_colour_numbers[j],
-				g_cgb_enabled ? tile_attr.bgp_number : 0,
+				rom_is_cgb() ? tile_attr.bgp_number : 0,
 				BACKGROUND
 			);
 		}
@@ -590,7 +588,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 }
 
 
-static void _gpu_restart_boundaries()
+static void _gpu_restart_boundaries(void)
 {
 	g_mode_2_boundary = _MODE_2_BOUNDS;
 	g_mode_3_boundary = _MODE_3_BOUNDS;
@@ -619,7 +617,7 @@ static void _gpu_draw_scanline(void)
 		bool   bg_bit_7[160];
 
 		//Check if the screen is not fully white
-		if(!g_cgb_enabled && !isLCDC0(lcdc)) {
+		if(!rom_is_cgb() && !isLCDC0(lcdc)) {
 			_gpu_put_background(line, bg_colour_is_0, bg_bit_7);
 
 			//Draw window if enabled
@@ -641,7 +639,7 @@ static void _gpu_draw_scanline(void)
 				line,
 				bg_colour_is_0,
 				bg_bit_7,
-				g_cgb_enabled && !isLCDC0(lcdc)
+				rom_is_cgb() && !isLCDC0(lcdc)
 			);
 		}
 
@@ -724,21 +722,14 @@ static void _gpu_update_lcd_status(void)
 }
 
 
-static void _gpu_check_cgb_flag()
+static void _gpu_check_uninitialized_palettes(void)
 {
-	d8 cgb_flag = mem_read8(CGBFAddress);
-	//Determine whether CGB functions are enabled
-	g_cgb_enabled = (cgb_flag & B7) == B7;
-
-	//Check for special, non-initialised Non-CGB mode
-	if( (g_cgb_enabled) && ( (cgb_flag & (B2 | B3) ) != 0 ) )
-		g_cgb_enabled = false;
-	else
+	if (rom_get_header()->cgb_mode != NON_CGB_UNINITIALIZED_PALETTES)
 		mem_write8(BGPAddress, BGPDefault);
 }
 
 
-d8 gpu_read_bgpi()
+d8 gpu_read_bgpi(void)
 {
 	return mem_read8(BGPIAddress);
 }
@@ -750,7 +741,7 @@ void gpu_write_bgpi(d8 new_bgpi)
 }
 
 
-d8 gpu_read_bgpd()
+d8 gpu_read_bgpd(void)
 {
 	//Only accessible during H-BLANK or V-BLANK
 	d8 stat = mem_read8(STATAddress);
@@ -797,7 +788,7 @@ void gpu_write_bgpd(d8 new_bgpd)
 }
 
 
-d8 gpu_read_spi()
+d8 gpu_read_spi(void)
 {
 	return mem_read8(SPIAddress);
 }
@@ -809,7 +800,7 @@ void gpu_write_spi(d8 new_spi)
 }
 
 
-d8 gpu_read_spd()
+d8 gpu_read_spd(void)
 {
 	//Only accessible during H-BLANK or V-BLANK
 	d8 stat = mem_read8(STATAddress);
@@ -858,7 +849,7 @@ void gpu_write_spd(d8 new_spd)
 
 void gpu_prepare(char * rom_title)
 {
-	_gpu_check_cgb_flag();
+	_gpu_check_uninitialized_palettes();
 
 	_gpu_restart_boundaries();
 
