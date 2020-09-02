@@ -1,12 +1,11 @@
-#include <joypad.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include"display.h"
 #include"gpu.h"
 #include"ints.h"
+#include"input.h"
 #include"joypad.h"
 #include"mem.h"
-#include"player_input.h"
 #include"regs.h"
 #include"rom.h"
 #include"types.h"
@@ -36,7 +35,7 @@ int main(int argc, char *argv[])
 	cpu_prepare();
 	ints_prepare();
 	gpu_prepare(title);
-	player_input_prepare();
+	input_prepare();
 	joypad_prepare();
 
 	printf("Starting emulation.\n");
