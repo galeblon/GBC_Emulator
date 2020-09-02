@@ -38,6 +38,15 @@ void display_prepare(float frequency, char * rom_title)
 		return;
 	}
 
+	if(!al_init_primitives_addon()) {
+		_display_error(
+			LOG_FATAL,
+			"ALLEGRO INIT PRIMITIVES ADDON",
+			"FAILED TO INITIALISE ALLEGRO PRIMITIVES ADDON."
+		);
+		return;
+	}
+
 	g_timer = al_create_timer(frequency);
 	if (!g_timer) {
 		_display_error(
@@ -109,10 +118,10 @@ void display_draw_line(colour line[160], int index)
 		);
 
 		al_draw_filled_rectangle(
-			index       * SCALING_FACTOR,
-			i           * SCALING_FACTOR,
-			(index + 1) * SCALING_FACTOR,
-			(i + 1)     * SCALING_FACTOR,
+			i       * SCALING_FACTOR,
+			index           * SCALING_FACTOR,
+			(i + 1) * SCALING_FACTOR,
+			(index + 1)     * SCALING_FACTOR,
 			current_colour
 		);
 	}
