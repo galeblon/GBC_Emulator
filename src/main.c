@@ -1,8 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include"display.h"
-#include"ints.h"
 #include"gpu.h"
+#include"ints.h"
+#include"input.h"
+#include"joypad.h"
 #include"mem.h"
 #include"regs.h"
 #include"rom.h"
@@ -30,10 +32,11 @@ int main(int argc, char *argv[])
 
 	//TODO prepare memory and fill stack with data according to powerup sequence
 	//TODO prepare sound
-	//TODO prepare joypads
 	cpu_prepare();
 	ints_prepare();
 	gpu_prepare(title);
+	input_prepare();
+	joypad_prepare();
 
 	printf("Starting emulation.\n");
 	int cycles_delta = 0;
@@ -44,7 +47,7 @@ int main(int argc, char *argv[])
 		gpu_step(cycles_delta);
 		mem_step(cycles_delta);
 		// sound_step(cycles_delta)
-		// joypad
+		joypad_step();
 		ints_check();
 	}
 
