@@ -90,6 +90,7 @@ static enum mem_rtc_state g_rtc_state = RTC_NONE;
 static enum mem_dma_state g_dma_state = DMA_NONE;
 
 static u8 g_hram[SIZE_HRAM] = {0};
+static u8 g_io_ports[SIZE_IO_PORTS] = {0};
 static u8 g_sprite_attr[SIZE_SPRITE_ATTR] = {0};
 static u8 g_rtc_latch[5];
 
@@ -542,7 +543,7 @@ static inline void _mem_write_empty0(a16 addr __attribute__((unused)),
 }
 
 
-static inline u8 _mem_read_io_ports(a16 addr __attribute__((unused)))
+static inline u8 _mem_read_io_ports(a16 addr)
 {
 	if (g_dma_lock)
 		return 0;
@@ -577,6 +578,8 @@ static inline u8 _mem_read_io_ports(a16 addr __attribute__((unused)))
 				}
 			}
 			break;
+		default:
+			return g_io_ports[addr - BASE_ADDR_IO_PORTS];
 	}
 
 	return 0;
@@ -978,16 +981,45 @@ void mem_step(int cycles_delta)
 	}
 }
 
+/* Read from arbitrary VRAM bank
+ *
+ * NOTE: addr parameter is an address that would be used in normal mem_read8
+ *       if this bank was selected.
+ */
 u8 mem_vram_read8(int bank, a16 addr)
 {
 	return _mem_read_bank(g_vram[bank], addr - BASE_ADDR_VRAM);
 }
 
+/* Write to arbitrary VRAM bank
+ *
+ * NOTE: addr parameter is an address that would be used in normal mem_write8
+ *       if this bank was selected.
+ */
 void mem_vram_write8(int bank, a16 addr, u8 data)
 {
 	_mem_write_bank(g_vram[bank], addr - BASE_ADDR_VRAM, data);
 }
 
+/* Write value (data) into selected IO ports register
+ *
+ * This function currently only works for IO ports addresses, which are not
+ * specifically handled in _mem_read_io_ports, because those require to be
+ * dynamically set in accordance to emulated state on read.
+ * Values written to these addresses are shadowed by special handling and are
+ * not accessible thorugh cpu->mem interface.
+ *
+ * NOTE: addr parameter is an address that would be used in normal mem_write8.
+ */
+void mem_set_io_ports(a16 addr, u8 data)
+{
+	g_io_ports[addr - BASE_ADDR_IO_PORTS] = data;
+}
+
+/* Notify mem module about H-blank interval start.
+ *
+ * The purpose of this function is to drive the emulation of the H-blank DMA.
+ */
 void mem_h_blank_notify(void)
 {
 	if (g_dma_state != DMA_H_BLANK_IN_PROGRESS)
