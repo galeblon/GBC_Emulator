@@ -3,6 +3,7 @@
 #include<stdio.h>
 #include"ints.h"
 #include"joypad.h"
+#include"mem_priv.h"
 #include"types.h"
 
 static struct all_inputs g_all_inputs;
@@ -38,7 +39,7 @@ void joypad_step(void)
 {
 	input_check_queue(&g_all_inputs);
 
-	//TODO #58: g_input_presses.REG = mem_private_read8(0xFF00);
+	g_input_presses.REG = mem_read8(0xFF00);
 	_joypad_update_register();
-	//TODO #58: mem_private_write8(0xFF00, g_input_presses.REG);
+	mem_set_io_ports(0xFF00, g_input_presses.REG);
 }

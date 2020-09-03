@@ -4,7 +4,7 @@
 #include"gpu.h"
 #include"ints.h"
 #include"logger.h"
-#include"mem_gpu.h"
+#include"mem_priv.h"
 #include"rom.h"
 #include"types.h"
 
