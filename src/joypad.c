@@ -9,20 +9,9 @@ static struct all_inputs g_all_inputs;
 
 static struct joypad_register g_input_presses;
 
-void _joypad_update_register(void);
-
 void joypad_prepare(void)
 {
 	g_input_presses.REG = 0x3F;
-}
-
-void joypad_step(void)
-{
-	input_check_queue(&g_all_inputs);
-
-	//TODO: g_input_presses.REG = mem_private_read8(0xFF00);
-	_joypad_update_register();
-	//TODO mem_private_write8(0xFF00, g_input_presses.REG);
 }
 
 void _joypad_update_register(void)
@@ -43,4 +32,13 @@ void _joypad_update_register(void)
 			|| old_state.BITS.LEFT_B > g_input_presses.BITS.LEFT_B
 			|| old_state.BITS.RIGHT_A > g_input_presses.BITS.RIGHT_A)
 		ints_request(INT_HIGH_TO_LOW_P10_P13);
+}
+
+void joypad_step(void)
+{
+	input_check_queue(&g_all_inputs);
+
+	//TODO: g_input_presses.REG = mem_private_read8(0xFF00);
+	_joypad_update_register();
+	//TODO mem_private_write8(0xFF00, g_input_presses.REG);
 }
