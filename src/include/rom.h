@@ -1,7 +1,10 @@
 #ifndef ROM_H_
 #define ROM_H_
 
+#include"types.h"
+
 #define MAX_ROM_SIZE 8388608
+#define KB 1024
 
 // ROM Header special addresses
 enum rom_header_addr {
@@ -16,13 +19,44 @@ enum rom_header_addr {
 };
 
 enum rom_cgb_mode {
-	NON_CGB,
+	NON_CGB = 0,
+	NON_CGB_UNINITIALIZED_PALETTES,
 	CGB_SUPPORT,
 	CGB_ONLY
+};
+
+enum rom_mbc {
+	ROM_ONLY = 0,
+	MBC1,
+	MBC2,
+	MBC3,
+	MBC5,
+	MMM01,
+	POCKET_CAMERA,
+	BANDAI_TAMA5,
+	HUC1,
+	HUC5
+};
+
+struct rom_header {
+	enum rom_mbc mbc;
+	bool ram;
+	bool battery;
+	bool sram;
+	bool rumble;
+	bool timer;
+	enum rom_cgb_mode cgb_mode;
+	int num_rom_banks;
+	int rom_bank_size;
+	int num_ram_banks;
+	int ram_bank_size;
 };
 
 int rom_checksum_validate(void);
 void rom_get_title(char * title_buffer);
 void rom_print_title(void);
+void rom_parse_header(u8 *rom0);
+const struct rom_header *rom_get_header(void);
+bool rom_is_cgb(void);
 
 #endif /* ROM_H_ */

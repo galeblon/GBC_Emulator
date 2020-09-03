@@ -37,8 +37,6 @@
 #define MAX_RAM_BANKS  0x10
 #define NUM_WRAM_BANKS 0x08
 
-#define KB	1024
-
 #define DMA_CYCLES_PER_10H	8
 
 typedef u8 (*mem_block_read_t)(a16 addr);
@@ -54,33 +52,6 @@ struct mem_block {
 struct mem_bank {
 	uint16_t size;
 	u8 *mem;
-};
-
-enum mem_mbc {
-	ROM_ONLY,
-	MBC1,
-	MBC2,
-	MBC3,
-	MBC5,
-	MMM01,
-	POCKET_CAMERA,
-	BANDAI_TAMA5,
-	HUC1,
-	HUC5
-};
-
-struct mem_cart_type {
-	enum mem_mbc mbc;
-	bool ram;
-	bool battery;
-	bool sram;
-	bool rumble;
-	bool timer;
-	enum rom_cgb_mode cgb_mode;
-	int num_rom_banks;
-	int rom_bank_size;
-	int num_ram_banks;
-	int ram_bank_size;
 };
 
 enum mem_banking_mode {
@@ -105,7 +76,6 @@ enum mem_dma_state {
 };
 
 // Memory module state
-static struct mem_cart_type g_mem_cart_type = {0};
 static bool g_ram_enable = 0;
 static u8 g_int_enable = true;
 static u8 g_rom_bank = 1;
@@ -127,18 +97,6 @@ static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
 static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
 static struct mem_bank g_wram[NUM_WRAM_BANKS] = {0};
 static struct mem_bank g_vram[2] = {0};
-
-static void _mem_cart_type_not_implemented(void)
-{
-	char *message = logger_get_msg_buffer();
-	snprintf(message,
-		LOG_MESSAGE_MAX_SIZE,
-		"CARTRIDGE TYPE 0x%02X NOT IMPLEMENTED\n",
-		g_mem_cart_type.mbc);
-	logger_log(LOG_WARN,
-		"MEM: CART TYPE NOT IMPLEMENTED",
-		message);
-}
 
 static void _mem_not_implemented(const char *feature)
 {
@@ -232,194 +190,14 @@ static void _mem_dma(a16 length)
 	}
 }
 
-
-static struct mem_cart_type _mem_parse_cart_type(struct mem_bank rom0)
-{
-	struct mem_cart_type cart_type = {0};
-
-	u8 cgb_mode_byte = _mem_read_bank(rom0, ROM_CGB_MODE),
-		type_byte = _mem_read_bank(rom0, ROM_CART_TYPE),
-		rom_size_byte = _mem_read_bank(rom0, ROM_ROM_BANK_SIZE),
-		ram_size_byte = _mem_read_bank(rom0, ROM_RAM_BANK_SIZE);
-
-	switch(cgb_mode_byte) {
-		case 0x80:
-			cart_type.cgb_mode = CGB_SUPPORT;
-			break;
-		case 0xC0:
-			cart_type.cgb_mode = CGB_ONLY;
-			break;
-		default:
-			cart_type.cgb_mode = NON_CGB;
-	}
-
-	switch(type_byte) {
-		case 0x00: // ROM_ONLY
-			cart_type.mbc = ROM_ONLY;
-			break;
-		case 0x01: // ROM+MBC1
-			cart_type.mbc = MBC1;
-			break;
-		case 0x02: // ROM+MBC1+RAM
-			cart_type.mbc = MBC1;
-			cart_type.ram = true;
-			break;
-		case 0x03: // ROM+MBC1+RAM+BATT
-			cart_type.mbc = MBC1;
-			cart_type.ram = true;
-			cart_type.battery = true;
-			break;
-		case 0x05: // ROM+MBC2
-			cart_type.mbc = MBC2;
-			break;
-		case 0x06: // ROM+MBC2+BATT
-			cart_type.mbc = MBC2;
-			cart_type.battery = true;
-			break;
-		case 0x08: // ROM+RAM
-			cart_type.mbc = ROM_ONLY;
-			cart_type.ram = true;
-			break;
-		case 0x09: // ROM+RAM+BATT
-			cart_type.mbc = ROM_ONLY;
-			cart_type.ram = true;
-			cart_type.battery = true;
-			break;
-		case 0x0B: // ROM+MMM01
-			cart_type.mbc = MMM01;
-			break;
-		case 0x0C: // ROM+MMM01+SRAM
-			cart_type.mbc = MMM01;
-			cart_type.sram = true;
-			break;
-		case 0x0D: // ROM+MMM01+SRAM+BATT
-			cart_type.mbc = MMM01;
-			cart_type.sram = true;
-			cart_type.battery = true;
-			break;
-		case 0x0F: // ROM+MBC3+TIMER+BATT
-			cart_type.mbc = MBC3;
-			cart_type.timer = true;
-			cart_type.battery = true;
-			break;
-		case 0x10: // ROM+MBC3+TIMER+RAM+BATT
-			cart_type.mbc = MBC3;
-			cart_type.ram = true;
-			cart_type.timer = true;
-			cart_type.battery = true;
-			break;
-		case 0x11: // ROM+MBC3
-			cart_type.mbc = MBC3;
-			break;
-		case 0x12: // ROM+MBC3+RAM
-			cart_type.mbc = MBC3;
-			cart_type.ram = true;
-			break;
-		case 0x13: // ROM+MBC3+RAM+BATT
-			cart_type.mbc = MBC3;
-			cart_type.ram = true;
-			cart_type.battery = true;
-			break;
-		case 0x19: // ROM+MBC5
-			cart_type.mbc = MBC5;
-			break;
-		case 0x1A: // ROM+MBC5+RAM
-			cart_type.mbc = MBC5;
-			cart_type.ram = true;
-			break;
-		case 0x1B: // ROM+MBC5+RAM+BATT
-			cart_type.mbc = MBC5;
-			cart_type.ram = true;
-			cart_type.battery = true;
-			break;
-		case 0x1C: // ROM+MBC5+RUMBLE
-			cart_type.mbc = MBC5;
-			cart_type.rumble = true;
-			break;
-		case 0x1D: // ROM+MBC5+RUMBLE+SRAM
-			cart_type.mbc = MBC5;
-			cart_type.rumble = true;
-			cart_type.sram = true;
-			break;
-		case 0x1E: // ROM+MBC5+RUMBLE+SRAM+BATT
-			cart_type.mbc = MBC5;
-			cart_type.rumble = true;
-			cart_type.sram = true;
-			cart_type.battery = true;
-			break;
-		case 0x1F:
-		case 0xFD:
-		case 0xFE:
-		case 0xFF:
-			_mem_cart_type_not_implemented();
-			break;
-		default:
-			debug_assert(true, "_mem_parse_cart_type: unknown cartridge type");
-			break;
-	}
-
-	if (rom_size_byte == 0x00) {
-		cart_type.rom_bank_size = 32 * KB;
-		cart_type.num_rom_banks = 1;
-	} else if (rom_size_byte <= 0x08) {
-		cart_type.rom_bank_size = 16 * KB;
-		cart_type.num_rom_banks = (2 << rom_size_byte);
-	} else if (0x52 <= rom_size_byte && rom_size_byte < 0x55) {
-		// TODO: find some reliable info on 0x52-0x54
-		_mem_cart_type_not_implemented();
-	} else {
-		debug_assert(true, "_mem_parse_cart_type: unknown cartridge type");
-	}
-
-	if (cart_type.mbc == MBC2) {
-		cart_type.ram_bank_size = 512;
-		cart_type.num_ram_banks = 1;
-	} else {
-		switch (ram_size_byte) {
-			case 0x00:
-				cart_type.ram_bank_size = 0;
-				cart_type.num_ram_banks = 0;
-				break;
-			case 0x01:
-				cart_type.ram_bank_size = 2 * KB;
-				cart_type.num_ram_banks = 1;
-				break;
-			case 0x02:
-				cart_type.ram_bank_size = 8 * KB;
-				cart_type.num_ram_banks = 1;
-				break;
-			case 0x03:
-				cart_type.ram_bank_size = 8 * KB;
-				cart_type.num_ram_banks = 4;
-				break;
-			case 0x04:
-				cart_type.ram_bank_size = 8 * KB;
-				cart_type.num_ram_banks = 16;
-				break;
-			case 0x05:
-				cart_type.ram_bank_size = 8 * KB;
-				cart_type.num_ram_banks = 8;
-				break;
-			default:
-				debug_assert(true, "_mem_parse_cart_type: unknown cartridge type");
-				break;
-		}
-	}
-
-	return cart_type;
-}
-
-static inline bool _mem_is_cart_cgb(struct mem_cart_type type)
-{
-	return type.cgb_mode != NON_CGB;
-}
-
 static u8 _mem_read_cart_mem(a16 addr)
 {
 	if (g_dma_lock)
 		return 0;
 
-	switch (g_mem_cart_type.mbc) {
+	const struct rom_header *header = rom_get_header();
+
+	switch (header->mbc) {
 		case ROM_ONLY:
 			return _mem_read_bank(g_rom[0], addr - BASE_ADDR_CART_MEM);
 			break;
@@ -429,7 +207,7 @@ static u8 _mem_read_cart_mem(a16 addr)
 			if (addr < 0x4000) {
 				return _mem_read_bank(g_rom[0], addr - BASE_ADDR_CART_MEM);
 			} else if (addr < 0x8000) {
-				return _mem_read_bank(g_rom[g_rom_bank], addr - BASE_ADDR_CART_MEM - g_mem_cart_type.rom_bank_size * g_rom_bank);
+				return _mem_read_bank(g_rom[g_rom_bank], addr - BASE_ADDR_CART_MEM - header->rom_bank_size * g_rom_bank);
 			}
 			break;
 		case MBC5:
@@ -452,7 +230,7 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 	if (g_dma_lock)
 		return;
 
-	switch(g_mem_cart_type.mbc) {
+	switch(rom_get_header()->mbc) {
 		case ROM_ONLY:
 			// read only
 			break;
@@ -596,16 +374,18 @@ static u8 _mem_read_ram_switch(a16 addr)
 	if (g_dma_lock)
 		return 0;
 
-	switch(g_mem_cart_type.mbc) {
+	const struct rom_header *header = rom_get_header();
+
+	switch(header->mbc) {
 		case ROM_ONLY:
 			return _mem_read_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH);
 			break;
 		case MBC1:
-			return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - g_mem_cart_type.ram_bank_size * g_ram_bank);
+			return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
 			break;
 		case MBC2:
 		{
-			u8 data = _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - g_mem_cart_type.ram_bank_size * g_ram_bank);
+			u8 data = _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
 #ifdef DEBUG
 			// in debug build run additional check if nothing was written
 			// to 4 upper bits of RAM cell on read
@@ -618,7 +398,7 @@ static u8 _mem_read_ram_switch(a16 addr)
 		}
 		case MBC3:
 			if (g_ram_bank < 0x04) {
-				return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - g_mem_cart_type.ram_bank_size * g_ram_bank);
+				return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
 			} else if (0x08 <= g_ram_bank  && g_ram_bank < 0x0D) {
 				return _mem_read_rtc(g_ram_bank);
 			}
@@ -641,20 +421,22 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 	if (g_dma_lock)
 		return;
 
-	switch(g_mem_cart_type.mbc) {
+	const struct rom_header *header = rom_get_header();
+
+	switch(header->mbc) {
 		case ROM_ONLY:
 			_mem_write_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
 		case MBC1:
-			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - g_mem_cart_type.ram_bank_size * g_ram_bank, data);
+			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data);
 			break;
 		case MBC2:
 			// in MBC2 each addressable memory cell is 4 b only
-			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - g_mem_cart_type.ram_bank_size * g_ram_bank, data & 0x0F);
+			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data & 0x0F);
 			break;
 		case MBC3:
 			if (g_ram_bank < 0x04) {
-				_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - g_mem_cart_type.ram_bank_size * g_ram_bank, data);
+				_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data);
 			} else {
 				// TODO: RTC write (#41)
 				_mem_not_implemented("RTC");
@@ -695,7 +477,7 @@ static inline u8 _mem_read_wram(a16 addr)
 	if (g_dma_lock)
 		return 0;
 
-	if (_mem_is_cart_cgb(g_mem_cart_type))
+	if (rom_is_cgb())
 		return _mem_read_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM);
 
 	return _mem_read_bank(g_wram[1], addr - BASE_ADDR_WRAM);
@@ -708,7 +490,7 @@ static inline void _mem_write_wram(a16 addr, u8 data)
 	if (g_dma_lock)
 		return;
 
-	if (_mem_is_cart_cgb(g_mem_cart_type)) {
+	if (rom_is_cgb()) {
 		_mem_write_bank(g_wram[g_wram_bank],
 				addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM,
 				data);
@@ -779,7 +561,7 @@ static inline u8 _mem_read_io_ports(a16 addr __attribute__((unused)))
 			// Bit 7 signifies if transfer is active (0) or not (1).
 			//
 			// Right now all VRAM DMA is instant, so we always return 0xFF.
-			if (_mem_is_cart_cgb(g_mem_cart_type))
+			if (rom_is_cgb()) {
 				switch (g_dma_state) {
 					case DMA_NONE:
 					case DMA_VRAM_SUCCESS:
@@ -793,6 +575,7 @@ static inline u8 _mem_read_io_ports(a16 addr __attribute__((unused)))
 						debug_assert(false, "_mem_read_io_ports: invalid DMA state");
 						g_dma_state = DMA_NONE;
 				}
+			}
 			break;
 	}
 
@@ -823,30 +606,30 @@ static inline void _mem_write_io_ports(a16 addr __attribute__((unused)),
 			break;
 		case 0xFF4F:
 			// VBK: VRAM Bank selection
-			if (_mem_is_cart_cgb(g_mem_cart_type))
+			if (rom_is_cgb())
 				g_vram_bank = data & 0x01;
 			break;
 		case 0xFF51:
 			// HDMA1: VRAM DMA Source address, higher
-			if (_mem_is_cart_cgb(g_mem_cart_type))
+			if (rom_is_cgb())
 				g_dma_src = (g_dma_src & 0x00FF) | ((a16)data << 8);
 			break;
 		case 0xFF52:
 			// HDMA2: VRAM DMA Source address, lower
 			// Bits 0-3 are ignored (zeros are used)
-			if (_mem_is_cart_cgb(g_mem_cart_type))
+			if (rom_is_cgb())
 				g_dma_src = (g_dma_src & 0xFF00) | data;
 			break;
 		case 0xFF53:
 			// HDMA3: VRAM DMA Destination address, higher
 			// Bits 5-7 are ignored (0x80 is used)
-			if (_mem_is_cart_cgb(g_mem_cart_type))
+			if (rom_is_cgb())
 				g_dma_dst = (g_dma_dst & 0x00FF) | ((a16)data << 8);
 			break;
 		case 0xFF54:
 			// HDMA4: VRAM DMA Destination address, lower
 			// Bits 0-3 are ignored (zeros are used)
-			if (_mem_is_cart_cgb(g_mem_cart_type))
+			if (rom_is_cgb())
 				g_dma_dst = (g_dma_dst & 0xFF00) | data;
 			break;
 		case 0xFF55:
@@ -855,7 +638,7 @@ static inline void _mem_write_io_ports(a16 addr __attribute__((unused)),
 			//     0 - General DMA - blocks execution and transfers right away
 			//     1 - H-blank DMA - tranfers 0x10 bytes on each H-blank
 			// Bits 0-6 are (transfer_length / 0x10) - 1
-			if (_mem_is_cart_cgb(g_mem_cart_type)) {
+			if (rom_is_cgb()) {
 				a16 length;
 
 				switch (g_dma_state) {
@@ -894,7 +677,7 @@ static inline void _mem_write_io_ports(a16 addr __attribute__((unused)),
 			}
 			break;
 		case 0xFF70:
-			if (_mem_is_cart_cgb(g_mem_cart_type)) {
+			if (rom_is_cgb()) {
 				// SVBK: WRAM Bank selection
 				g_wram_bank = data & 0x03;
 				if (g_wram_bank == 0)
@@ -1079,8 +862,7 @@ void mem_write16(a16 addr, u16 data)
 int _mem_load_rom(char *path)
 {
 	long rom_len;
-	u8 rom0_mem[0x4000];
-	struct mem_bank rom0 = { .size = 0x4000, .mem = rom0_mem };
+	u8 rom0[0x4000];
 
 	FILE *rom_fileptr = fopen(path, "rb");
 
@@ -1099,19 +881,20 @@ int _mem_load_rom(char *path)
 
 	rewind(rom_fileptr);
 
-	fread(rom0.mem, 0x4000, 1, rom_fileptr);
+	fread(rom0, 0x4000, 1, rom_fileptr);
 
-	g_mem_cart_type = _mem_parse_cart_type(rom0);
+	rom_parse_header(rom0);
+	const struct rom_header *header = rom_get_header();
 
-	if (g_mem_cart_type.rom_bank_size == 0
-			|| rom_len / g_mem_cart_type.rom_bank_size != g_mem_cart_type.num_rom_banks)
+	if (header->rom_bank_size == 0
+			|| rom_len / header->rom_bank_size != header->num_rom_banks)
 		return 0;
 
 	rewind(rom_fileptr);
 
-	for (int i = 0; i < g_mem_cart_type.num_rom_banks; i++) {
-		g_rom[i].mem = (u8 *)calloc(1, g_mem_cart_type.rom_bank_size);
-		g_rom[i].size = g_mem_cart_type.rom_bank_size;
+	for (int i = 0; i < header->num_rom_banks; i++) {
+		g_rom[i].mem = (u8 *)calloc(1, header->rom_bank_size);
+		g_rom[i].size = header->rom_bank_size;
 		fread(g_rom[i].mem, g_rom[i].size, 1, rom_fileptr);
 	}
 
@@ -1128,15 +911,17 @@ int mem_prepare(char *rom_path)
 	if (rc != 1)
 		return rc;
 
-	for (int i = 0; i < g_mem_cart_type.num_ram_banks; i++) {
-		g_ram[i].mem = (u8 *)calloc(1, g_mem_cart_type.ram_bank_size);
-		g_ram[i].size = g_mem_cart_type.ram_bank_size;
+	const struct rom_header *header = rom_get_header();
+
+	for (int i = 0; i < header->num_ram_banks; i++) {
+		g_ram[i].mem = (u8 *)calloc(1, header->ram_bank_size);
+		g_ram[i].size = header->ram_bank_size;
 	}
 
 	g_vram[0].mem = (u8 *)calloc(1, SIZE_VRAM);
 	g_vram[0].size = SIZE_VRAM;
 
-	if (_mem_is_cart_cgb(g_mem_cart_type)) {
+	if (rom_is_cgb()) {
 		for (int i = 0; i < NUM_WRAM_BANKS; i++) {
 			g_wram[i].mem = (u8 *)calloc(1, SIZE_WRAM);
 			g_wram[i].size = SIZE_WRAM;
@@ -1156,12 +941,14 @@ int mem_prepare(char *rom_path)
 
 void mem_destroy(void)
 {
-	for (int i = 0; i < g_mem_cart_type.num_rom_banks; i++) {
+	const struct rom_header *header = rom_get_header();
+
+	for (int i = 0; i < header->num_rom_banks; i++) {
 		debug_assert(g_rom[i].mem != NULL, "mem_destroy: null ROM Bank memory");
 		free(g_rom[i].mem);
 	}
 
-	for (int i = 0; i < g_mem_cart_type.num_ram_banks; i++) {
+	for (int i = 0; i < header->num_ram_banks; i++) {
 		debug_assert(g_rom[i].mem != NULL, "mem_destroy: null RAM Bank memory");
 		free(g_ram[i].mem);
 	}
