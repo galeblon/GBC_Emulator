@@ -38,7 +38,7 @@ void joypad_step(void)
 {
 	input_check_queue(&g_all_inputs);
 
-	//TODO: g_input_presses.REG = mem_private_read8(0xFF00);
+	//TODO #58: g_input_presses.REG = mem_private_read8(0xFF00);
 	_joypad_update_register();
-	//TODO mem_private_write8(0xFF00, g_input_presses.REG);
+	//TODO #58: mem_private_write8(0xFF00, g_input_presses.REG);
 }
