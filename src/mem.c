@@ -5,6 +5,7 @@
 #include"debug.h"
 #include"logger.h"
 #include"mem.h"
+#include"mem_rtc.h"
 #include"rom.h"
 
 #define BASE_ADDR_CART_MEM       0x0000
@@ -36,6 +37,7 @@
 #define MAX_ROM_BANKS  0x200
 #define MAX_RAM_BANKS  0x10
 #define NUM_WRAM_BANKS 0x08
+#define NUM_VRAM_BANKS 0x02
 
 #define DMA_CYCLES_PER_10H	8
 
@@ -59,13 +61,6 @@ enum mem_banking_mode {
 	RAM_BANKING_MODE = 1
 };
 
-enum mem_rtc_state {
-	RTC_NONE = 0,
-	RTC_00,
-	RTC_LATCHED,
-	RTC_LATCHED_00
-};
-
 enum mem_dma_state {
 	DMA_NONE                = 1 << 0,
 	DMA_GENERAL_IN_PROGRESS = 1 << 1,
@@ -86,18 +81,16 @@ static int g_dma_lock = 0;
 static u16 g_dma_length = 0, g_dma_remaining = 0;
 static a16 g_dma_src = 0, g_dma_dst = 0;
 static enum mem_banking_mode g_banking_mode = ROM_BANKING_MODE;
-static enum mem_rtc_state g_rtc_state = RTC_NONE;
 static enum mem_dma_state g_dma_state = DMA_NONE;
 
 static u8 g_hram[SIZE_HRAM] = {0};
 static u8 g_io_ports[SIZE_IO_PORTS] = {0};
 static u8 g_sprite_attr[SIZE_SPRITE_ATTR] = {0};
-static u8 g_rtc_latch[5];
 
 static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
 static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
 static struct mem_bank g_wram[NUM_WRAM_BANKS] = {0};
-static struct mem_bank g_vram[2] = {0};
+static struct mem_bank g_vram[NUM_VRAM_BANKS] = {0};
 
 static void _mem_not_implemented(const char *feature)
 {
@@ -110,48 +103,6 @@ static void _mem_not_implemented(const char *feature)
 		"MEM: NOT IMPLEMENTED",
 		message);
 }
-
-static u8 _mem_read_rtc(u8 reg)
-{
-	if (g_rtc_state == RTC_LATCHED || g_rtc_state == RTC_LATCHED_00) {
-		return g_rtc_latch[reg];
-	}
-
-	// TODO: can RTC registers be read without latching first?
-	_mem_not_implemented("RTC");  // TODO: Implement RTC (#41)
-	return 0;
-}
-
-static void _mem_latch_rtc(u8 data)
-{
-	switch (g_rtc_state) {
-		case RTC_NONE:
-			if (data == 0x00)
-				g_rtc_state = RTC_00;
-			break;
-		case RTC_00:
-			if (data == 0x01) {
-				// TODO latch
-			} else {
-				g_rtc_state = RTC_NONE;
-			}
-			break;
-		case RTC_LATCHED:
-			if (data == 0x00) {
-				g_rtc_state = RTC_LATCHED_00;
-			}
-			break;
-		case RTC_LATCHED_00:
-			if (data == 0x01) {
-				// TODO latch
-			} else {
-				g_rtc_state = RTC_LATCHED;
-			}
-	}
-
-	_mem_not_implemented("RTC");  // TODO: implement RTC (#41)
-}
-
 
 static u8 _mem_read_bank(struct mem_bank bank, a16 addr)
 {
@@ -338,7 +289,7 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 					g_ram_bank = data;
 
 			} else if (addr < 0x8000) {
-				_mem_latch_rtc(data);
+				mem_rtc_latch(data);
 			}
 			break;
 		case MBC5:
@@ -401,7 +352,7 @@ static u8 _mem_read_ram_switch(a16 addr)
 			if (g_ram_bank < 0x04) {
 				return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
 			} else if (0x08 <= g_ram_bank  && g_ram_bank < 0x0D) {
-				return _mem_read_rtc(g_ram_bank);
+				return mem_rtc_read(g_ram_bank);
 			}
 			break;
 		case MBC5:
@@ -439,8 +390,7 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 			if (g_ram_bank < 0x04) {
 				_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data);
 			} else {
-				// TODO: RTC write (#41)
-				_mem_not_implemented("RTC");
+				mem_rtc_write(g_ram_bank, data);
 			}
 			break;
 		case MBC5:
@@ -938,6 +888,9 @@ int mem_prepare(char *rom_path)
 		g_wram[1].mem = (u8 *)calloc(1, SIZE_WRAM);
 		g_wram[1].size = SIZE_WRAM;
 	}
+
+	if (header->mbc == MBC3)
+		mem_rtc_prepare();
 
 	return 1;
 }
