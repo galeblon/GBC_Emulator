@@ -230,7 +230,7 @@ static int _cpu_ld_a_imm_hl_dec(void)
 static int _cpu_ldh_a_imm_a8(void)
 {
 	g_registers.PC += 1;
-	a8 address = (a16)mem_read8(g_registers.PC) + 0xFF00;
+	a16 address = (a16)mem_read8(g_registers.PC) + 0xFF00;
 	g_registers.PC += 1;
 	g_registers.A = mem_read8(address);
 	return 12;
