@@ -208,7 +208,7 @@ static u8 _mem_read_cart_mem(a16 addr)
 			if (addr < 0x4000) {
 				return _mem_read_bank(g_rom[0], addr - BASE_ADDR_CART_MEM);
 			} else if (addr < 0x8000) {
-				return _mem_read_bank(g_rom[g_rom_bank], addr - BASE_ADDR_CART_MEM - header->rom_bank_size * g_rom_bank);
+				return _mem_read_bank(g_rom[g_rom_bank], addr - BASE_ADDR_CART_MEM - header->rom_bank_size);
 			}
 			break;
 		case MBC5:
@@ -382,11 +382,11 @@ static u8 _mem_read_ram_switch(a16 addr)
 			return _mem_read_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH);
 			break;
 		case MBC1:
-			return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
+			return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH);
 			break;
 		case MBC2:
 		{
-			u8 data = _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
+			u8 data = _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH);
 #ifdef DEBUG
 			// in debug build run additional check if nothing was written
 			// to 4 upper bits of RAM cell on read
@@ -399,7 +399,7 @@ static u8 _mem_read_ram_switch(a16 addr)
 		}
 		case MBC3:
 			if (g_ram_bank < 0x04) {
-				return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank);
+				return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH);
 			} else if (0x08 <= g_ram_bank  && g_ram_bank < 0x0D) {
 				return _mem_read_rtc(g_ram_bank);
 			}
@@ -429,15 +429,15 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 			_mem_write_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
 		case MBC1:
-			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data);
+			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
 		case MBC2:
 			// in MBC2 each addressable memory cell is 4 b only
-			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data & 0x0F);
+			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH, data & 0x0F);
 			break;
 		case MBC3:
 			if (g_ram_bank < 0x04) {
-				_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH - header->ram_bank_size * g_ram_bank, data);
+				_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH, data);
 			} else {
 				// TODO: RTC write (#41)
 				_mem_not_implemented("RTC");
@@ -479,7 +479,7 @@ static inline u8 _mem_read_wram(a16 addr)
 		return 0;
 
 	if (rom_is_cgb())
-		return _mem_read_bank(g_wram[g_wram_bank], addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM);
+		return _mem_read_bank(g_wram[g_wram_bank], addr - BASE_ADDR_WRAM);
 
 	return _mem_read_bank(g_wram[1], addr - BASE_ADDR_WRAM);
 }
@@ -493,7 +493,7 @@ static inline void _mem_write_wram(a16 addr, u8 data)
 
 	if (rom_is_cgb()) {
 		_mem_write_bank(g_wram[g_wram_bank],
-				addr - SIZE_WRAM * (g_wram_bank-1) - BASE_ADDR_WRAM,
+				addr - BASE_ADDR_WRAM,
 				data);
 	} else {
 		_mem_write_bank(g_wram[1], addr - BASE_ADDR_WRAM, data);
