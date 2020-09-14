@@ -1,5 +1,4 @@
 #include<stdbool.h>
-#include<stdio.h>
 #include"debug.h"
 #include"display.h"
 #include"gpu.h"
@@ -1099,17 +1098,11 @@ static palette_config const g_palette_configurations[6][29] = {
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
 {
-	char *full_message = logger_get_msg_buffer();
-	snprintf(
-		full_message,
-		LOG_MESSAGE_MAX_SIZE,
-		"[GPU MODULE] %s\n",
-		message
-	);
 	logger_log(
 		type,
 		title,
-		full_message
+		"[GPU MODULE] %s\n",
+		message
 	);
 }
 

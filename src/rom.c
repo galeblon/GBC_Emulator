@@ -1,4 +1,3 @@
-#include<stdio.h>
 #include"debug.h"
 #include"logger.h"
 #include"mem.h"
@@ -9,21 +8,16 @@ static struct rom_header g_header = {0};
 
 static void _rom_cart_type_not_implemented(u8 type_byte, u8 rom_size_byte)
 {
-	char *message = logger_get_msg_buffer();
-	snprintf(message,
-		LOG_MESSAGE_MAX_SIZE,
-		"CARTRIDGE TYPE 0x%02X ROM SIZE 0x%02X NOT IMPLEMENTED\n",
-		type_byte, rom_size_byte);
 	logger_log(LOG_WARN,
 		"MEM: CART TYPE NOT IMPLEMENTED",
-		message);
+		"CARTRIDGE TYPE 0x%02X ROM SIZE 0x%02X NOT IMPLEMENTED\n",
+		type_byte, rom_size_byte);
 }
 
 static void _rom_log_cart_type(void)
 {
-	char *message = logger_get_msg_buffer();
-	snprintf(message,
-		LOG_MESSAGE_MAX_SIZE,
+	logger_log(LOG_INFO,
+		"ROM: HEADER INFO PARSED",
 		"ROM Header parsed:\n"
 		"  MBC:       0x%02X\n"
 		"  RAM:       %d\n"
@@ -39,9 +33,6 @@ static void _rom_log_cart_type(void)
 		g_header.cgb_mode,
 		g_header.num_rom_banks, g_header.rom_bank_size,
 		g_header.num_ram_banks, g_header.ram_bank_size);
-	logger_log(LOG_INFO,
-		"ROM: HEADER INFO PARSED",
-		message);
 }
 
 int rom_checksum_validate(void)
@@ -50,8 +41,9 @@ int rom_checksum_validate(void)
 	u8 header_checksum_verify = 0;
 	for (int i=0x134; i<=0x14C; i++)
 		header_checksum_verify -= mem_read8(i) + 1;
-	printf("ROM header checksum: 0x%X\nROM header checksum calculated: 0x%X\n",
-		header_checksum, header_checksum_verify);
+	logger_print(LOG_INFO, "ROM header checksum: 0x%X\n"
+			"ROM header checksum calculated: 0x%X\n", header_checksum,
+			header_checksum_verify);
 	return header_checksum == header_checksum_verify;
 }
 

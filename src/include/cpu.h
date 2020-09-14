@@ -1,8 +1,8 @@
 #ifndef CPU_H_
 #define CPU_H_
 
-#include<stdio.h>
 #include"types.h"
+#include"logger.h"
 
 #define CPU_CLOCK_SPEED 4194304
 
@@ -34,6 +34,6 @@ bool cpu_get_stopped();
 void cpu_set_stopped(bool val);
 
 // For debugging purposes
-void cpu_register_print(FILE *out);
+void cpu_register_print(enum logger_log_type log);
 
 #endif /* CPU_H_ */

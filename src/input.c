@@ -1,5 +1,4 @@
 #include<allegro5/allegro5.h>
-#include<stdio.h>
 #include"input.h"
 #include"logger.h"
 #include"types.h"
@@ -9,14 +8,10 @@ static ALLEGRO_EVENT g_event;
 
 static void _input_error(const char *feature)
 {
-	char *message = logger_get_msg_buffer();
-	snprintf(message,
-		LOG_MESSAGE_MAX_SIZE,
-		"%s failure.\n",
-		feature);
 	logger_log(LOG_FATAL,
 		"INPUT MODULE",
-		message);
+		"%s failure.\n",
+		feature);
 }
 
 void input_prepare(void)
