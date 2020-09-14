@@ -1,4 +1,3 @@
-#include<stdio.h>
 #include"cpu.h"
 #include"debug.h"
 #include"ints.h"
@@ -47,18 +46,12 @@ static u8 g_old_if = 0;
 
 static void _ints_undefined_int_info(u8 i_e, u8 i_f)
 {
-	char *message = logger_get_msg_buffer();
-	snprintf(
-		message,
-		LOG_MESSAGE_MAX_SIZE,
-		"[INTERRUPT MODULE] UNDEFINED BEHAVIOUR ERROR - INTERRUPT TRIGGERED DOES NOT EXIST.\n    IF: 0x%X    IE: 0x%X\n",
-		i_f,
-		i_e
-	);
 	logger_log(
 		LOG_WARN,
 		"UNDEFINED INTERRUPT",
-		message
+		"[INTERRUPT MODULE] UNDEFINED BEHAVIOUR ERROR - INTERRUPT TRIGGERED DOES NOT EXIST.\n    IF: 0x%X    IE: 0x%X\n",
+		i_f,
+		i_e
 	);
 }
 

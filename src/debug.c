@@ -1,7 +1,7 @@
 #include<stdlib.h>
-#include<string.h>
 #include"debug.h"
 #include"logger.h"
+#include"mem.h"
 
 struct instruction_info {
 	int length;
@@ -526,30 +526,54 @@ static struct instruction_info instruction_infos[256] = {
 		{1, "RST\t0x38"}
 };
 
-
-int debug_op_length(d8 opcode)
+// returns the length of given instruction
+static int _debug_op_length(d8 opcode)
 {
 	return instruction_infos[opcode].length;
 }
 
 
-char* debug_op_mnemonic_format(d8 opcode)
+// return the mnemonic of given instruction
+static char* _debug_op_mnemonic_format(d8 opcode)
 {
 	return instruction_infos[opcode].mnemonic_format;
 }
 
-char* debug_op_extended_mnemonic_format(d8 opcode)
+// return the mnemonic of given extended instruction
+static char* _debug_op_extended_mnemonic_format(d8 opcode)
 {
 	return extended_instruction_infos[opcode].mnemonic_format;
+}
+
+void debug_print_instruction(u16 pc)
+{
+	d8 opcode = mem_read8(pc);
+
+	logger_print(LOG_INFO, "0x%04X\t", pc);
+	int len = _debug_op_length(opcode);
+	switch(len) {
+	case 1:
+		logger_print(LOG_INFO, "%s" ,_debug_op_mnemonic_format(opcode));
+		break;
+	case 2:
+		logger_print(LOG_INFO, _debug_op_mnemonic_format(opcode), mem_read8(pc+1));
+		break;
+	case 3:
+		logger_print(LOG_INFO, _debug_op_mnemonic_format(opcode), mem_read16(pc+1));
+		break;
+	case 4:
+		// CB prefix special print
+		logger_print(LOG_INFO, "CB %s",
+				_debug_op_extended_mnemonic_format(mem_read8(pc+1)));
+	}
+	logger_print(LOG_INFO, "\n");
 }
 
 void debug_assert(bool expr, const char *msg)
 {
 #ifdef DEBUG
 	if (!expr) {
-		char *msg_buf = logger_get_msg_buffer();
-		strncpy(msg_buf, msg, LOG_MESSAGE_MAX_SIZE);
-		logger_log(LOG_ASSERT, "ASSERT", msg_buf);
+		logger_log(LOG_ASSERT, "ASSERT", msg);
 		exit(1);
 	}
 #endif

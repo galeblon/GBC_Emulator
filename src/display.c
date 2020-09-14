@@ -14,17 +14,11 @@ static ALLEGRO_EVENT       g_event;
 
 static void _display_error(enum logger_log_type type, char *title, char *message)
 {
-	char *full_message = logger_get_msg_buffer();
-	snprintf(
-		full_message,
-		LOG_MESSAGE_MAX_SIZE,
-		"[DISPLAY MODULE] %s\n",
-		message
-	);
 	logger_log(
 		type,
 		title,
-		full_message
+		"[DISPLAY MODULE] %s\n",
+		message
 	);
 }
 

@@ -1,7 +1,6 @@
 #include"cpu.h"
 #include"debug.h"
 #include"ints.h"
-#include"logger.h"
 #include"mem.h"
 #include"regs.h"
 
@@ -40,9 +39,9 @@ static bool g_cpu_stopped = 0;
 static int g_ime_delay = 0;
 static int g_ime_op = IME_OP_DI;
 
-void cpu_register_print(FILE *out)
+void cpu_register_print(enum logger_log_type log)
 {
-	fprintf(out,
+	logger_print(log,
 		"\tA: 0x%02X F: 0x%02X\n"
 		"\tB: 0x%02X C: 0x%02X\n"
 		"\tD: 0x%02X E: 0x%02X\n"
@@ -71,14 +70,10 @@ static int _cpu_not_implemented(void)
 {
 	// This  way of accessing memory is temporary
 	d8 instruction_code = mem_read8(g_registers.PC);
-	char *message = logger_get_msg_buffer();
-	snprintf(message,
-		LOG_MESSAGE_MAX_SIZE,
-		"INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n",
-		instruction_code);
 	logger_log(LOG_FATAL,
 		"UNKOWN INSTRUCTION",
-		message);
+		"INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n",
+		instruction_code);
 	return -1;
 }
 
@@ -4965,29 +4960,6 @@ static int _cpu_set_7_a(void)
 	return 8;
 }
 
-void _cpu_debug_console(u16 pc_old)
-{
-	d8 opcode = mem_read8(pc_old);
-	printf("0x%04X\t", pc_old);
-	int len = debug_op_length(opcode);
-	switch(len) {
-	case 1:
-		printf("%s" ,debug_op_mnemonic_format(opcode));
-		break;
-	case 2:
-		printf(debug_op_mnemonic_format(opcode), mem_read8(pc_old+1));
-		break;
-	case 3:
-		printf(debug_op_mnemonic_format(opcode), mem_read16(pc_old+1));
-		break;
-	case 4:
-		// CB prefix special print
-		printf("CB %s",debug_op_extended_mnemonic_format(mem_read8(pc_old+1)));
-	}
-	printf("\n");
-}
-
-
 int cpu_single_step(void)
 {
 	if(g_cpu_stopped) {
@@ -4997,7 +4969,7 @@ int cpu_single_step(void)
 	} else {
 		// Fetch
 #ifdef DEBUG
-		_cpu_debug_console(g_registers.PC);
+		debug_print_instruction(g_registers.PC);
 #endif
 		d8 instruction_code = mem_read8(g_registers.PC);
 		// Decode & Execute

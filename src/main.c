@@ -1,10 +1,10 @@
-#include<stdio.h>
 #include<stdlib.h>
 #include"display.h"
 #include"gpu.h"
 #include"ints.h"
 #include"input.h"
 #include"joypad.h"
+#include"logger.h"
 #include"mem.h"
 #include"regs.h"
 #include"rom.h"
@@ -13,30 +13,24 @@
 
 int main(int argc, char *argv[])
 {
-
-#ifdef DEBUG
-	//Buffered output is faster
-	char buffer[16384];
-	setvbuf(stdout, buffer, _IOFBF, sizeof(buffer));
-#endif
-
+	logger_prepare();
 	if (argc < 2) {
-		printf("ROM file not specified.\n");
+		logger_print(LOG_FATAL, "ROM file not specified.\n");
 		return 1;
 	}
 
 	if (!mem_prepare(argv[1]))
 		return 1;
 
-	printf("Loaded ROM contents to memory.\n");
+	logger_print(LOG_INFO, "Loaded ROM contents to memory.\n");
 
 	if (!rom_checksum_validate())
-		fprintf(stderr, "ROM header checksum failed.\n");
+		logger_print(LOG_WARN, "ROM header checksum failed.\n");
 
-	printf("ROM header checksum passed.\n");
+	logger_print(LOG_INFO, "ROM header checksum passed.\n");
 	char title[16];
 	rom_get_title(title);
-	printf("ROM title: %.16s\n", title);
+	logger_print(LOG_INFO, "ROM title: %.16s\n", title);
 
 	//TODO prepare memory and fill stack with data according to powerup sequence
 	//TODO prepare sound
@@ -47,7 +41,7 @@ int main(int argc, char *argv[])
 	joypad_prepare();
 	timer_prepare();
 
-	printf("Starting emulation.\n");
+	logger_print(LOG_INFO, "Starting emulation.\n");
 	int cycles_delta = 0;
 
 	// Main Loop
@@ -61,15 +55,11 @@ int main(int argc, char *argv[])
 		ints_check();
 	}
 
-	printf("Halting emulation.\n");
+	logger_print(LOG_INFO, "Halting emulation.\n");
 
 	gpu_destroy();
 	mem_destroy();
-
-#ifdef DEBUG
-	//If we buffer, we don't want to lose anything
-	fflush(stdout);
-#endif
+	logger_destroy();
 
 	return 0;
 }

@@ -1,5 +1,4 @@
 #include<allegro5/allegro5.h>
-#include<stdio.h>
 #include"debug.h"
 #include"input.h"
 #include"ints.h"
