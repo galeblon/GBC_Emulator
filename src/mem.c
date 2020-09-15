@@ -4,7 +4,7 @@
 #include"cpu.h"
 #include"debug.h"
 #include"logger.h"
-#include"mem.h"
+#include"mem_priv.h"
 #include"mem_rtc.h"
 #include"rom.h"
 
@@ -72,7 +72,6 @@ enum mem_dma_state {
 
 // Memory module state
 static bool g_ram_enable = 0;
-static u8 g_int_enable = true;
 static u8 g_rom_bank = 1;
 static u8 g_ram_bank = 0;
 static u8 g_wram_bank = 1;
@@ -85,6 +84,12 @@ static enum mem_dma_state g_dma_state = DMA_NONE;
 
 static u8 g_hram[SIZE_HRAM] = {0};
 static u8 g_io_ports[SIZE_IO_PORTS] = {0};
+
+static mem_read_handler_t g_io_ports_read[SIZE_IO_PORTS] = {0};
+static mem_write_handler_t g_io_ports_write[SIZE_IO_PORTS] = {0};
+static mem_read_handler_t g_int_enable_read = NULL;
+static mem_write_handler_t g_int_enable_write = NULL;
+
 static u8 g_sprite_attr[SIZE_SPRITE_ATTR] = {0};
 
 static struct mem_bank g_rom[MAX_ROM_BANKS] = {0};
@@ -380,15 +385,18 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 			_mem_write_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
 		case MBC1:
-			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH, data);
+			_mem_write_bank(g_ram[g_ram_bank],
+					addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
 		case MBC2:
 			// in MBC2 each addressable memory cell is 4 b only
-			_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH, data & 0x0F);
+			_mem_write_bank(g_ram[g_ram_bank],
+					addr - BASE_ADDR_RAM_SWITCH, data & 0x0F);
 			break;
 		case MBC3:
 			if (g_ram_bank < 0x04) {
-				_mem_write_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH, data);
+				_mem_write_bank(g_ram[g_ram_bank],
+						addr - BASE_ADDR_RAM_SWITCH, data);
 			} else {
 				mem_rtc_write(g_ram_bank, data);
 			}
@@ -423,7 +431,8 @@ static inline void _mem_write_wram0(a16 addr, u8 data)
 
 static inline u8 _mem_read_wram(a16 addr)
 {
-	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_read_wram: incorrect WRAM Bank number");
+	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS,
+			"_mem_read_wram: incorrect WRAM Bank number");
 
 	if (g_dma_lock)
 		return 0;
@@ -436,7 +445,8 @@ static inline u8 _mem_read_wram(a16 addr)
 
 static inline void _mem_write_wram(a16 addr, u8 data)
 {
-	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS, "_mem_write_wram: incorrect WRAM Bank number");
+	debug_assert(0 < g_wram_bank && g_wram_bank < NUM_WRAM_BANKS,
+			"_mem_write_wram: incorrect WRAM Bank number");
 
 	if (g_dma_lock)
 		return;
@@ -493,14 +503,8 @@ static inline void _mem_write_empty0(a16 addr __attribute__((unused)),
 }
 
 
-static inline u8 _mem_read_io_ports(a16 addr)
+static inline u8 _mem_io_ports_read_handler(a16 addr)
 {
-	if (g_dma_lock)
-		return 0;
-
-	// TODO: IO ports (#44)
-	_mem_not_implemented("IO ports");
-
 	switch (addr) {
 		case 0xFF55:
 			// VRAM DMA transfer remaining
@@ -529,21 +533,15 @@ static inline u8 _mem_read_io_ports(a16 addr)
 			}
 			break;
 		default:
+			_mem_not_implemented("IO ports");
 			return g_io_ports[addr - BASE_ADDR_IO_PORTS];
 	}
 
 	return 0;
 }
 
-static inline void _mem_write_io_ports(a16 addr __attribute__((unused)),
-	u8 data __attribute__((unused)))
+static inline void _mem_io_ports_write_handler(a16 addr, u8 data)
 {
-	if (g_dma_lock)
-		return;
-
-	// TODO: IO ports (#44)
-	_mem_not_implemented("IO ports");
-
 	switch (addr) {
 		case 0xFF46:
 			// DMA: OAM DMA transfer address
@@ -638,7 +636,40 @@ static inline void _mem_write_io_ports(a16 addr __attribute__((unused)),
 			}
 			break;
 		default:
+			// If an address within IO ports does not have any special handling
+			// implemented just write the data, so that it can be read through
+			// mem_readX later
+			g_io_ports[addr - BASE_ADDR_IO_PORTS] = data;
+
+			_mem_not_implemented("IO ports");
 			break;
+	}
+}
+
+static inline u8 _mem_read_io_ports(a16 addr)
+{
+	if (g_dma_lock)
+		return 0;
+
+	mem_read_handler_t r = g_io_ports_read[addr - BASE_ADDR_IO_PORTS];
+
+	if (r)
+		return r(addr);
+
+	return _mem_io_ports_read_handler(addr);
+}
+
+static inline void _mem_write_io_ports(a16 addr, u8 data)
+{
+	if (g_dma_lock)
+		return;
+
+	mem_write_handler_t w = g_io_ports_write[addr - BASE_ADDR_IO_PORTS];
+
+	if (w) {
+		w(addr, data);
+	} else {
+		_mem_io_ports_write_handler(addr, data);
 	}
 }
 
@@ -652,21 +683,24 @@ static inline void _mem_write_hram(a16 addr, u8 data)
 	g_hram[addr - BASE_ADDR_HRAM] = data;
 }
 
-static inline u8 _mem_read_int_enable(a16 addr __attribute__((unused)))
+static inline u8 _mem_read_int_enable(a16 addr)
 {
 	if (g_dma_lock)
 		return 0;
 
-	return g_int_enable;
+	if (g_int_enable_read)
+		return g_int_enable_read(addr);
+
+	return 0;
 }
 
-static inline void _mem_write_int_enable(a16 addr __attribute__((unused)),
-	u8 data)
+static inline void _mem_write_int_enable(a16 addr, u8 data)
 {
 	if (g_dma_lock)
 		return;
 
-	g_int_enable = data;
+	if (g_int_enable_write)
+		g_int_enable_write(addr, data);
 }
 
 
@@ -900,12 +934,14 @@ void mem_destroy(void)
 	const struct rom_header *header = rom_get_header();
 
 	for (int i = 0; i < header->num_rom_banks; i++) {
-		debug_assert(g_rom[i].mem != NULL, "mem_destroy: null ROM Bank memory");
+		debug_assert(g_rom[i].mem != NULL,
+				"mem_destroy: null ROM Bank memory");
 		free(g_rom[i].mem);
 	}
 
 	for (int i = 0; i < header->num_ram_banks; i++) {
-		debug_assert(g_rom[i].mem != NULL, "mem_destroy: null RAM Bank memory");
+		debug_assert(g_rom[i].mem != NULL,
+				"mem_destroy: null RAM Bank memory");
 		free(g_ram[i].mem);
 	}
 
@@ -954,19 +990,29 @@ void mem_vram_write8(int bank, a16 addr, u8 data)
 	_mem_write_bank(g_vram[bank], addr - BASE_ADDR_VRAM, data);
 }
 
-/* Write value (data) into selected IO ports register
- *
- * This function currently only works for IO ports addresses, which are not
- * specifically handled in _mem_read_io_ports, because those require to be
- * dynamically set in accordance to emulated state on read.
- * Values written to these addresses are shadowed by special handling and are
- * not accessible thorugh cpu->mem interface.
- *
- * NOTE: addr parameter is an address that would be used in normal mem_write8.
+/* Register read/write handler function for address within IO Ports range
+ * (0xFF00-0xFF79) or Interrupt Enable (0xFFFF).
  */
-void mem_set_io_ports(a16 addr, u8 data)
+void mem_register_handlers(a16 addr,
+		mem_read_handler_t r, mem_write_handler_t w)
 {
-	g_io_ports[addr - BASE_ADDR_IO_PORTS] = data;
+	if (addr == BASE_ADDR_INT_ENABLE) {
+		debug_assert(g_int_enable_read == NULL && g_int_enable_write == NULL,
+				"mem_register_handlers: handlers already registered");
+		g_int_enable_read = r;
+		g_int_enable_write = w;
+	} else {
+		debug_assert(addr >= BASE_ADDR_IO_PORTS
+				&& addr < BASE_ADDR_IO_PORTS + SIZE_IO_PORTS,
+				"mem_register_io_port_handlers: "
+				"this address is handled within mem");
+		debug_assert(g_io_ports_read[addr - BASE_ADDR_IO_PORTS] == NULL
+				&& g_io_ports_write[addr - BASE_ADDR_IO_PORTS] == NULL,
+				"mem_register_handlers: handlers already registered");
+
+		g_io_ports_read[addr - BASE_ADDR_IO_PORTS] = r;
+		g_io_ports_write[addr - BASE_ADDR_IO_PORTS] = w;
+	}
 }
 
 /* Notify mem module about H-blank interval start.
