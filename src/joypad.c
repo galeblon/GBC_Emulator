@@ -9,8 +9,6 @@
 
 #define JOYPAD_INPUT_ADDR 0xFF00
 
-#define BV(reg, bit)  (((reg) & (1 << (bit))) >> (bit))
-
 static struct all_inputs g_all_inputs;
 
 static enum joypad_reg_mode {
