@@ -8,6 +8,7 @@
 #include"mem.h"
 #include"regs.h"
 #include"rom.h"
+#include"timer.h"
 #include"types.h"
 
 int main(int argc, char *argv[])
@@ -37,6 +38,7 @@ int main(int argc, char *argv[])
 	gpu_prepare(title);
 	input_prepare();
 	joypad_prepare();
+	timer_prepare();
 
 	printf("Starting emulation.\n");
 	int cycles_delta = 0;
@@ -48,6 +50,7 @@ int main(int argc, char *argv[])
 		mem_step(cycles_delta);
 		// sound_step(cycles_delta)
 		joypad_step();
+		timer_step(cycles_delta);
 		ints_check();
 	}
 
