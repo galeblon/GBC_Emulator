@@ -998,6 +998,9 @@ void gpu_prepare(char * rom_title)
 	_gpu_restart_boundaries();
 
 	display_prepare(1.0 / FRAME_RATE, rom_title);
+
+	g_gpu_reg.lcdc = 0x91;
+	g_gpu_reg.stat = 0x85;
 }
 
 void gpu_step(int cycles_delta)
@@ -1016,9 +1019,6 @@ void gpu_step(int cycles_delta)
 		//Reset our counter
 		g_current_clocks -= _CLOCKS_PER_SCANLINE;
 
-		//Increment the LY register
-		g_gpu_reg.ly++;
-
 		//Trigger the V-Blank interrupt if in V-Blank
 		//Reset LY when we reach the end
 		//Draw the current scanline if neither
@@ -1026,8 +1026,12 @@ void gpu_step(int cycles_delta)
 			ints_request(INT_V_BLANK);
 		else if(g_gpu_reg.ly > 153)
 			g_gpu_reg.ly = 0;
-		else
+
+		if(g_gpu_reg.ly <= 144)
 			_gpu_draw_scanline();
+
+		//Increment the LY register
+		g_gpu_reg.ly++;
 	}
 }
 

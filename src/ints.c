@@ -9,8 +9,8 @@
 
 #define IFAddress 0xFF0F
 #define IEAddress 0xFFFF
-#define IFBase 0x00
-#define IEBase 0x1F
+#define IFBase 0xE1
+#define IEBase 0x00
 
 #define B0 0x01
 #define B1 0x02
