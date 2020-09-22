@@ -1,6 +1,7 @@
 #include<allegro5/allegro5.h>
 #include<allegro5/allegro_primitives.h>
 #include"cpu.h"
+#include"debug.h"
 #include"display.h"
 #include"logger.h"
 
@@ -107,6 +108,8 @@ void display_prepare(float frequency, char * rom_title)
 
 void display_draw_line(colour line[160], int index)
 {
+	debug_assert(index <= 144, "display_draw_line: index out of bounds");
+
 	ALLEGRO_COLOR current_colour;
 	for(int i=0; i<160; i++)
 	{
@@ -114,8 +117,9 @@ void display_draw_line(colour line[160], int index)
 			line[i].r,
 			line[i].g,
 			line[i].b,
-			(line[i].a) ? 255 : 0
+			line[i].a ? 255 : 0
 		);
+
 
 		al_draw_filled_rectangle(
 			i       * SCALING_FACTOR,
@@ -124,7 +128,11 @@ void display_draw_line(colour line[160], int index)
 			(index + 1)     * SCALING_FACTOR,
 			current_colour
 		);
+
 	}
+
+	if(index == 144)
+		al_flip_display();
 }
 
 
