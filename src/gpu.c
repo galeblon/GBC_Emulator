@@ -112,6 +112,10 @@ static a16       g_bg_window_tile_data_address     = 0;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
+static d8 background_palette_memory[64];
+static d8 sprite_palette_memory[64];
+
+
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
 {
 	char *full_message = logger_get_msg_buffer();
@@ -129,12 +133,40 @@ static void _gpu_error(enum logger_log_type type, char *title, char *message)
 }
 
 
+static d16 _gpu_read_spm(u8 index)
+{
+	d16 spm_colour;
+	spm_colour = ((sprite_palette_memory[index+1]) << 8) | (sprite_palette_memory[index]);
+	return spm_colour;
+}
+
+
+static void _gpu_write_spm(u8 index, d8 spd)
+{
+	sprite_palette_memory[index] = spd;
+}
+
+
+static d16 _gpu_read_bgpm(u8 index)
+{
+	d16 bgpm_colour;
+	bgpm_colour = ((background_palette_memory[index+1]) << 8) | (background_palette_memory[index]);
+	return bgpm_colour;
+}
+
+
+static void _gpu_write_bgpm(u8 index, d8 spd)
+{
+	background_palette_memory[index] = spd;
+}
+
+
 static colour _gpu_get_colour_cgb_sprite(u8 colour_number, u8 palette_number)
 {
 	//Setup
 	colour found_colour;
 	found_colour.a = (colour_number == 0) ? true : false;
-	d16 bgp = mem_read16(SPMAddress + palette_number * 8 + colour_number * 2);
+	d16 bgp = _gpu_read_spm(palette_number * 8 + colour_number * 2);
 
 	//Acquire colour value
 	found_colour.r = bgp & (B4 | B3 | B2 | B1 | B0);
@@ -155,7 +187,7 @@ static colour _gpu_get_colour_cgb(u8 colour_number, u8 palette_number)
 	//Setup
 	colour found_colour;
 	found_colour.a = false;
-	d16 bgp = mem_read16(BGPMAddress + palette_number * 8 + colour_number * 2);
+	d16 bgp = _gpu_read_bgpm(palette_number * 8 + colour_number * 2);
 
 	//Acquire colour value
 	found_colour.r = bgp & (B4 | B3 | B2 | B1 | B0);
@@ -769,7 +801,7 @@ void gpu_write_bgpd(d8 new_bgpd)
 
 		//Update BGP
 		d8 bgpi = gpu_read_bgpi();
-		mem_write8(BGPMAddress + (bgpi & 0x1F), new_bgpd);
+		_gpu_write_bgpm((bgpi & 0x1F), new_bgpd);
 
 		//Increment BGPI if required
 		if((bgpi & B7) == B7) {
@@ -828,7 +860,7 @@ void gpu_write_spd(d8 new_spd)
 
 		//Update SP
 		d8 spi = gpu_read_spi();
-		mem_write8(SPMAddress + (spi & 0x1F), new_spd);
+		_gpu_write_spm((spi & 0x1F), new_spd);
 
 		//Increment BGPI if required
 		if((spi & B7) == B7) {
