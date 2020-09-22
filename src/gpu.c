@@ -1,5 +1,6 @@
 #include<stdbool.h>
 #include<stdio.h>
+#include"debug.h"
 #include"display.h"
 #include"gpu.h"
 #include"ints.h"
@@ -7,6 +8,8 @@
 #include"mem_priv.h"
 #include"rom.h"
 #include"types.h"
+
+#include<unistd.h>
 
 #define _CLOCKS_PER_SCANLINE 456
 #define _MODE_2_BOUNDS       (_CLOCKS_PER_SCANLINE - 80)
@@ -22,7 +25,7 @@
 #define SCXAddress  0xFF43 	/* Background X Scroll position */
 #define LYAddress   0xFF44 	/* LCD Controller Y-Coordinate */
 #define LYCAddress  0xFF45 	/* LY Compare */
-#define DMAAddress  0xFF46 	/* DMA Transfer & Start */
+
 #define BGPAddress  0xFF47 	/* Background & Window Palette Data */
 #define OBP0Address 0xFF48 	/* Object Palette 0 Data */
 #define OBP1Address 0xFF49 	/* Object Palette 1 Data */
@@ -102,6 +105,23 @@ static colour const g_gb_dark_gray  = {85, 85, 85, false};
 static colour const g_gb_light_gray = {170, 170, 170, false};
 static colour const g_gb_white      = {255, 255, 255, false};
 
+static struct {
+	u8 lcdc;
+	u8 stat;
+	u8 scy;
+	u8 scx;
+	u8 ly;
+	u8 lyc;
+	u8 bgp;
+	u8 obp0;
+	u8 obp1;
+	u8 wy;
+	u8 wx;
+	u8 bgpi;
+	u8 bgpd;
+	u8 spi;
+	u8 spd;
+} g_gpu_reg = {0};
 
 static u16       g_current_clocks                  = 0;
 static u8        g_sprite_height                   = 0;
@@ -166,12 +186,12 @@ static colour _gpu_get_colour_cgb_sprite(u8 colour_number, u8 palette_number)
 	//Setup
 	colour found_colour;
 	found_colour.a = (colour_number == 0) ? true : false;
-	d16 bgp = _gpu_read_spm(palette_number * 8 + colour_number * 2);
+	d16 obp = _gpu_read_spm(palette_number * 8 + colour_number * 2);
 
 	//Acquire colour value
-	found_colour.r = bgp & (B4 | B3 | B2 | B1 | B0);
-	found_colour.g = (bgp >> 5) & (B4 | B3 | B2 | B1 | B0);
-	found_colour.b = (bgp >> 10) & (B4 | B3 | B2 | B1 | B0);
+	found_colour.r = obp & (B4 | B3 | B2 | B1 | B0);
+	found_colour.g = (obp >> 5) & (B4 | B3 | B2 | B1 | B0);
+	found_colour.b = (obp >> 10) & (B4 | B3 | B2 | B1 | B0);
 
 	//Translate colour value to a colour variable
 	found_colour.r = (found_colour.r << 3) + ( (found_colour.r >> 2) & (B2 | B1 | B0) );
@@ -208,22 +228,21 @@ static colour _gpu_get_colour_gb_sprite(u8 colour_number, u8 palette_number)
 	//Setup
 	colour found_colour;
 	found_colour.a = (colour_number == 0) ? true : false;;
-	a16 address;
+	u8 obp = 0;
 	switch(palette_number) {
 	case 0:
-		address = OBP0Address;
+		obp = g_gpu_reg.obp0;
 		break;
 	case 1:
-		address = OBP1Address;
+		obp = g_gpu_reg.obp1;
 	}
-	d8 bgp = mem_read8(address);
 
 	//Acquire colour value
-	bgp >>= colour_number * 2;
-	bgp &= (B0 | B1);
+	obp >>= colour_number * 2;
+	obp &= (B0 | B1);
 
 	//Translate colour value to a colour variable
-	switch(bgp) {
+	switch(obp) {
 	case 0:
 		found_colour = g_gb_white;
 		break;
@@ -247,7 +266,7 @@ static colour _gpu_get_colour_gb(u8 colour_number)
 	//Setup
 	colour found_colour;
 	found_colour.a = false;
-	d8 bgp = mem_read8(BGPAddress);
+	u8 bgp = g_gpu_reg.bgp;
 
 	//Acquire colour value
 	bgp >>= colour_number * 2;
@@ -338,7 +357,7 @@ static void _gpu_get_colour_numbers(
 {
 	//Get line
 	d8  line_upper, line_lower;
-	a16 first_addr = base_address + tile_number * 2 + ((line_index * 2) % 8 );
+	a16 first_addr = base_address + tile_number * 2 + line_index * 2;
 	if(vram_bank_number == 255) {
 		line_lower = mem_read8(first_addr);
 		line_upper = mem_read8(first_addr + 1);
@@ -359,17 +378,17 @@ static void _gpu_get_colour_numbers(
 		current_index = flip_x ? 7 - i : i;
 		if(current_index < 6) {
 			dst[i] = (
-				  ( ( line_upper & (B7 >> current_index) ) << (6 - current_index) )
+				( ( line_upper & (B7 >> current_index) ) << (6 - current_index) )
 				| ( ( line_lower & (B7 >> current_index) ) << (7 - current_index) )
 			);
 		} else if(current_index < 7) {
 			dst[i] = (
-				  ( ( line_upper & (B7 >> current_index) ) >> (6 - current_index) )
+				( ( line_upper & (B7 >> current_index) ) >> (6 - current_index) )
 				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
 			);
 		} else {
 			dst[i] = (
-				  ( ( line_upper & (B7 >> current_index) ) << (current_index - 6) )
+				( ( line_upper & (B7 >> current_index) ) << (current_index - 6) )
 				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
 			);
 		}
@@ -385,7 +404,7 @@ static void _gpu_put_sprites(
 )
 {
 	//Get up to 10 sprites in current scanline
-	d8 ly = mem_read8(LYAddress);
+	u8 ly = g_gpu_reg.ly;
 	u8 sprite_index = 0;
 	sprite sprites[10];
 	sprite current_sprite;
@@ -504,9 +523,9 @@ static void _gpu_get_tile_number_attr(
 static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
 	//Get data
-	d8  ly = mem_read8(LYAddress);
-	d8  wy = mem_read8(WYAddress);
-	s16 wx = mem_read8(WXAddress) - 7;
+	u8  ly = g_gpu_reg.ly;
+	u8  wy = g_gpu_reg.wy;
+	s16 wx = g_gpu_reg.wx - 7;
 	s16 tile_map_y = ly - wy;
 	u8  tile_map_x = (wx < 0) ? 7 : wx;
 	u8  tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
@@ -566,9 +585,9 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
 	//Get data
-	d8 ly  = mem_read8(LYAddress);
-	d8 scy = mem_read8(SCYAddress);
-	d8 scx = mem_read8(SCXAddress);
+	u8 ly  = g_gpu_reg.ly;
+	u8 scy = g_gpu_reg.scy;
+	u8 scx = g_gpu_reg.scx;
 	u8 tile_map_y = (scy + ly) % 256;
 	u8 tile_map_x = scx;
 	u8 tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
@@ -632,7 +651,7 @@ static void _gpu_draw_scanline(void)
 	_gpu_restart_boundaries();
 
 	//Get LCD Controller (LCDC) Register
-	d8 lcdc = mem_read8(LCDCAddress);
+	u8 lcdc = g_gpu_reg.lcdc;
 
 	//Set correct addresses and values
 	g_window_tile_map_display_address 	= isLCDC6(lcdc) ?
@@ -650,18 +669,18 @@ static void _gpu_draw_scanline(void)
 
 		//Check if the screen is not fully white
 		if(!rom_is_cgb() && !isLCDC0(lcdc)) {
-			_gpu_put_background(line, bg_colour_is_0, bg_bit_7);
-
-			//Draw window if enabled
-			if(isLCDC5(lcdc)) {
-				_gpu_put_window(line, bg_colour_is_0, bg_bit_7);
-			}
-		} else {
 			for(u8 i = 0; i < 160; i++)
 			{
 				line[i]           = g_gb_white;
 				bg_colour_is_0[i] = true;
 				bg_bit_7[i]       = false;
+			}
+		} else {
+			_gpu_put_background(line, bg_colour_is_0, bg_bit_7);
+
+			//Draw window if enabled
+			if(isLCDC5(lcdc)) {
+				_gpu_put_window(line, bg_colour_is_0, bg_bit_7);
 			}
 		}
 
@@ -675,7 +694,7 @@ static void _gpu_draw_scanline(void)
 			);
 		}
 
-		display_draw_line( line, mem_read8(LYAddress) );
+		display_draw_line( line, g_gpu_reg.ly );
 	}
 }
 
@@ -683,23 +702,23 @@ static void _gpu_draw_scanline(void)
 static void _gpu_update_lcd_status(void)
 {
 	//Get required registers
-	d8 lcdc = mem_read8(LCDCAddress);
-	d8 stat = mem_read8(STATAddress);
+	u8 lcdc = g_gpu_reg.lcdc;
+	u8 stat = g_gpu_reg.stat;
 
 	//If LCD is disabled, set mode to 1, reset scanline
 	if(!isLCDC7(lcdc)) {
 		g_current_clocks = 0;
-		mem_write8(LYAddress, 0);
+		g_gpu_reg.ly = 0;
 		stat &= 0xFC;
 		stat |= 0x01;
-		mem_write8(STATAddress, stat);
+		g_gpu_reg.stat = stat;
 		return;
 	}
 
 	//Check in which mode are we now
 	u8 current_mode;
 	u8 hitherto_mode = stat & 0x03;
-	d8 ly = mem_read8(LYAddress);
+	u8 ly = g_gpu_reg.ly;
 	if(ly >= 144)
 		current_mode = GPU_V_BLANK;
 	else if(g_current_clocks >= g_mode_2_boundary)
@@ -740,7 +759,7 @@ static void _gpu_update_lcd_status(void)
 		ints_request(INT_LCDC);
 
 	//Check the coincidence flag
-	d8 lyc = mem_read8(LYCAddress);
+	u8 lyc = g_gpu_reg.lyc;
 	if(ly == lyc) {
 		stat |= B2;
 		if((stat & B6) != 0)
@@ -750,36 +769,36 @@ static void _gpu_update_lcd_status(void)
 	}
 
 	//Save proper STAT
-	mem_write8(STATAddress, stat);
+	g_gpu_reg.stat = stat;
 }
 
 
 static void _gpu_check_uninitialized_palettes(void)
 {
 	if (rom_get_header()->cgb_mode != NON_CGB_UNINITIALIZED_PALETTES)
-		mem_write8(BGPAddress, BGPDefault);
+		g_gpu_reg.bgp = BGPDefault;
 }
 
 
-d8 gpu_read_bgpi(void)
+u8 gpu_read_bgpi(void)
 {
-	return mem_read8(BGPIAddress);
+	return g_gpu_reg.bgpi;
 }
 
 
-void gpu_write_bgpi(d8 new_bgpi)
+void gpu_write_bgpi(u8 new_bgpi)
 {
-	mem_write8(BGPIAddress, new_bgpi);
+	g_gpu_reg.bgpi = new_bgpi;
 }
 
 
-d8 gpu_read_bgpd(void)
+u8 gpu_read_bgpd(void)
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 stat = mem_read8(STATAddress);
+	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
 	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
-		return mem_read8(BGPDAddress);
+		return g_gpu_reg.bgpd;
 	else
 		_gpu_error(
 			LOG_FATAL,
@@ -791,16 +810,16 @@ d8 gpu_read_bgpd(void)
 }
 
 
-void gpu_write_bgpd(d8 new_bgpd)
+void gpu_write_bgpd(u8 new_bgpd)
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 stat = mem_read8(STATAddress);
+	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
 	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK) {
-		mem_write8(BGPDAddress, new_bgpd);
+		g_gpu_reg.bgpd = new_bgpd;
 
 		//Update BGP
-		d8 bgpi = gpu_read_bgpi();
+		u8 bgpi = gpu_read_bgpi();
 		_gpu_write_bgpm((bgpi & 0x1F), new_bgpd);
 
 		//Increment BGPI if required
@@ -820,25 +839,25 @@ void gpu_write_bgpd(d8 new_bgpd)
 }
 
 
-d8 gpu_read_spi(void)
+u8 gpu_read_spi(void)
 {
-	return mem_read8(SPIAddress);
+	return g_gpu_reg.spi;
 }
 
 
-void gpu_write_spi(d8 new_spi)
+void gpu_write_spi(u8 new_spi)
 {
-	mem_write8(SPIAddress, new_spi);
+	g_gpu_reg.spi = new_spi;
 }
 
 
-d8 gpu_read_spd(void)
+u8 gpu_read_spd(void)
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 stat = mem_read8(STATAddress);
+	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
 	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
-		return mem_read8(SPDAddress);
+		return g_gpu_reg.spd;
 	else
 		_gpu_error(
 			LOG_FATAL,
@@ -850,21 +869,21 @@ d8 gpu_read_spd(void)
 }
 
 
-void gpu_write_spd(d8 new_spd)
+void gpu_write_spd(u8 new_spd)
 {
 	//Only accessible during H-BLANK or V-BLANK
-	d8 stat = mem_read8(STATAddress);
+	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
 	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK) {
-		mem_write8(SPDAddress, new_spd);
+		g_gpu_reg.spd = new_spd;
 
 		//Update SP
-		d8 spi = gpu_read_spi();
+		u8 spi = gpu_read_spi();
 		_gpu_write_spm((spi & 0x1F), new_spd);
 
 		//Increment BGPI if required
 		if((spi & B7) == B7) {
-			d8 new_spi = spi;
+			u8 new_spi = spi;
 			new_spi++;
 			new_spi &= !B6;
 			gpu_write_spi(new_spi);
@@ -878,20 +897,150 @@ void gpu_write_spd(d8 new_spd)
 	}
 }
 
+static u8 _gpu_read_handler(a16 addr)
+{
+	switch(addr) {
+		case LCDCAddress:
+			return g_gpu_reg.lcdc;
+			break;
+		case STATAddress:
+			return g_gpu_reg.stat;
+			break;
+		case SCYAddress:
+			return g_gpu_reg.scy;
+			break;
+		case SCXAddress:
+			return g_gpu_reg.scx;
+			break;
+		case LYAddress:
+			return g_gpu_reg.ly;
+			break;
+		case LYCAddress:
+			return g_gpu_reg.lyc;
+			break;
+		case BGPAddress:
+			return g_gpu_reg.bgp;
+			break;
+		case OBP0Address:
+			return g_gpu_reg.obp0;
+			break;
+		case OBP1Address:
+			return g_gpu_reg.obp1;
+			break;
+		case WYAddress:
+			return g_gpu_reg.wy;
+			break;
+		case WXAddress:
+			return g_gpu_reg.wx;
+			break;
+		case BGPIAddress:
+			return g_gpu_reg.bgpi;
+			break;
+		case BGPDAddress:
+			return g_gpu_reg.bgpd;
+			break;
+		case SPIAddress:
+			return g_gpu_reg.spi;
+			break;
+		case SPDAddress:
+			return g_gpu_reg.spd;
+			break;
+	}
+
+	debug_assert(false, "_gpu_read_handler: invalid address");
+	return 0;
+}
+
+static void _gpu_write_handler(a16 addr, u8 data)
+{
+	switch(addr) {
+		case LCDCAddress:
+			g_gpu_reg.lcdc = data;
+			break;
+		case STATAddress:
+			g_gpu_reg.stat = data;
+			break;
+		case SCYAddress:
+			g_gpu_reg.scy = data;
+			break;
+		case SCXAddress:
+			g_gpu_reg.scx = data;
+			break;
+		case LYAddress:
+			g_gpu_reg.ly = data;
+			break;
+		case LYCAddress:
+			g_gpu_reg.lyc = data;
+			break;
+		case BGPAddress:
+			g_gpu_reg.bgp = data;
+			break;
+		case OBP0Address:
+			g_gpu_reg.obp0 = data;
+			break;
+		case OBP1Address:
+			g_gpu_reg.obp1 = data;
+			break;
+		case WYAddress:
+			g_gpu_reg.wy = data;
+			break;
+		case WXAddress:
+			g_gpu_reg.wx = data;
+			break;
+		case BGPIAddress:
+			g_gpu_reg.bgpi = data;
+			break;
+		case BGPDAddress:
+			g_gpu_reg.bgpd = data;
+			break;
+		case SPIAddress:
+			g_gpu_reg.spi = data;
+			break;
+		case SPDAddress:
+			g_gpu_reg.spd = data;
+			break;
+		default:
+			debug_assert(false, "_gpu_write_handler: invalid address");
+		}
+}
+
+static void _gpu_register_mem_handler(void)
+{
+	for (a16 addr = LCDCAddress; addr <= LYCAddress; addr++) {
+		mem_register_handlers(addr,
+				_gpu_read_handler, _gpu_write_handler);
+	}
+
+	for (a16 addr = BGPAddress; addr <= WXAddress; addr++) {
+		mem_register_handlers(addr,
+				_gpu_read_handler, _gpu_write_handler);
+	}
+
+	for (a16 addr = BGPIAddress; addr <= SPDAddress; addr++) {
+		mem_register_handlers(addr,
+				_gpu_read_handler, _gpu_write_handler);
+	}
+
+}
 
 void gpu_prepare(char * rom_title)
 {
+	_gpu_register_mem_handler();
+
 	_gpu_check_uninitialized_palettes();
 
 	_gpu_restart_boundaries();
 
 	display_prepare(1.0 / FRAME_RATE, rom_title);
+
+	g_gpu_reg.lcdc = 0x91;
+	g_gpu_reg.stat = 0x85;
 }
 
 void gpu_step(int cycles_delta)
 {
 	//Get LCD Controller (LCDC) Register
-	d8 lcdc = mem_read8(LCDCAddress);
+	u8 lcdc = g_gpu_reg.lcdc;
 
 	//Update STAT register
 	_gpu_update_lcd_status();
@@ -904,25 +1053,24 @@ void gpu_step(int cycles_delta)
 		//Reset our counter
 		g_current_clocks -= _CLOCKS_PER_SCANLINE;
 
-		//Increment the LY register
-		d8 ly = mem_read8(LYAddress);
-		ly++;
-		mem_write8(LYAddress, ly);
-
 		//Trigger the V-Blank interrupt if in V-Blank
 		//Reset LY when we reach the end
 		//Draw the current scanline if neither
-		if(ly == 144)
+		if(g_gpu_reg.ly == 144)
 			ints_request(INT_V_BLANK);
-		else if(ly > 153)
-			mem_write8(LYAddress, 0);
-		else
+		else if(g_gpu_reg.ly > 153)
+			g_gpu_reg.ly = 0;
+
+		if(g_gpu_reg.ly <= 144)
 			_gpu_draw_scanline();
+
+		//Increment the LY register
+		g_gpu_reg.ly++;
 	}
 }
 
 
 void gpu_destroy(void)
 {
-    display_destroy();
+	display_destroy();
 }

@@ -4,6 +4,8 @@
 #include<stdbool.h>
 #include<stdint.h>
 
+#define BV(reg, bit)  (((reg) & (1 << (bit))) >> (bit))
+
 // 8 bits
 typedef uint8_t u8;
 

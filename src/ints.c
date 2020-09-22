@@ -1,20 +1,16 @@
+#include<stdio.h>
 #include"cpu.h"
+#include"debug.h"
 #include"ints.h"
 #include"logger.h"
-#include"mem.h"
+#include"mem_priv.h"
 #include"regs.h"
-#include"stdio.h"
 #include"types.h"
 
 #define IFAddress 0xFF0F
 #define IEAddress 0xFFFF
-#define IFBase 0x00
-#define IEBase 0x1F
-
-#define readIF mem_read8(IFAddress)
-#define readIE mem_read8(IEAddress)
-#define writeIF(val) mem_write8(IFAddress, val)
-#define writeIE(val) mem_write8(IEAddress, val)
+#define IFBase 0xE1
+#define IEBase 0x00
 
 #define B0 0x01
 #define B1 0x02
@@ -45,9 +41,11 @@
 
 static bool g_ime;
 
-static d8 g_old_if = 0;
+static u8 g_if = 0;
+static u8 g_ie = 1;
+static u8 g_old_if = 0;
 
-static void _ints_undefined_int_info(d8 i_e, d8 i_f)
+static void _ints_undefined_int_info(u8 i_e, u8 i_f)
 {
 	char *message = logger_get_msg_buffer();
 	snprintf(
@@ -62,6 +60,35 @@ static void _ints_undefined_int_info(d8 i_e, d8 i_f)
 		"UNDEFINED INTERRUPT",
 		message
 	);
+}
+
+static u8 _ints_read_handler(a16 addr)
+{
+	switch(addr) {
+		case IFAddress:
+			return g_if;
+			break;
+		case IEAddress:
+			return g_ie;
+			break;
+	}
+
+	debug_assert(false, "_ints_read_handler: invalid address");
+	return 0;
+}
+
+static void _ints_write_handler(a16 addr, u8 data)
+{
+	switch(addr) {
+		case IFAddress:
+			g_if = data;
+			break;
+		case IEAddress:
+			g_ie = data;
+			break;
+		default:
+			debug_assert(false, "_ints_read_handler: invalid address");
+	}
 }
 
 
@@ -80,8 +107,13 @@ void ints_reset_ime(void)
 void ints_prepare(void)
 {
 	ints_set_ime();
-	writeIF(IFBase);
-	writeIE(IEBase);
+	g_if = IFBase;
+	g_ie = IEBase;
+
+	mem_register_handlers(IFAddress,
+			_ints_read_handler, _ints_write_handler);
+	mem_register_handlers(IEAddress,
+			_ints_read_handler, _ints_write_handler);
 }
 
 
@@ -89,87 +121,83 @@ void ints_check(void)
 {
 	// Resolve cpu halted/stopped state
 	// Doesn't require interrupts service to be enabled
-	if (g_old_if != readIF) {
+	if (g_old_if != g_if) {
 		cpu_set_halted(0);
 		cpu_set_stopped(0);
 	}
 
-	g_old_if = readIF;
+	g_old_if = g_if;
 
 	// Are interrupts enabled at all?
 	if (!g_ime)
 		return;
 
 	// Check which interrupts are enabled
-	d8 IF = readIF;
-	d8 IE = readIE;
-	IF &= IE;
-	if (!IF)
+	g_if &= g_ie;
+	if (!g_if)
 		return;
 	ints_reset_ime();
 
 	// Resolve interrupt
-	if (isF0(IF)) {
+	if (isF0(g_if)) {
 		cpu_call(0x0040);
 
 		// Clear interrupt register
-		writeIF(noF0(IF));
+		g_if = noF0(g_if);
 	}
-	else if (isF1(IF)) {
+	else if (isF1(g_if)) {
 		cpu_call(0x0048);
 
 		// Clear interrupt register
-		writeIF(noF1(IF));
+		g_if = noF1(g_if);
 	}
-	else if (isF2(IF)) {
+	else if (isF2(g_if)) {
 		cpu_call(0x0050);
 
 		// Clear interrupt register
-		writeIF(noF2(IF));
+		g_if = noF2(g_if);
 	}
-	else if (isF3(IF)) {
+	else if (isF3(g_if)) {
 		cpu_call(0x0058);
 
 		// Clear interrupt register
-		writeIF(noF3(IF));
+		g_if = noF3(g_if);
 	}
-	else if (isF4(IF)) {
+	else if (isF4(g_if)) {
 		cpu_call(0x0060);
 
 		// Clear interrupt register
-		writeIF(noF4(IF));
+		g_if = noF4(g_if);
 	}
 	else {
 		// Logging the problem
-		_ints_undefined_int_info(IE, IF);
+		_ints_undefined_int_info(g_ie, g_if);
 
 		// Clearing IE to default value in attempt of recovery
-		writeIE(IEBase);
+		g_ie = IEBase;
 	}
 }
 
 
 void ints_request(enum ints_interrupt_type interrupt)
 {
-	d8 IF = readIF;
 	switch(interrupt) {
 	case INT_V_BLANK:
-		IF |= B0;
+		g_if |= B0;
 		break;
 	case INT_LCDC:
-		IF |= B1;
+		g_if |= B1;
 		break;
 	case INT_TIMER_OVERFLOW:
-		IF |= B2;
+		g_if |= B2;
 		break;
 	case INT_SERIAL_IO_TRANSFER_COMPLETE:
-		IF |= B3;
+		g_if |= B3;
 		break;
 	case INT_HIGH_TO_LOW_P10_P13:
-		IF |= B4;
+		g_if |= B4;
 		break;
 	default:
 		break;
 	}
-	writeIF(IF);
 }
