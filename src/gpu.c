@@ -9,8 +9,6 @@
 #include"rom.h"
 #include"types.h"
 
-#include<unistd.h>
-
 #define _CLOCKS_PER_SCANLINE 456
 #define _MODE_2_BOUNDS       (_CLOCKS_PER_SCANLINE - 80)
 #define _MODE_3_BOUNDS       (_MODE_2_BOUNDS - 172)
