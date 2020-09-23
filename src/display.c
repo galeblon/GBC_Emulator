@@ -117,7 +117,7 @@ void display_draw_line(colour line[160], int index)
 			line[i].r,
 			line[i].g,
 			line[i].b,
-			255 //line[i].a ? 255 : 0
+			255 //TODO: Find why alpha get incorrect value line[i].a ? 255 : 0
 		);
 
 

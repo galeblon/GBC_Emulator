@@ -130,6 +130,7 @@ static a16       g_bg_window_tile_data_address     = 0;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
+//TODO: find why bg palette is not filled.
 static d8 background_palette_memory[64] = {0xFF, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static d8 sprite_palette_memory[64];
 
@@ -375,24 +376,6 @@ static void _gpu_get_colour_numbers(
 	{
 		current_index = !flip_x ? 7 - i : i;
 		dst[i] = (BV(line_upper, current_index) << 1) | BV(line_lower, current_index);
-		/*
-		if(current_index < 6) {
-			dst[i] = (
-				( ( line_upper & (B7 >> current_index) ) << (6 - current_index) )
-				| ( ( line_lower & (B7 >> current_index) ) << (7 - current_index) )
-			);
-		} else if(current_index < 7) {
-			dst[i] = (
-				( ( line_upper & (B7 >> current_index) ) >> (6 - current_index) )
-				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
-			);
-		} else {
-			dst[i] = (
-				( ( line_upper & (B7 >> current_index) ) << (current_index - 6) )
-				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
-			);
-		}
-		*/
 	}
 }
 
@@ -593,23 +576,24 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 	//Get proper tile from tile map
 	//u8 tile_map_number;
 	s16 tile_number;
+	d16 tile_map_number;
+	d8 tile_x, tile_y, x_pos, y_pos;
 	u8 tile_colour_numbers[8];
 	bg_attr tile_attr = {0};
 	for(u8 i = 0; i < 20; i++)
 	{
-		int tile_x_pixel = i*8 + scx;
-		int tile_y_pixel = (ly + scy)%256;
-		int tile_x = tile_x_pixel/8;
-		int tile_y = tile_y_pixel/8;
-		int bg_idx = tile_x + tile_y*32;
+		x_pos = (i * 8 + scx) % 256;
+		y_pos = (ly + scy) % 256;
+		tile_x = x_pos / 8;
+		tile_y = y_pos / 8;
 
 		//What's our tile map number (index)
-		//tile_map_number = tile_map_tile_x + tile_map_tile_y * 32;
+		tile_map_number = tile_x + tile_y * 32;
 
 		//Get tile number and attributes, if able
 		_gpu_get_tile_number_attr(
 			g_bg_tile_map_display_address,
-			bg_idx, //tile_map_number,
+			tile_map_number,
 			g_bg_window_tile_data_address,
 			&tile_number,
 			&tile_attr
@@ -619,7 +603,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 		_gpu_get_colour_numbers(
 			g_bg_window_tile_data_address,
 			tile_number,
-			(rom_is_cgb() && tile_attr.flipped_y) ? 7 - (tile_y_pixel % 8) : tile_y_pixel % 8,
+			(rom_is_cgb() && tile_attr.flipped_y) ? 7 - (y_pos % 8) : y_pos % 8,
 			rom_is_cgb() ? tile_attr.vram_bank_number : 255,
 			tile_attr.flipped_x,
 			tile_colour_numbers
@@ -996,7 +980,6 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			break;
 		case BGPDAddress:
 			gpu_write_bgpd(data);
-			//g_gpu_reg.bgpd = data;
 			break;
 		case SPIAddress:
 			gpu_write_spi(data);
@@ -1004,7 +987,6 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			break;
 		case SPDAddress:
 			gpu_write_spd(data);
-			//g_gpu_reg.spd = data;
 			break;
 		default:
 			debug_assert(false, "_gpu_write_handler: invalid address");
