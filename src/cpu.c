@@ -864,7 +864,7 @@ static int _cpu_ld_sp_hl(void)
 static int _cpu_ld_hl_sp_add_d8(void)
 {
 	g_registers.PC += 1;
-	d8 index = mem_read8(g_registers.PC);
+	s8 index = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
 	d16 result = g_registers.SP + index;
 	g_registers.FLAGS.Z = 0;
@@ -2094,7 +2094,7 @@ static int _cpu_or_a(void)
 static int _cpu_or_d8(void)
 {
 	g_registers.PC += 1;
-	g_registers.A = g_registers.A & mem_read8(g_registers.PC);
+	g_registers.A = g_registers.A | mem_read8(g_registers.PC);
 	g_registers.PC += 1;
 	g_registers.FLAGS.Z = g_registers.A == 0;
 	g_registers.FLAGS.N = 0;

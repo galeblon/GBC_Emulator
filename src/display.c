@@ -117,14 +117,14 @@ void display_draw_line(colour line[160], int index)
 			line[i].r,
 			line[i].g,
 			line[i].b,
-			line[i].a ? 255 : 0
+			line[i].a ? 0 : 255
 		);
 
 
 		al_draw_filled_rectangle(
-			i       * SCALING_FACTOR,
+			i               * SCALING_FACTOR,
 			index           * SCALING_FACTOR,
-			(i + 1) * SCALING_FACTOR,
+			(i + 1)         * SCALING_FACTOR,
 			(index + 1)     * SCALING_FACTOR,
 			current_colour
 		);

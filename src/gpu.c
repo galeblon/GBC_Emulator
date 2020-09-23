@@ -35,10 +35,6 @@
 #define SPIAddress  0xFF6A 	/* Sprite Palette Index */
 #define SPDAddress  0xFF6B 	/* Sprite Palette Data */
 
-//TODO: Find proper values
-#define SPMAddress  0x0 /* CGB Sprite Color Palette Memory */
-#define BGPMAddress 0x0 /* CGB Background Color Palette Memory */
-
 #define spriteScreenPosX(SpriteX) (SpriteX-8)
 #define spriteScreenPosY(SpriteY) (SpriteY-16)
 
@@ -130,6 +126,11 @@ static a16       g_bg_window_tile_data_address     = 0;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
+//TODO: find why bg palette is not filled.
+static d8 background_palette_memory[64] = {0xFF, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static d8 sprite_palette_memory[64];
+
+
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
 {
 	char *full_message = logger_get_msg_buffer();
@@ -147,12 +148,40 @@ static void _gpu_error(enum logger_log_type type, char *title, char *message)
 }
 
 
+static d16 _gpu_read_spm(u8 index)
+{
+	d16 spm_colour;
+	spm_colour = ((sprite_palette_memory[index+1]) << 8) | (sprite_palette_memory[index]);
+	return spm_colour;
+}
+
+
+static void _gpu_write_spm(u8 index, d8 spd)
+{
+	sprite_palette_memory[index] = spd;
+}
+
+
+static d16 _gpu_read_bgpm(u8 index)
+{
+	d16 bgpm_colour;
+	bgpm_colour = ((background_palette_memory[index+1]) << 8) | (background_palette_memory[index]);
+	return bgpm_colour;
+}
+
+
+static void _gpu_write_bgpm(u8 index, d8 spd)
+{
+	background_palette_memory[index] = spd;
+}
+
+
 static colour _gpu_get_colour_cgb_sprite(u8 colour_number, u8 palette_number)
 {
 	//Setup
 	colour found_colour;
 	found_colour.a = (colour_number == 0) ? true : false;
-	d16 obp = mem_read16(SPMAddress + palette_number * 8 + colour_number * 2);
+	d16 obp = _gpu_read_spm(palette_number * 8 + colour_number * 2);
 
 	//Acquire colour value
 	found_colour.r = obp & (B4 | B3 | B2 | B1 | B0);
@@ -173,7 +202,7 @@ static colour _gpu_get_colour_cgb(u8 colour_number, u8 palette_number)
 	//Setup
 	colour found_colour;
 	found_colour.a = false;
-	d16 bgp = mem_read16(BGPMAddress + palette_number * 8 + colour_number * 2);
+	d16 bgp = _gpu_read_bgpm(palette_number * 8 + colour_number * 2);
 
 	//Acquire colour value
 	found_colour.r = bgp & (B4 | B3 | B2 | B1 | B0);
@@ -323,7 +352,7 @@ static void _gpu_get_colour_numbers(
 {
 	//Get line
 	d8  line_upper, line_lower;
-	a16 first_addr = base_address + tile_number * 2 + ((line_index * 2) % 8 );
+	a16 first_addr = base_address + tile_number * 2 * 8 + line_index * 2;
 	if(vram_bank_number == 255) {
 		line_lower = mem_read8(first_addr);
 		line_upper = mem_read8(first_addr + 1);
@@ -341,23 +370,8 @@ static void _gpu_get_colour_numbers(
 	u8 current_index;
 	for(u8 i = 0; i < 8; i++)
 	{
-		current_index = flip_x ? 7 - i : i;
-		if(current_index < 6) {
-			dst[i] = (
-				( ( line_upper & (B7 >> current_index) ) << (6 - current_index) )
-				| ( ( line_lower & (B7 >> current_index) ) << (7 - current_index) )
-			);
-		} else if(current_index < 7) {
-			dst[i] = (
-				( ( line_upper & (B7 >> current_index) ) >> (6 - current_index) )
-				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
-			);
-		} else {
-			dst[i] = (
-				( ( line_upper & (B7 >> current_index) ) << (current_index - 6) )
-				| ( ( line_lower & (B7 >> current_index) ) << (current_index - 7) )
-			);
-		}
+		current_index = !flip_x ? 7 - i : i;
+		dst[i] = (BV(line_upper, current_index) << 1) | BV(line_lower, current_index);
 	}
 }
 
@@ -459,7 +473,7 @@ static void _gpu_put_sprites(
 
 static void _gpu_get_tile_number_attr(
 	a16 map_address,
-	u8 tile_map_number,
+	u16 tile_map_number,
 	a16 data_address,
 	s16* tile_number,
 	bg_attr* tile_attr
@@ -472,7 +486,7 @@ static void _gpu_get_tile_number_attr(
 	if(rom_is_cgb()) {
 		u_tile_number = (u8) mem_vram_read8(0, map_address + tile_map_number);
 		s_tile_number = (s8) u_tile_number;
-		*tile_number   = (s16) ((data_address == 0x9000) ? s_tile_number : u_tile_number);
+		*tile_number  = (s16) ((data_address == 0x9000) ? s_tile_number : u_tile_number);
 
 		tile_attr_byte = mem_vram_read8(1, map_address + tile_map_number);
 		tile_attr->bgp_number            =  tile_attr_byte & (B2 | B1 | B0);
@@ -489,11 +503,11 @@ static void _gpu_get_tile_number_attr(
 static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
 	//Get data
-	u8  ly = g_gpu_reg.ly;
-	u8  wy = g_gpu_reg.wy;
-	s16 wx = g_gpu_reg.wx - 7;
-	s16 tile_map_y = ly - wy;
-	u8  tile_map_x = (wx < 0) ? 7 : wx;
+	u8  ly              = g_gpu_reg.ly;
+	u8  wy              = g_gpu_reg.wy;
+	s16 wx              = g_gpu_reg.wx - 7;
+	s16 tile_map_y      = ly - wy;
+	u8  tile_map_x      = (wx < 0) ? 7 : wx;
 	u8  tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
 	u8  tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
 
@@ -503,19 +517,19 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 	}
 
 	//Get proper tile from tile map
-	u8  tile_map_number;
+	s16 tile_map_index;
 	s16 tile_number;
 	u8  tile_colour_numbers[8];
 	bg_attr tile_attr = {0};
 	for(u8 i = 0; i < 20; i++)
 	{
 		//What's our tile map number (index)
-		tile_map_number = tile_map_tile_x + tile_map_tile_y * 32;
+		tile_map_index = tile_map_tile_x + i + tile_map_tile_y * 32;
 
 		//Get tile number and attributes, if able
 		_gpu_get_tile_number_attr(
 			g_window_tile_map_display_address,
-			tile_map_number,
+			tile_map_index,
 			g_bg_window_tile_data_address,
 			&tile_number,
 			&tile_attr
@@ -551,28 +565,28 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
 {
 	//Get data
-	u8 ly  = g_gpu_reg.ly;
-	u8 scy = g_gpu_reg.scy;
-	u8 scx = g_gpu_reg.scx;
-	u8 tile_map_y = (scy + ly) % 256;
-	u8 tile_map_x = scx;
-	u8 tile_map_tile_y = (tile_map_y - tile_map_y % 8) / 8;
-	u8 tile_map_tile_x = (tile_map_x - tile_map_x % 8) / 8;
+	u8 ly              = g_gpu_reg.ly;
+	u8 scy             = g_gpu_reg.scy;
+	u8 scx             = g_gpu_reg.scx;
+	u8 tile_map_y      = (scy + ly) % 256;
+	u8 tile_map_x      = scx;
+	u8 tile_map_tile_y = tile_map_y / 8;
+	u8 tile_map_tile_x = tile_map_x / 8;
 
 	//Get proper tile from tile map
-	u8 tile_map_number;
+	s16 tile_map_index;
 	s16 tile_number;
-	u8 tile_colour_numbers[8];
+	u8  tile_colour_numbers[8];
 	bg_attr tile_attr = {0};
 	for(u8 i = 0; i < 20; i++)
 	{
-		//What's our tile map number (index)
-		tile_map_number = tile_map_tile_x + tile_map_tile_y * 32;
+		//What's our tile map index
+		tile_map_index = tile_map_tile_x + i + tile_map_tile_y * 32;
 
 		//Get tile number and attributes, if able
 		_gpu_get_tile_number_attr(
 			g_bg_tile_map_display_address,
-			tile_map_number,
+			tile_map_index,
 			g_bg_window_tile_data_address,
 			&tile_number,
 			&tile_attr
@@ -635,18 +649,18 @@ static void _gpu_draw_scanline(void)
 
 		//Check if the screen is not fully white
 		if(!rom_is_cgb() && !isLCDC0(lcdc)) {
-			_gpu_put_background(line, bg_colour_is_0, bg_bit_7);
-
-			//Draw window if enabled
-			if(isLCDC5(lcdc)) {
-				_gpu_put_window(line, bg_colour_is_0, bg_bit_7);
-			}
-		} else {
 			for(u8 i = 0; i < 160; i++)
 			{
 				line[i]           = g_gb_white;
 				bg_colour_is_0[i] = true;
 				bg_bit_7[i]       = false;
+			}
+		} else {
+			_gpu_put_background(line, bg_colour_is_0, bg_bit_7);
+
+			//Draw window if enabled
+			if(isLCDC5(lcdc)) {
+				_gpu_put_window(line, bg_colour_is_0, bg_bit_7);
 			}
 		}
 
@@ -746,19 +760,19 @@ static void _gpu_check_uninitialized_palettes(void)
 }
 
 
-u8 gpu_read_bgpi(void)
+static u8 _gpu_read_bgpi(void)
 {
 	return g_gpu_reg.bgpi;
 }
 
 
-void gpu_write_bgpi(u8 new_bgpi)
+static void _gpu_write_bgpi(u8 new_bgpi)
 {
 	g_gpu_reg.bgpi = new_bgpi;
 }
 
 
-u8 gpu_read_bgpd(void)
+static u8 _gpu_read_bgpd(void)
 {
 	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
@@ -776,7 +790,7 @@ u8 gpu_read_bgpd(void)
 }
 
 
-void gpu_write_bgpd(u8 new_bgpd)
+static void _gpu_write_bgpd(u8 new_bgpd)
 {
 	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
@@ -785,15 +799,15 @@ void gpu_write_bgpd(u8 new_bgpd)
 		g_gpu_reg.bgpd = new_bgpd;
 
 		//Update BGP
-		u8 bgpi = gpu_read_bgpi();
-		mem_write8(BGPMAddress + (bgpi & 0x1F), new_bgpd);
+		u8 bgpi = _gpu_read_bgpi();
+		_gpu_write_bgpm((bgpi & 0x1F), new_bgpd);
 
 		//Increment BGPI if required
 		if((bgpi & B7) == B7) {
 			d8 new_bgpi = bgpi;
 			new_bgpi++;
 			new_bgpi &= !B6;
-			gpu_write_bgpi(new_bgpi);
+			_gpu_write_bgpi(new_bgpi);
 		}
 	} else {
 		_gpu_error(
@@ -805,19 +819,19 @@ void gpu_write_bgpd(u8 new_bgpd)
 }
 
 
-u8 gpu_read_spi(void)
+static u8 _gpu_read_spi(void)
 {
 	return g_gpu_reg.spi;
 }
 
 
-void gpu_write_spi(u8 new_spi)
+static void _gpu_write_spi(u8 new_spi)
 {
 	g_gpu_reg.spi = new_spi;
 }
 
 
-u8 gpu_read_spd(void)
+static u8 _gpu_read_spd(void)
 {
 	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
@@ -835,7 +849,7 @@ u8 gpu_read_spd(void)
 }
 
 
-void gpu_write_spd(u8 new_spd)
+static void _gpu_write_spd(u8 new_spd)
 {
 	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
@@ -844,15 +858,15 @@ void gpu_write_spd(u8 new_spd)
 		g_gpu_reg.spd = new_spd;
 
 		//Update SP
-		u8 spi = gpu_read_spi();
-		mem_write8(SPMAddress + (spi & 0x1F), new_spd);
+		u8 spi = _gpu_read_spi();
+		_gpu_write_spm((spi & 0x1F), new_spd);
 
 		//Increment BGPI if required
 		if((spi & B7) == B7) {
 			u8 new_spi = spi;
 			new_spi++;
 			new_spi &= !B6;
-			gpu_write_spi(new_spi);
+			_gpu_write_spi(new_spi);
 		}
 	} else {
 		_gpu_error(
@@ -900,16 +914,16 @@ static u8 _gpu_read_handler(a16 addr)
 			return g_gpu_reg.wx;
 			break;
 		case BGPIAddress:
-			return g_gpu_reg.bgpi;
+			return _gpu_read_bgpi();
 			break;
 		case BGPDAddress:
-			return g_gpu_reg.bgpd;
+			return _gpu_read_bgpd();
 			break;
 		case SPIAddress:
-			return g_gpu_reg.spi;
+			return _gpu_read_spi();
 			break;
 		case SPDAddress:
-			return g_gpu_reg.spd;
+			return _gpu_read_spd();
 			break;
 	}
 
@@ -927,19 +941,19 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			g_gpu_reg.stat = data;
 			break;
 		case SCYAddress:
-			g_gpu_reg.scy = data;
+			g_gpu_reg.scy  = data;
 			break;
 		case SCXAddress:
-			g_gpu_reg.scx = data;
+			g_gpu_reg.scx  = data;
 			break;
 		case LYAddress:
-			g_gpu_reg.ly = data;
+			g_gpu_reg.ly   = data;
 			break;
 		case LYCAddress:
-			g_gpu_reg.lyc = data;
+			g_gpu_reg.lyc  = data;
 			break;
 		case BGPAddress:
-			g_gpu_reg.bgp = data;
+			g_gpu_reg.bgp  = data;
 			break;
 		case OBP0Address:
 			g_gpu_reg.obp0 = data;
@@ -948,22 +962,24 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			g_gpu_reg.obp1 = data;
 			break;
 		case WYAddress:
-			g_gpu_reg.wy = data;
+			g_gpu_reg.wy   = data;
 			break;
 		case WXAddress:
-			g_gpu_reg.wx = data;
+			g_gpu_reg.wx   = data;
 			break;
 		case BGPIAddress:
-			g_gpu_reg.bgpi = data;
+			_gpu_write_bgpi(data);
+			g_gpu_reg.bgpd = _gpu_read_bgpd();
 			break;
 		case BGPDAddress:
-			g_gpu_reg.bgpd = data;
+			_gpu_write_bgpd(data);
 			break;
 		case SPIAddress:
-			g_gpu_reg.spi = data;
+			_gpu_write_spi(data);
+			g_gpu_reg.spd = _gpu_read_spd();
 			break;
 		case SPDAddress:
-			g_gpu_reg.spd = data;
+			_gpu_write_spd(data);
 			break;
 		default:
 			debug_assert(false, "_gpu_write_handler: invalid address");
