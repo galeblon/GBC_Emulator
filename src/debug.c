@@ -516,7 +516,7 @@ static struct instruction_info instruction_infos[256] = {
 		{1, "PUSH\tAF"},
 		{2, "OR\t0x%02X"},
 		{1, "RST\t0x30"},
-		{2, "LD\tHL, SP + %d"},
+		{2, "LD\tHL, SP + 0x%02X"},
 		{1, "LD\tSP, HL"},
 		{3, "LD\tA, (0x%04X)"},
 		{1, "EI"},
