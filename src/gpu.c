@@ -126,6 +126,7 @@ static a16       g_bg_window_tile_data_address     = 0;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
+//TODO: find why bg palette is not filled.
 static d8 background_palette_memory[64] = {0xFF, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static d8 sprite_palette_memory[64];
 
@@ -968,12 +969,14 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			break;
 		case BGPIAddress:
 			_gpu_write_bgpi(data);
+			g_gpu_reg.bgpd = _gpu_read_bgpd();
 			break;
 		case BGPDAddress:
 			_gpu_write_bgpd(data);
 			break;
 		case SPIAddress:
 			_gpu_write_spi(data);
+			g_gpu_reg.spd = _gpu_read_spd();
 			break;
 		case SPDAddress:
 			_gpu_write_spd(data);

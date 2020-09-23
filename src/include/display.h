@@ -3,7 +3,7 @@
 
 #include"types.h"
 
-#define SCALING_FACTOR 2
+#define SCALING_FACTOR 1
 
 
 typedef struct colour {

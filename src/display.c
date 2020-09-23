@@ -117,7 +117,7 @@ void display_draw_line(colour line[160], int index)
 			line[i].r,
 			line[i].g,
 			line[i].b,
-			!line[i].a ? 255 : 0
+			line[i].a ? 0 : 255
 		);
 
 
