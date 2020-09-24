@@ -905,7 +905,8 @@ static int _cpu_pop_hl(void)
 static int _cpu_pop_af(void)
 {
 	g_registers.PC += 1;
-	g_registers.F = mem_read8(g_registers.SP);
+	// Flag register 4 lower bits are always 0
+	g_registers.F = mem_read8(g_registers.SP) & 0xF0;
 	g_registers.A = mem_read8(g_registers.SP + 1);
 	g_registers.SP += 2;
 	return 12;
