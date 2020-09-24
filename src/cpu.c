@@ -11,7 +11,7 @@
 #define _CPU_IS_CARRY(a, b) ((((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100)
 
 #define _CPU_IS_HALF_CARRY16(a, b) ((((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000) == 0x1000)
-#define _CPU_IS_CARRY16(a, b) ((((a & 0xFFFF) + (b & 0xFFFF)) & 0x10000) == 0x10000)
+#define _CPU_IS_CARRY16(a, b) (((((int)a & 0xFFFF) + ((int)b & 0xFFFF)) & 0x10000) == 0x10000)
 
 #define _CPU_IS_HALF_CARRY_C(a, b, carry) ((((a & 0x0F) + (b & 0x0F) + carry) & 0x10) == 0x10)
 #define _CPU_IS_CARRY_C(a, b, carry) ((((a & 0xFF) + (b & 0xFF) + carry) & 0x100) == 0x100)
@@ -869,8 +869,8 @@ static int _cpu_ld_hl_sp_add_d8(void)
 	d16 result = g_registers.SP + index;
 	g_registers.FLAGS.Z = 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(g_registers.SP, index);
-	g_registers.FLAGS.C = _CPU_IS_CARRY(g_registers.SP, index);
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(g_registers.SP, (d8)index);
+	g_registers.FLAGS.C = _CPU_IS_CARRY(g_registers.SP, (d8)index);
 	g_registers.HL = result;
 	return 12;
 }
@@ -2592,9 +2592,10 @@ static int _cpu_add_sp_r8(void)
 	r8 right = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
 	g_registers.SP = left + right;
+	g_registers.FLAGS.Z = 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
-	g_registers.FLAGS.C = _CPU_IS_CARRY(left, right);
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, (d8)right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY(left, (d8)right);
 	return 16;
 }
 
