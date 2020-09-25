@@ -161,7 +161,7 @@ static u8 _mem_read_cart_mem(a16 addr)
 		case MBC1:
 		case MBC2:
 		case MBC3:
-			if (addr < 0x4000) {
+			if (addr < 0x4000 || header->num_rom_banks == 1) {
 				return _mem_read_bank(g_rom[0], addr - BASE_ADDR_CART_MEM);
 			} else if (addr < 0x8000) {
 				return _mem_read_bank(g_rom[g_rom_bank], addr - BASE_ADDR_CART_MEM - header->rom_bank_size);

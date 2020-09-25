@@ -11,12 +11,12 @@
 #define _CPU_IS_CARRY(a, b) ((((a & 0xFF) + (b & 0xFF)) & 0x100) == 0x100)
 
 #define _CPU_IS_HALF_CARRY16(a, b) ((((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000) == 0x1000)
-#define _CPU_IS_CARRY16(a, b) ((((a & 0xFFFF) + (b & 0xFFFF)) & 0x10000) == 0x10000)
+#define _CPU_IS_CARRY16(a, b) (((((int)a & 0xFFFF) + ((int)b & 0xFFFF)) & 0x10000) == 0x10000)
 
 #define _CPU_IS_HALF_CARRY_C(a, b, carry) ((((a & 0x0F) + (b & 0x0F) + carry) & 0x10) == 0x10)
 #define _CPU_IS_CARRY_C(a, b, carry) ((((a & 0xFF) + (b & 0xFF) + carry) & 0x100) == 0x100)
 
-#define _CPU_IS_HALF_BORROW(a, b) (((a & 0x0F) - (b & 0x0F)) < 0)
+#define _CPU_IS_HALF_BORROW(a, b) (((a & 0x0F) < (b & 0x0F)))
 #define _CPU_IS_BORROW(a, b) (a < b)
 
 #define _CPU_IS_HALF_BORROW_C(a, b, carry) (((a & 0x0F) - (b & 0x0F) - carry) < 0)
@@ -869,8 +869,8 @@ static int _cpu_ld_hl_sp_add_d8(void)
 	d16 result = g_registers.SP + index;
 	g_registers.FLAGS.Z = 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(g_registers.SP, index);
-	g_registers.FLAGS.C = _CPU_IS_CARRY(g_registers.SP, index);
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(g_registers.SP, (d8)index);
+	g_registers.FLAGS.C = _CPU_IS_CARRY(g_registers.SP, (d8)index);
 	g_registers.HL = result;
 	return 12;
 }
@@ -905,7 +905,8 @@ static int _cpu_pop_hl(void)
 static int _cpu_pop_af(void)
 {
 	g_registers.PC += 1;
-	g_registers.F = mem_read8(g_registers.SP);
+	// Flag register 4 lower bits are always 0
+	g_registers.F = mem_read8(g_registers.SP) & 0xF0;
 	g_registers.A = mem_read8(g_registers.SP + 1);
 	g_registers.SP += 2;
 	return 12;
@@ -2112,7 +2113,7 @@ static int _cpu_cp_b(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.B;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2124,7 +2125,7 @@ static int _cpu_cp_c(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.C;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2136,7 +2137,7 @@ static int _cpu_cp_d(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.D;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2148,7 +2149,7 @@ static int _cpu_cp_e(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.E;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2160,7 +2161,7 @@ static int _cpu_cp_h(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.H;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2172,7 +2173,7 @@ static int _cpu_cp_l(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.L;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2184,7 +2185,7 @@ static int _cpu_cp_imm_hl(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = mem_read8(g_registers.HL);
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2196,7 +2197,7 @@ static int _cpu_cp_a(void)
 	g_registers.PC += 1;
 	d8 left = g_registers.A;
 	d8 right = g_registers.A;
-	g_registers.FLAGS.Z = (left - right) == 0;
+	g_registers.FLAGS.Z = left == right;
 	g_registers.FLAGS.N = 1;
 	g_registers.FLAGS.H = _CPU_IS_HALF_BORROW(left, right);
 	g_registers.FLAGS.C = _CPU_IS_BORROW(left, right);
@@ -2227,7 +2228,7 @@ static int _cpu_inc_b(void)
 	g_registers.B = left + right;
 	g_registers.FLAGS.Z = g_registers.B == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2239,7 +2240,7 @@ static int _cpu_inc_c(void)
 	g_registers.C = left + right;
 	g_registers.FLAGS.Z = g_registers.C == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2251,7 +2252,7 @@ static int _cpu_inc_d(void)
 	g_registers.D = left + right;
 	g_registers.FLAGS.Z = g_registers.D == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2263,7 +2264,7 @@ static int _cpu_inc_e(void)
 	g_registers.E = left + right;
 	g_registers.FLAGS.Z = g_registers.E == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2275,7 +2276,7 @@ static int _cpu_inc_h(void)
 	g_registers.H = left + right;
 	g_registers.FLAGS.Z = g_registers.H == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2287,7 +2288,7 @@ static int _cpu_inc_l(void)
 	g_registers.L = left + right;
 	g_registers.FLAGS.Z = g_registers.L == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2300,7 +2301,7 @@ static int _cpu_inc_imm_hl(void)
 	mem_write8(g_registers.HL, temp);
 	g_registers.FLAGS.Z = temp == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 12;
 }
 
@@ -2312,7 +2313,7 @@ static int _cpu_inc_a(void)
 	g_registers.A = left + right;
 	g_registers.FLAGS.Z = g_registers.A == 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
+	g_registers.FLAGS.H = (left & 0x0F) == 0x0F;
 	return 4;
 }
 
@@ -2522,7 +2523,7 @@ static int _cpu_ccf(void)
 	g_registers.PC += 1;
 	g_registers.FLAGS.N = 0;
 	g_registers.FLAGS.H = 0;
-	g_registers.FLAGS.C = ~g_registers.FLAGS.C;
+	g_registers.FLAGS.C = g_registers.FLAGS.C ? 0 : 1;
 	return 4;
 }
 
@@ -2530,6 +2531,8 @@ static int _cpu_cpl(void)
 {
 	g_registers.PC += 1;
 	g_registers.A = ~g_registers.A;
+	g_registers.FLAGS.N = 1;
+	g_registers.FLAGS.H = 1;
 	return 4;
 }
 
@@ -2591,9 +2594,10 @@ static int _cpu_add_sp_r8(void)
 	r8 right = mem_read8(g_registers.PC);
 	g_registers.PC += 1;
 	g_registers.SP = left + right;
+	g_registers.FLAGS.Z = 0;
 	g_registers.FLAGS.N = 0;
-	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, right);
-	g_registers.FLAGS.C = _CPU_IS_CARRY(left, right);
+	g_registers.FLAGS.H = _CPU_IS_HALF_CARRY(left, (d8)right);
+	g_registers.FLAGS.C = _CPU_IS_CARRY(left, (d8)right);
 	return 16;
 }
 
