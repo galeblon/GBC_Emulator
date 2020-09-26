@@ -1407,6 +1407,8 @@ static void _gpu_put_sprites(
 				|| bg_colour_is_0[current_index]
 				|| ( !bg_colour_is_0[current_index] && sprites[i].has_priority_over_bg_1_3 )
 			) {
+				if(current_index >= 160)
+					break;
 				line[current_index] = _gpu_get_colour(
 					colour_numbers[i][j],
 					rom_is_cgb() ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
