@@ -437,7 +437,7 @@ static void _gpu_put_sprites(
 
 		//Get single sprite colour numbers
 		_gpu_get_colour_numbers(
-			OAMAddress,
+			g_bg_window_tile_data_address,	//TODO check if this is always true,
 			tile_number,
 			line_index,
 			rom_is_cgb() ? sprites[i].vram_bank_number : 255,
