@@ -188,7 +188,6 @@ static int _cpu_ld_imm_c_a(void)
 {
 	g_registers.PC += 1;
 	a16 address = (a16)g_registers.C + 0xFF00;
-	//g_registers.PC += 1;
 	mem_write8(address, g_registers.A);
 	return 8;
 }
@@ -249,7 +248,6 @@ static int _cpu_ld_a_imm_c(void)
 {
 	g_registers.PC += 1;
 	a16 address = (a16)g_registers.C + 0xFF00;
-	//g_registers.PC += 1;
 	g_registers.A = mem_read8(address);
 	return 8;
 }
