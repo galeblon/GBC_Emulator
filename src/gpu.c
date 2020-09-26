@@ -173,11 +173,6 @@ typedef struct palette_config {
 } palette_config;
 
 
-static colour const g_gb_black      = {0, 0, 0, false};
-static colour const g_gb_dark_gray  = {85, 85, 85, false};
-static colour const g_gb_light_gray = {170, 170, 170, false};
-static colour const g_gb_white      = {255, 255, 255, false};
-
 static struct {
 	u8 lcdc;
 	u8 stat;
@@ -208,14 +203,14 @@ static a16       g_bg_tile_map_display_address     = 0;
 //TODO: find why bg palette is not filled.
 static d8 background_palette_memory[64] = {0xFF, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static d8 sprite_palette_memory[64];
-static palette_config g_current_palette_config = {
+static palette_config g_current_palette_configuration = {
 		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff },
 		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff },
 		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff }
 };
 
 
-static palette_config const palette_configurations[6][29] = {
+static palette_config const g_palette_configurations[6][29] = {
 	{
 		{
 			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
@@ -951,7 +946,6 @@ static palette_config const palette_configurations[6][29] = {
 			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
 		}
 	},
-	//
 	{
 		{
 			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
@@ -1201,6 +1195,7 @@ static colour _gpu_get_colour_gb_sprite(u8 colour_number, u8 palette_number)
 		break;
 	case 1:
 		obp = g_gpu_reg.obp1;
+		break;
 	}
 
 	//Acquire colour value
@@ -1208,18 +1203,12 @@ static colour _gpu_get_colour_gb_sprite(u8 colour_number, u8 palette_number)
 	obp &= (B0 | B1);
 
 	//Translate colour value to a colour variable
-	switch(obp) {
+	switch(palette_number) {
 	case 0:
-		found_colour = g_gb_white;
+		found_colour = g_current_palette_configuration.obj0_palette[obp];
 		break;
 	case 1:
-		found_colour = g_gb_light_gray;
-		break;
-	case 2:
-		found_colour = g_gb_dark_gray;
-		break;
-	case 3:
-		found_colour = g_gb_black;
+		found_colour = g_current_palette_configuration.obj1_palette[obp];
 		break;
 	}
 
@@ -1239,20 +1228,7 @@ static colour _gpu_get_colour_gb(u8 colour_number)
 	bgp &= (B0 | B1);
 
 	//Translate colour value to a colour variable
-	switch(bgp) {
-	case 0:
-		found_colour = g_gb_white;
-		break;
-	case 1:
-		found_colour = g_gb_light_gray;
-		break;
-	case 2:
-		found_colour = g_gb_dark_gray;
-		break;
-	case 3:
-		found_colour = g_gb_black;
-		break;
-	}
+	found_colour = g_current_palette_configuration.bg_palette[bgp];
 
 	return found_colour;
 }
@@ -1622,7 +1598,7 @@ static void _gpu_draw_scanline(void)
 		if(!rom_is_cgb() && !isLCDC0(lcdc)) {
 			for(u8 i = 0; i < 160; i++)
 			{
-				line[i]           = g_gb_white;
+				line[i]           = (colour)g_cgb_ffffff;
 				bg_colour_is_0[i] = true;
 				bg_bit_7[i]       = false;
 			}
@@ -1728,6 +1704,368 @@ static void _gpu_check_uninitialized_palettes(void)
 {
 	if (rom_get_header()->cgb_mode != NON_CGB_UNINITIALIZED_PALETTES)
 		g_gpu_reg.bgp = BGPDefault;
+}
+
+
+static u8 _gpu_compute_hash(char * title_buffer)
+{
+	//The 8-bit sum of the title, which is only upper-case ASCII and spaces
+	u8 hash = 0;
+
+	//Title length is annoying - it can be between 11 and 15 characters
+	for(int i=0; i<11; i++)
+		hash += title_buffer[i];
+
+	for(int i=11; i<15; i++)
+	{
+		if(title_buffer[i] == 0)
+			break;
+		if(
+			title_buffer[i] == ' '
+			|| (title_buffer[i]>='A' || title_buffer[i]<='Z')
+		)
+			hash += title_buffer[i];
+	}
+
+	return hash;
+}
+
+
+static void _gpu_check_assigned_palette_configurations(void)
+{
+	if(!rom_is_licensee()) {
+		g_current_palette_configuration = g_palette_configurations[3][28];
+		return;
+	}
+
+	char title[16];
+	rom_get_title(title);
+
+	switch(_gpu_compute_hash(title) ) {
+	case 0x71:
+	case 0xFF:
+		g_current_palette_configuration = g_palette_configurations[0][0x06];
+		break;
+	case 0x15:
+	case 0xDB:
+		g_current_palette_configuration = g_palette_configurations[0][0x07];
+		break;
+	case 0x88:
+		g_current_palette_configuration = g_palette_configurations[0][0x08];
+		break;
+	case 0x0C:
+	case 0x16:
+	case 0x35:
+	case 0x67:
+	case 0x75:
+	case 0x92:
+	case 0x99:
+	case 0xB7:
+		g_current_palette_configuration = g_palette_configurations[0][0x12];
+		break;
+	case 0x28:
+		switch(title[3]) {
+		case 0x41:
+			g_current_palette_configuration = g_palette_configurations[0][0x13];
+			break;
+		case 0x46:
+			g_current_palette_configuration = g_palette_configurations[3][0x0E];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xA5:
+		switch(title[3]) {
+		case 0x41:
+			g_current_palette_configuration = g_palette_configurations[0][0x13];
+			break;
+		case 0x52:
+			g_current_palette_configuration = g_palette_configurations[3][0x12];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xE8:
+		g_current_palette_configuration = g_palette_configurations[0][0x08];
+		break;
+	case 0x58:
+		g_current_palette_configuration = g_palette_configurations[0][0x16];
+		break;
+	case 0x6F:
+		g_current_palette_configuration = g_palette_configurations[0][0x1B];
+		break;
+
+	case 0x8C:
+		g_current_palette_configuration = g_palette_configurations[1][0x00];
+		break;
+	case 0x61:
+		switch(title[3]) {
+		case 0x41:
+			g_current_palette_configuration = g_palette_configurations[5][0x0E];
+			break;
+		case 0x45:
+			g_current_palette_configuration = g_palette_configurations[1][0x0B];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xD3:
+		switch(title[3]) {
+		case 0x49:
+			g_current_palette_configuration = g_palette_configurations[5][0x15];
+			break;
+		case 0x52:
+			g_current_palette_configuration = g_palette_configurations[1][0x0D];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0x14:
+		g_current_palette_configuration = g_palette_configurations[1][0x10];
+		break;
+	case 0xAA:
+		g_current_palette_configuration = g_palette_configurations[1][0x1C];
+		break;
+
+	case 0x3C:
+		g_current_palette_configuration = g_palette_configurations[2][0x0B];
+		break;
+	case 0x9C:
+		g_current_palette_configuration = g_palette_configurations[2][0x0C];
+		break;
+
+	case 0xB3:
+		switch(title[3]) {
+		case 0x42:
+			g_current_palette_configuration = g_palette_configurations[5][0x08];
+			break;
+		case 0x52:
+			g_current_palette_configuration = g_palette_configurations[4][0x05];
+			break;
+		case 0x55:
+			g_current_palette_configuration = g_palette_configurations[3][0x00];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0x66:
+		switch(title[3]) {
+		case 0x45:
+			g_current_palette_configuration = g_palette_configurations[3][0x04];
+			break;
+		case 0x4C:
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xF4:
+		switch(title[3]) {
+		case 0x20:
+			g_current_palette_configuration = g_palette_configurations[3][0x04];
+			break;
+		case 0x2D:
+			g_current_palette_configuration = g_palette_configurations[5][0x1C];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0x34:
+		g_current_palette_configuration = g_palette_configurations[3][0x04];
+		break;
+	case 0x6A:
+		switch(title[3]) {
+		case 0x49:
+			g_current_palette_configuration = g_palette_configurations[3][0x05];
+			break;
+		case 0x4B:
+			g_current_palette_configuration = g_palette_configurations[5][0x0C];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0x3D:
+		g_current_palette_configuration = g_palette_configurations[3][0x05];
+		break;
+	case 0x19:
+		g_current_palette_configuration = g_palette_configurations[3][0x06];
+		break;
+	case 0x1D:
+		g_current_palette_configuration = g_palette_configurations[3][0x08];
+		break;
+	case 0x46:
+		switch(title[3]) {
+		case 0x45:
+			g_current_palette_configuration = g_palette_configurations[3][0x0A];
+			break;
+		case 0x52:
+			g_current_palette_configuration = g_palette_configurations[5][0x14];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0x0D:
+		switch(title[3]) {
+		case 0x45:
+			g_current_palette_configuration = g_palette_configurations[3][0x0C];
+			break;
+		case 0x52:
+			g_current_palette_configuration = g_palette_configurations[4][0x07];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xBF:
+		switch(title[3]) {
+		case 0x20:
+			g_current_palette_configuration = g_palette_configurations[3][0x0D];
+			break;
+		case 0x43:
+			g_current_palette_configuration = g_palette_configurations[5][0x02];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0x4B:
+	case 0x90:
+	case 0x9A:
+	case 0xBD:
+		g_current_palette_configuration = g_palette_configurations[3][0x0E];
+		break;
+	case 0x39:
+	case 0x43:
+	case 0x97:
+		g_current_palette_configuration = g_palette_configurations[3][0x0F];
+		break;
+	case 0x18:
+		switch(title[3]) {
+		case 0x49:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		case 0x4B:
+			g_current_palette_configuration = g_palette_configurations[5][0x0C];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xC6:
+		switch(title[3]) {
+		case 0x20:
+			g_current_palette_configuration = g_palette_configurations[3][0x0E];
+			break;
+		case 0x41:
+			g_current_palette_configuration = g_palette_configurations[5][0x00];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+
+	case 0x95:
+		g_current_palette_configuration = g_palette_configurations[4][0x0F];
+		break;
+	case 0x3E:
+	case 0xE0:
+		g_current_palette_configuration = g_palette_configurations[4][0x06];
+		break;
+	case 0x69:
+	case 0xF2:
+		g_current_palette_configuration = g_palette_configurations[4][0x07];
+		break;
+
+	case 0x59:
+		g_current_palette_configuration = g_palette_configurations[5][0x00];
+		break;
+	case 0x86:
+	case 0xA8:
+		g_current_palette_configuration = g_palette_configurations[5][0x01];
+		break;
+	case 0xCE:
+	case 0xD1:
+	case 0xF0:
+		g_current_palette_configuration = g_palette_configurations[5][0x02];
+		break;
+	case 0x36:
+		g_current_palette_configuration = g_palette_configurations[5][0x03];
+		break;
+	case 0x49:
+	case 0x5C:
+		g_current_palette_configuration = g_palette_configurations[5][0x08];
+		break;
+	case 0x27:
+		switch(title[3]) {
+		case 0x42:
+			g_current_palette_configuration = g_palette_configurations[5][0x08];
+			break;
+		case 0x4E:
+			g_current_palette_configuration = g_palette_configurations[5][0x0E];
+			break;
+		default:
+			g_current_palette_configuration = g_palette_configurations[3][0x1C];
+			break;
+		}
+		break;
+	case 0xC9:
+		g_current_palette_configuration = g_palette_configurations[5][0x09];
+		break;
+	case 0x4E:
+		g_current_palette_configuration = g_palette_configurations[5][0x0B];
+		break;
+	case 0x6B:
+		g_current_palette_configuration = g_palette_configurations[5][0x0C];
+		break;
+	case 0x9D:
+		g_current_palette_configuration = g_palette_configurations[5][0x0D];
+		break;
+	case 0x17:
+	case 0x8B:
+		g_current_palette_configuration = g_palette_configurations[5][0x0E];
+		break;
+	case 0x01:
+	case 0x10:
+	case 0x29:
+	case 0x52:
+	case 0x5D:
+	case 0x68:
+	case 0x6D:
+	case 0xF6:
+		g_current_palette_configuration = g_palette_configurations[5][0x0F];
+		break;
+	case 0x70:
+		g_current_palette_configuration = g_palette_configurations[5][0x11];
+		break;
+	case 0xA2:
+	case 0xF7:
+		g_current_palette_configuration = g_palette_configurations[5][0x12];
+		break;
+
+	default:
+		g_current_palette_configuration = g_palette_configurations[3][0x1C];
+		break;
+	}
 }
 
 
@@ -1981,6 +2319,8 @@ void gpu_prepare(char * rom_title)
 	_gpu_register_mem_handler();
 
 	_gpu_check_uninitialized_palettes();
+
+	_gpu_check_assigned_palette_configurations();
 
 	_gpu_restart_boundaries();
 
