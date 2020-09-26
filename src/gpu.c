@@ -1017,6 +1017,10 @@ void gpu_prepare(char * rom_title)
 
 	g_gpu_reg.lcdc = 0x91;
 	g_gpu_reg.stat = 0x85;
+
+	g_gpu_reg.obp0 = BGPDefault;
+	g_gpu_reg.obp1 = BGPDefault;
+	g_gpu_reg.bgp = BGPDefault;
 }
 
 void gpu_step(int cycles_delta)
