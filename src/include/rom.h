@@ -52,7 +52,8 @@ struct rom_header {
 	int ram_bank_size;
 };
 
-int rom_checksum_validate(void);
+int  rom_checksum_validate(void);
+bool rom_is_licensee(void);
 void rom_get_title(char * title_buffer);
 void rom_print_title(void);
 void rom_parse_header(u8 *rom0);
