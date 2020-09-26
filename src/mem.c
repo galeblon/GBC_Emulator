@@ -546,8 +546,8 @@ static inline void _mem_io_ports_write_handler(a16 addr, u8 data)
 		case 0xFF46:
 			// DMA: OAM DMA transfer address
 			if (data <= 0xF1) {
-				g_dma_src = BASE_ADDR_SPRITE_ATTR;
-				g_dma_dst = (a16)data << 8;
+				g_dma_dst = BASE_ADDR_SPRITE_ATTR;
+				g_dma_src = (a16)data << 8;
 				_mem_dma_start(SIZE_SPRITE_ATTR);
 				_mem_dma(SIZE_SPRITE_ATTR);
 				g_dma_lock = 160;

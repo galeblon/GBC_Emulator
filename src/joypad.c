@@ -26,12 +26,12 @@ static u8 _joypad_read_handler(a16 addr __attribute__((unused)))
 		return 0x3F;
 
 	struct joypad_register_bits bits = {
-		.RIGHT_A    = (g_joypad_mode == MODE_BUTTON) ? g_all_inputs.A      : g_all_inputs.RIGHT,
-		.LEFT_B     = (g_joypad_mode == MODE_BUTTON) ? g_all_inputs.B      : g_all_inputs.LEFT,
-		.DOWN_START = (g_joypad_mode == MODE_BUTTON) ? g_all_inputs.START  : g_all_inputs.DOWN,
-		.UP_SELECT  = (g_joypad_mode == MODE_BUTTON) ? g_all_inputs.SELECT : g_all_inputs.UP,
-		.SELECT_DIRECTIONS = (g_joypad_mode == MODE_DIRECTIONAL),
-		.SELECT_BUTTONS = (g_joypad_mode == MODE_BUTTON)
+		.RIGHT_A    = !((g_joypad_mode == MODE_BUTTON) ? g_all_inputs.A      : g_all_inputs.RIGHT),
+		.LEFT_B     = !((g_joypad_mode == MODE_BUTTON) ? g_all_inputs.B      : g_all_inputs.LEFT),
+		.DOWN_START = !((g_joypad_mode == MODE_BUTTON) ? g_all_inputs.START  : g_all_inputs.DOWN),
+		.UP_SELECT  = !((g_joypad_mode == MODE_BUTTON) ? g_all_inputs.SELECT : g_all_inputs.UP),
+		.SELECT_DIRECTIONS = !((g_joypad_mode == MODE_DIRECTIONAL)),
+		.SELECT_BUTTONS = !((g_joypad_mode == MODE_BUTTON))
 	};
 
 	struct joypad_register reg;
