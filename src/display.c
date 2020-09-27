@@ -110,7 +110,7 @@ void display_prepare(float frequency, char * rom_title)
 
 void display_draw_line(colour line[160], int index)
 {
-	debug_assert(index <= 144, "display_draw_line: index out of bounds");
+	debug_assert(index < 144, "display_draw_line: index out of bounds");
 
 	al_set_target_bitmap(g_bitmap);
 	ALLEGRO_LOCKED_REGION *lr = al_lock_bitmap_region(
@@ -140,7 +140,7 @@ void display_draw_line(colour line[160], int index)
 	}
 	al_unlock_bitmap(g_bitmap);
 
-	if(index == 144) {
+	if(index == 143) {
 		al_set_target_backbuffer(g_display);
 		al_draw_bitmap(g_bitmap, 0, 0, 0);
 		al_flip_display();
