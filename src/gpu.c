@@ -197,6 +197,7 @@ static u16       g_mode_2_boundary                 = 0;
 static u16       g_mode_3_boundary                 = 0;
 static a16       g_window_tile_map_display_address = 0;
 static a16       g_bg_window_tile_data_address     = 0;
+static a16		 g_sprite_tile_data_address		   = 0x8000;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
@@ -1290,7 +1291,7 @@ static sprite _gpu_get_sprite(u8 number)
 //vram_bank_number is 255-nullable
 static void _gpu_get_colour_numbers(
 	a16 base_address,
-	u8 tile_number,
+	s16 tile_number,
 	u8 line_index,
 	u8 vram_bank_number,
 	bool flip_x,
@@ -1384,7 +1385,7 @@ static void _gpu_put_sprites(
 
 		//Get single sprite colour numbers
 		_gpu_get_colour_numbers(
-			g_bg_window_tile_data_address,	//TODO check if this is always true,
+			g_sprite_tile_data_address,	//TODO check if this is always true,
 			tile_number,
 			line_index,
 			rom_is_cgb() ? sprites[i].vram_bank_number : 255,
@@ -1432,19 +1433,17 @@ static void _gpu_get_tile_number_attr(
 	s8  s_tile_number;
 	d8 tile_attr_byte;
 
-	if(rom_is_cgb()) {
-		u_tile_number = (u8) mem_vram_read8(0, map_address + tile_map_number);
-		s_tile_number = (s8) u_tile_number;
-		*tile_number  = (s16) ((data_address == 0x9000) ? s_tile_number : u_tile_number);
+	u_tile_number = (u8) mem_vram_read8(0, map_address + tile_map_number);
+	s_tile_number = (s8) u_tile_number;
+	*tile_number  = (s16) ((data_address == 0x9000) ? s_tile_number : u_tile_number);
 
+	if(rom_is_cgb()) {
 		tile_attr_byte = mem_vram_read8(1, map_address + tile_map_number);
 		tile_attr->bgp_number            =  tile_attr_byte & (B2 | B1 | B0);
 		tile_attr->vram_bank_number      = (tile_attr_byte & (B3)) >> 3;
 		tile_attr->flipped_x             = (tile_attr_byte & (B5)) == B5;
 		tile_attr->flipped_y             = (tile_attr_byte & (B6)) == B6;
 		tile_attr->has_priority_over_oam = (tile_attr_byte & (B7)) == B7;
-	} else {
-		*tile_number   = (s16) mem_read8(map_address + tile_map_number);
 	}
 }
 
@@ -1530,7 +1529,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 	for(u8 i = 0; i < 20; i++)
 	{
 		//What's our tile map index
-		tile_map_index = tile_map_tile_x + i + tile_map_tile_y * 32;
+		tile_map_index = (tile_map_tile_x + i)%256 + tile_map_tile_y * 32;
 
 		//Get tile number and attributes, if able
 		_gpu_get_tile_number_attr(
