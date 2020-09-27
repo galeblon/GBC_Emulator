@@ -197,7 +197,7 @@ static u16       g_mode_2_boundary                 = 0;
 static u16       g_mode_3_boundary                 = 0;
 static a16       g_window_tile_map_display_address = 0;
 static a16       g_bg_window_tile_data_address     = 0;
-static a16		 g_sprite_tile_data_address		   = 0x8000;
+static const a16 g_sprite_tile_data_address        = 0x8000;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
@@ -1414,8 +1414,7 @@ static void _gpu_put_sprites(
 				colour col = _gpu_get_colour(
 						colour_numbers[i][j],
 						rom_is_cgb() ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
-						SPRITE
-					);
+						SPRITE);
 				if(!col.a)
 					line[current_index] = col;
 			}
