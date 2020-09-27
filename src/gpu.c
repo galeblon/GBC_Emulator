@@ -1500,7 +1500,7 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 		u8 current_index;
 		for(u8 j = 0; j < 8; j++)
 		{
-			current_index = (wx + i * 8 + j);
+			current_index = (wx + i * 8 + j) % 160;
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
 			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
 			line[current_index] = _gpu_get_colour(
@@ -1532,7 +1532,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 	for(u8 i = 0; i < 20; i++)
 	{
 		//What's our tile map index
-		tile_map_index = (tile_map_tile_x + i)%256 + tile_map_tile_y * 32;
+		tile_map_index = (tile_map_tile_x + i) + tile_map_tile_y * 32;
 
 		//Get tile number and attributes, if able
 		_gpu_get_tile_number_attr(
@@ -1557,7 +1557,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 		u8 current_index;
 		for(u8 j = 0; j < 8; j++)
 		{
-			current_index = (scx + i * 8 + j) % 160;
+			current_index = (i * 8 + j) % 160;
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
 			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
 			line[current_index] = _gpu_get_colour(
