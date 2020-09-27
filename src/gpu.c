@@ -1188,7 +1188,6 @@ static colour _gpu_get_colour_gb_sprite(u8 colour_number, u8 palette_number)
 {
 	//Setup
 	colour found_colour;
-	found_colour.a = (colour_number == 0) ? true : false;;
 	u8 obp = 0;
 	switch(palette_number) {
 	case 0:
@@ -1213,6 +1212,7 @@ static colour _gpu_get_colour_gb_sprite(u8 colour_number, u8 palette_number)
 		break;
 	}
 
+	found_colour.a = (colour_number == 0) ? true : false;
 	return found_colour;
 }
 
@@ -1364,17 +1364,17 @@ static void _gpu_put_sprites(
 
 	//Get colour numbers
 	u8 colour_numbers[10][8];
-	d8 tile_number;
+	//d8 tile_number;
 	d8 line_index;
 	for(u8 i = 0; i < sprite_index; i++)
 	{
 		//Check which line we are getting
 		line_index = sprites[i].flipped_y
 				? g_sprite_height - 1 - (ly - sprites[i].y)
-				: (ly - sprites[i].y)
-		;
+				: (ly - sprites[i].y);
 
 		//Get tile address
+		/* TODO this part is incorrect please, look into it:
 		if(g_sprite_height == 16)
 			if(line_index > 8)
 				tile_number = sprites[i].tile_number | B0;
@@ -1382,11 +1382,12 @@ static void _gpu_put_sprites(
 				tile_number = sprites[i].tile_number & !B0;
 		else
 			tile_number = sprites[i].tile_number;
+		*/
 
 		//Get single sprite colour numbers
 		_gpu_get_colour_numbers(
-			g_sprite_tile_data_address,	//TODO check if this is always true,
-			tile_number,
+			g_sprite_tile_data_address,
+			sprites[i].tile_number,
 			line_index,
 			rom_is_cgb() ? sprites[i].vram_bank_number : 255,
 			sprites[i].flipped_x,
@@ -1410,11 +1411,13 @@ static void _gpu_put_sprites(
 			) {
 				if(current_index >= 160)
 					break;
-				line[current_index] = _gpu_get_colour(
-					colour_numbers[i][j],
-					rom_is_cgb() ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
-					SPRITE
-				);
+				colour col = _gpu_get_colour(
+						colour_numbers[i][j],
+						rom_is_cgb() ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
+						SPRITE
+					);
+				if(!col.a)
+					line[current_index] = col;
 			}
 		}
 	}
