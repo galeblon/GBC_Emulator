@@ -1528,10 +1528,12 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 	s16 tile_number;
 	u8  tile_colour_numbers[8];
 	bg_attr tile_attr = {0};
-	for(u8 i = 0; i < 20; i++)
+	// 21 because we have to account for x scrolling
+	u8 current_index = 0;
+	for(u8 i = 0; i < 21; i++)
 	{
 		//What's our tile map index
-		tile_map_index = (tile_map_tile_x + i) + tile_map_tile_y * 32;
+		tile_map_index = (tile_map_tile_x + i)%32 + tile_map_tile_y * 32;
 
 		//Get tile number and attributes, if able
 		_gpu_get_tile_number_attr(
@@ -1553,10 +1555,13 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 		);
 
 		//Set colours on the line
-		u8 current_index;
-		for(u8 j = 0; j < 8; j++)
+		u8 offset;
+		u8 j = 0;
+		offset = i == 0 ? scx % 8 : 0;
+		for(j = offset; j < 8; j++)
 		{
-			current_index = (i * 8 + j) % 160;
+			if(current_index >= 160)
+				break;
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
 			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
 			line[current_index] = _gpu_get_colour(
@@ -1564,6 +1569,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 				rom_is_cgb() ? tile_attr.bgp_number : 0,
 				BACKGROUND
 			);
+			current_index++;
 		}
 	}
 }
@@ -2361,7 +2367,7 @@ void gpu_step(int cycles_delta)
 		else if(g_gpu_reg.ly > 153)
 			g_gpu_reg.ly = 0;
 
-		if(g_gpu_reg.ly <= 144)
+		if(g_gpu_reg.ly < 144)
 			_gpu_draw_scanline();
 
 		//Increment the LY register
