@@ -1,10 +1,10 @@
 #include<allegro5/allegro5.h>
-#include<allegro5/allegro_primitives.h>
 #include"cpu.h"
 #include"debug.h"
 #include"display.h"
 #include"logger.h"
 
+static ALLEGRO_BITMAP      *g_bitmap            = NULL;
 static ALLEGRO_DISPLAY     *g_display           = NULL;
 static ALLEGRO_TIMER       *g_timer             = NULL;
 static ALLEGRO_EVENT_QUEUE *g_close_event_queue = NULL;
@@ -39,15 +39,6 @@ void display_prepare(float frequency, char * rom_title)
 		return;
 	}
 
-	if(!al_init_primitives_addon()) {
-		_display_error(
-			LOG_FATAL,
-			"ALLEGRO INIT PRIMITIVES ADDON",
-			"FAILED TO INITIALISE ALLEGRO PRIMITIVES ADDON."
-		);
-		return;
-	}
-
 	g_timer = al_create_timer(frequency);
 	if (!g_timer) {
 		_display_error(
@@ -64,6 +55,17 @@ void display_prepare(float frequency, char * rom_title)
 			LOG_FATAL,
 			"ALLEGRO DISPLAY",
 			"FAILED TO INITIALISE DISPLAY."
+		);
+    	return;
+	}
+
+	al_set_new_bitmap_format(ALLEGRO_PIXEL_FORMAT_ABGR_8888);
+	g_bitmap = al_create_bitmap( 160 * SCALING_FACTOR, 144 * SCALING_FACTOR );
+	if(!g_bitmap) {
+		_display_error(
+			LOG_FATAL,
+			"ALLEGRO DISPLAY",
+			"FAILED TO INITIALISE BITMAP."
 		);
     	return;
 	}
@@ -110,29 +112,39 @@ void display_draw_line(colour line[160], int index)
 {
 	debug_assert(index <= 144, "display_draw_line: index out of bounds");
 
-	ALLEGRO_COLOR current_colour;
-	for(int i=0; i<160; i++)
+	al_set_target_bitmap(g_bitmap);
+	ALLEGRO_LOCKED_REGION *lr = al_lock_bitmap_region(
+		g_bitmap,
+		0,
+		index*SCALING_FACTOR,
+		160*SCALING_FACTOR,
+		SCALING_FACTOR,
+		ALLEGRO_PIXEL_FORMAT_ANY,
+		ALLEGRO_LOCK_WRITEONLY
+	);
+	u8 * ptr;
+
+	for(int y=0; y<SCALING_FACTOR; y++)
 	{
-		current_colour = al_map_rgba(
-			line[i].r,
-			line[i].g,
-			line[i].b,
-			line[i].a ? 0 : 255
-		);
-
-
-		al_draw_filled_rectangle(
-			i               * SCALING_FACTOR,
-			index           * SCALING_FACTOR,
-			(i + 1)         * SCALING_FACTOR,
-			(index + 1)     * SCALING_FACTOR,
-			current_colour
-		);
-
+		ptr = (u8*) lr->data + y * lr->pitch;
+		for(int i=0; i<160; i++)
+		{
+			for(int j=0; j<SCALING_FACTOR; j++)
+			{
+				*ptr++ = line[i].r;
+				*ptr++ = line[i].g;
+				*ptr++ = line[i].b;
+				*ptr++ = (line[i].a) ? 0 : 255;
+			}
+		}
 	}
+	al_unlock_bitmap(g_bitmap);
 
-	if(index == 144)
+	if(index == 144) {
+		al_set_target_backbuffer(g_display);
+		al_draw_bitmap(g_bitmap, 0, 0, 0);
 		al_flip_display();
+	}
 }
 
 

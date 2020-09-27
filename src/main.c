@@ -13,6 +13,13 @@
 
 int main(int argc, char *argv[])
 {
+
+#ifdef DEBUG
+	//Buffered output is faster
+	char buffer[16384];
+	setvbuf(stdout, buffer, _IOFBF, sizeof(buffer));
+#endif
+
 	if (argc < 2) {
 		printf("ROM file not specified.\n");
 		return 1;
@@ -58,6 +65,11 @@ int main(int argc, char *argv[])
 
 	gpu_destroy();
 	mem_destroy();
+
+#ifdef DEBUG
+	//If we buffer, we don't want to lose anything
+	fflush(stdout);
+#endif
 
 	return 0;
 }
