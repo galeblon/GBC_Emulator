@@ -1275,7 +1275,7 @@ static sprite _gpu_get_sprite(u8 number)
 	current_sprite.palette_number_gb =        (bit_data & B4) >> 4;
 	current_sprite.flipped_x =                (bit_data & B5) == B5;
 	current_sprite.flipped_y =                (bit_data & B6) == B6;
-	current_sprite.has_priority_over_bg_1_3 = (bit_data & B7) == B7;
+	current_sprite.has_priority_over_bg_1_3 = (bit_data & B7) == 0;
 
 	return current_sprite;
 }
@@ -1398,9 +1398,12 @@ static void _gpu_put_sprites(
 			current_index = sprites[i].x + j;
 			if(
 				always_prioritised
-				|| !bg_bit_7[current_index]
 				|| bg_colour_is_0[current_index]
-				|| ( !bg_colour_is_0[current_index] && sprites[i].has_priority_over_bg_1_3 )
+				|| (
+					!bg_bit_7[current_index]
+					&& !bg_colour_is_0[current_index]
+					&& sprites[i].has_priority_over_bg_1_3
+				)
 			) {
 				if(current_index >= 160)
 					break;
