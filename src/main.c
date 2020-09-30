@@ -17,6 +17,8 @@ int main(int argc, char *argv[])
 	if (argc < 2) {
 		logger_print(LOG_FATAL, "ROM file not specified.\n");
 		return 1;
+		//if (!mem_prepare("./SML2_UE.gb"))
+		//	return 1;
 	}
 
 	if (!mem_prepare(argv[1]))

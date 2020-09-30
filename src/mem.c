@@ -740,11 +740,18 @@ static inline u8 _mem_u16_higher(u16 data)
 
 static struct mem_block *_mem_get_block(a16 addr)
 {
-	for (int i = 0; i < NUM_MEM_BLOCKS; i++) {
-		if (addr >= g_mem_blocks[i].base_addr
-			&& addr < g_mem_blocks[i].base_addr + g_mem_blocks[i].size)
-			return &g_mem_blocks[i];
+	int left = 0, right = NUM_MEM_BLOCKS - 1, middle;
+	while(left<=right)
+	{
+		middle = left + ((right-left) / 2);
+		if(addr < g_mem_blocks[middle].base_addr)
+			right = middle-1;
+		else if(addr >= g_mem_blocks[middle].base_addr + g_mem_blocks[middle].size)
+			left = middle+1;
+		else
+			return &g_mem_blocks[middle];
 	}
+
 	return NULL;
 }
 
