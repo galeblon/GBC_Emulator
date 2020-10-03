@@ -10,16 +10,23 @@
 #include"rom.h"
 #include"timer.h"
 #include"types.h"
+#include"sys.h"
+
+static struct sys_args g_args;
 
 int main(int argc, char *argv[])
 {
-	logger_prepare();
-	if (argc < 2) {
-		logger_print(LOG_FATAL, "ROM file not specified.\n");
-		return 1;
-	}
+	char *save_path = NULL;
 
-	if (!mem_prepare(argv[1]))
+	logger_prepare();
+
+	if (!sys_parse_args(argc, argv, &g_args))
+		return 1;
+
+	if (g_args.save_path[0] != '\0')
+		save_path = g_args.save_path;
+
+	if (!mem_prepare(g_args.rom_path, save_path))
 		return 1;
 
 	logger_print(LOG_INFO, "Loaded ROM contents to memory.\n");
@@ -58,7 +65,7 @@ int main(int argc, char *argv[])
 	logger_print(LOG_INFO, "Halting emulation.\n");
 
 	gpu_destroy();
-	mem_destroy();
+	mem_destroy(save_path);
 	logger_destroy();
 
 	return 0;

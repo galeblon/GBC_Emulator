@@ -843,7 +843,7 @@ void mem_write16(a16 addr, u16 data)
 	block_2->write(addr + 1, _mem_u16_higher(data));
 }
 
-int _mem_load_rom(char *path)
+int _mem_load_rom(const char *path)
 {
 	long rom_len;
 	u8 rom0[0x4000];
@@ -889,9 +889,94 @@ int _mem_load_rom(char *path)
 	return 1;
 }
 
-int mem_prepare(char *rom_path)
+static int _mem_save_ram(const char *save_path)
 {
-	int rc;
+	FILE *file = fopen(save_path, "wb+");
+
+	if(file == NULL) {
+		_mem_fatal("Couldn't open save file");
+		return 0;
+	}
+
+	const struct rom_header *header = rom_get_header();
+
+	for (int i = 0; i < header->num_ram_banks; i++) {
+		debug_assert(g_ram[i].mem != NULL,
+				"mem_destroy: null RAM Bank memory");
+		fwrite(g_ram[i].mem, g_ram[i].size, 1, file);
+	}
+
+	if (header->mbc == MBC3) {
+		struct mem_rtc_save rtc = mem_rtc_get_save();
+		fwrite(&rtc, sizeof(rtc), 1, file);
+	}
+
+	fclose(file);
+	return 1;
+}
+
+static int _mem_load_ram(const char *save_path)
+{
+	long file_len;
+	struct mem_rtc_save rtc;
+	FILE *file = fopen(save_path, "rb");
+	const struct rom_header *header = rom_get_header();
+
+	if(file == NULL) {
+		logger_print(LOG_INFO, "Save file does not exist, skipping save load");
+		if (header->mbc == MBC3)
+			mem_rtc_prepare(NULL);
+		return 1;
+	}
+
+	fseek(file, 0, SEEK_END);
+	file_len = ftell(file);
+	rewind(file);
+
+	int expected_len = header->num_ram_banks * header->ram_bank_size;
+
+	if (header->mbc == MBC3)
+		expected_len += sizeof(struct mem_rtc_save);
+
+	if (file_len != expected_len) {
+		_mem_fatal("Save file size is incorrect for this cartridge type");
+		fclose(file);
+		return 0;
+	}
+
+	for (int i = 0; i < header->num_ram_banks; i++) {
+		debug_assert(g_ram[i].mem != NULL,
+				"mem_destroy: null RAM Bank memory");
+		fread(g_ram[i].mem, g_ram[i].size, 1, file);
+	}
+
+	if (header->mbc == MBC3)
+		fread(&rtc, sizeof(struct mem_rtc_save), 1, file);
+
+	fclose(file);
+
+	mem_rtc_prepare(&rtc);
+
+	return 1;
+}
+
+/**
+ * Initialize memory module:
+ *	- parse cartridge header into rom_header
+ *	- allocate memory for ROM and RAM
+ *	- load ROM contents from ROM file
+ *	- optionally load RAM content from save file
+ *
+ *	@param  rom_path    path to file containing ROM data to load
+ *	@param	save_path   path to file containing saved RAM data to load. If NULL
+ *	                    is passed, then RAM is ininitialized to 0
+ *
+ *	@return	1 if everything succeeded, 0 if an error occurred during module
+ *          initialization
+ */
+int mem_prepare(const char *rom_path, const char *save_path)
+{
+	int rc = 1;
 
 	rc = _mem_load_rom(rom_path);
 
@@ -923,14 +1008,30 @@ int mem_prepare(char *rom_path)
 		g_wram[1].size = SIZE_WRAM;
 	}
 
-	if (header->mbc == MBC3)
-		mem_rtc_prepare();
+	if (save_path) {
+		rc = _mem_load_ram(save_path);
+		if (rc != 1) {
+			mem_destroy(NULL);
+			return rc;
+		}
+	} else if (header->mbc == MBC3) {
+		mem_rtc_prepare(NULL);
+	}
 
 	return 1;
 }
 
-void mem_destroy(void)
+/**
+ * Safely terminate the module and optionally save RAM contents to given path.
+ *
+ * @param   save_path   path to file to dump RAM to. If NULL is passed, RAM is
+ *                      not saved.
+ */
+void mem_destroy(const char *save_path)
 {
+	if (save_path)
+		_mem_save_ram(save_path);
+
 	const struct rom_header *header = rom_get_header();
 
 	for (int i = 0; i < header->num_rom_banks; i++) {
