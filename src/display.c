@@ -39,12 +39,14 @@ static const char * g_fragment_source =
 	"uniform int  scale;\n"
 	"void main() {\n"
 	"	vec4 colour;\n"
-	"	uint pixel_n = gl_FragCoord.x/scale;\n"
-	"	colour.r = line[pixel_n].r/255.0;\n"
-	"	colour.g = line[pixel_n].g/255.0;\n"
-	"	colour.b = line[pixel_n].b/255.0;\n"
-	"	colour.a = line[pixel_n].a/255.0;\n"
-	"	gl_FragColor = color;\n"
+	"	int pixel_n;"
+	"   pixel_n = int(gl_FragCoord.x)/scale;\n"
+	"	colour.x = float(line[pixel_n].x)/255.0;\n"
+	"	colour.y = float(line[pixel_n].y)/255.0;\n"
+	"	colour.z = float(line[pixel_n].z)/255.0;\n"
+	"	colour.w = float(line[pixel_n].w)/255.0;\n"
+//	"	gl_FragColor = colour;\n"
+	"   gl_FragColor = vec4(0.7, 0.2, 0.0, 0.5);"
 	"}\n"
 ;
 
@@ -265,15 +267,22 @@ void display_draw_line(colour line[160], int index)
 #ifdef OPENGL
 	al_set_shader_int("scale", SCALING_FACTOR);
 	int vec4[4] = {0};
+	char buf[10];
 	for(int i=0; i<160; i++) {
 		vec4[0] = line[i].r;
 		vec4[1] = line[i].g;
 		vec4[2] = line[i].b;
-		vec4[4] = (line[i].a) ? 0 : 255;
+		vec4[3] = (line[i].a) ? 0 : 255;
+		sprintf(buf, "line[%d]", i);
+		_display_error(
+						LOG_FATAL,
+						"ALLEGRO SHADER",
+						buf
+					);
 		if(!al_set_shader_int_vector(
-				"line",
+				buf,
 				4,
-				&vec4[0],
+				(int*)vec4,
 				1
 		)) {
 			_display_error(
