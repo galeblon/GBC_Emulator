@@ -14,7 +14,8 @@ static ALLEGRO_EVENT       g_event;
 
 static void _display_error(enum logger_log_type type, char *title, char *message)
 {
-	logger_log(
+	logger_store(
+		VERBOSE,
 		type,
 		title,
 		"[DISPLAY MODULE] %s\n",

@@ -3,7 +3,15 @@
 
 #include"types.h"
 
-#define LOG_MESSAGE_MAX_SIZE 250
+#define LOG_BUFFER_SIZE       64
+#define LOG_TITLE_MAX_SIZE    64
+#define LOG_MESSAGE_MAX_SIZE 256
+#define LOG_TOTAL_MAX_SIZE   LOG_TITLE_MAX_SIZE + LOG_MESSAGE_MAX_SIZE
+
+enum logger_verbosity {
+	CONCISE,
+	VERBOSE
+};
 
 enum logger_log_type {
 	LOG_INFO,
@@ -19,8 +27,9 @@ enum logger_log_type {
  * Title and message are optional
  * they are skipped if you pass NULL to them.
  */
-void logger_log(enum logger_log_type type, char *title, const char *fmt, ...);
-void logger_print(enum logger_log_type type, const char *fmt, ...);
+void logger_store(enum logger_verbosity verbosity, enum logger_log_type type, char *title, const char *fmt, ...);
+void* logger_pop(void* args);
+
 void logger_prepare(void);
 void logger_destroy(void);
 

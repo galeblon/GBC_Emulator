@@ -8,7 +8,8 @@ static ALLEGRO_EVENT g_event;
 
 static void _input_error(const char *feature)
 {
-	logger_log(LOG_FATAL,
+	logger_store(VERBOSE,
+		LOG_FATAL,
 		"INPUT MODULE",
 		"%s failure.\n",
 		feature);

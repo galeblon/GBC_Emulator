@@ -34,6 +34,6 @@ bool cpu_get_stopped();
 void cpu_set_stopped(bool val);
 
 // For debugging purposes
-void cpu_register_print(enum logger_log_type log);
+struct cpu_registers cpu_register_get();
 
 #endif /* CPU_H_ */

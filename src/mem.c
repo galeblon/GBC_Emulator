@@ -99,14 +99,15 @@ static struct mem_bank g_vram[NUM_VRAM_BANKS] = {0};
 
 static void _mem_not_implemented(const char *feature)
 {
-	logger_log(LOG_WARN,
+	logger_store(VERBOSE,
+		LOG_WARN,
 		"MEM: NOT IMPLEMENTED",
 		"%s NOT IMPLEMENTED\n",
 		feature);
 }
 
 static inline void _mem_fatal(char *msg) {
-	logger_log(LOG_FATAL, "MEM: ERROR", msg);
+	logger_store(VERBOSE, LOG_FATAL, "MEM: ERROR", msg);
 }
 
 static u8 _mem_read_bank(struct mem_bank bank, a16 addr)
@@ -751,7 +752,7 @@ static struct mem_block *_mem_get_block(a16 addr)
 static u8 _mem_read_error(a16 addr)
 {
 	// TODO #15: determine proper way to handle error
-	logger_log(LOG_WARN, "MEM: READ ERROR",
+	logger_store(VERBOSE, LOG_WARN, "MEM: READ ERROR",
 		"MEMORY READ ERROR AT ADDRESS 0x%04X\n", addr);
 	return 0;
 }
@@ -759,7 +760,7 @@ static u8 _mem_read_error(a16 addr)
 static void _mem_write8_error(a16 addr, u8 data)
 {
 	// TODO #15: determine proper way to handle error
-	logger_log(LOG_WARN, "MEM: WRITE8 ERROR",
+	logger_store(VERBOSE, LOG_WARN, "MEM: WRITE8 ERROR",
 		"MEMORY U8 WRITE ERROR AT ADDRESS 0x%04X\n, DATA: 0x%02X",
 		addr, data);
 }
@@ -767,7 +768,7 @@ static void _mem_write8_error(a16 addr, u8 data)
 static void _mem_write16_error(a16 addr, u16 data)
 {
 	// TODO #15: determine proper way to handle error
-	logger_log(LOG_WARN, "MEM: WRITE16 ERROR",
+	logger_store(VERBOSE, LOG_WARN, "MEM: WRITE16 ERROR",
 		"MEMORY U16 WRITE ERROR AT ADDRESS 0x%04X\n, DATA: 0x%04X",
 		addr, data);
 }
