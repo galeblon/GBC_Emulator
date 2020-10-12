@@ -9,6 +9,8 @@
  * Available flags:
  *     -s <save path>  path to save file, which will be loaded at startup
  *                     and saved after emulation finishes
+ *     -c <input bindings> path to input bindings file. For reference
+ *                     check the provided input.config file
  *
  * @param argc  argument count from main
  * @param argv  argument vector form main
@@ -29,6 +31,9 @@ bool sys_parse_args(int argc, char *argv[], struct sys_args *opts)
 			switch (arg[1]) {
 			case 's':
 				strncpy(opts->save_path, argv[++i], PATH_LENGTH);
+				break;
+			case 'c':
+				strncpy(opts->input_config_path, argv[++i], PATH_LENGTH);
 				break;
 			}
 		} else if (opts->rom_path[0] == '\0') {

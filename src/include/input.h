@@ -14,7 +14,7 @@ struct all_inputs {
 	bool B;
 };
 
-void input_prepare();
+int input_prepare(const char *input_config_path);
 void input_check_queue(struct all_inputs* inputs);
 
 
