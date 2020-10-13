@@ -200,8 +200,7 @@ static const a16 g_sprite_tile_data_address        = 0x8000;
 static a16       g_bg_tile_map_display_address     = 0;
 
 
-//TODO: find why bg palette is not filled.
-static d8 background_palette_memory[64] = {0xFF, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static d8 background_palette_memory[64];
 static d8 sprite_palette_memory[64];
 static palette_config g_current_palette_configuration = {
 		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff },
@@ -1662,27 +1661,21 @@ static void _gpu_update_lcd_status(void)
 
 	//Change STAT and determine whether interrupt is needed
 	bool request_interrupt = 0;
+	stat = stat & 0xFC;
+	stat |= current_mode;
 	switch(current_mode) {
 	case GPU_H_BLANK:
-		stat &= !B0;
-		stat &= !B1;
 		request_interrupt = (stat & B3) != 0;
 		if (current_mode != hitherto_mode)
 			mem_h_blank_notify();
 		break;
 	case GPU_V_BLANK:
-		stat |= B0;
-		stat &= !B1;
 		request_interrupt = (stat & B4) != 0;
 		break;
 	case GPU_OAM:
-		stat &= !B0;
-		stat |= B1;
 		request_interrupt = (stat & B5) != 0;
 		break;
 	case GPU_VRAM:
-		stat |= B0;
-		stat |= B1;
 		break;
 	}
 
@@ -1697,7 +1690,9 @@ static void _gpu_update_lcd_status(void)
 		if((stat & B6) != 0)
 			ints_request(INT_LCDC);
 	} else {
-		stat &= !B2;
+		stat = 0x00;
+		// TODO something horrible happens because of this and I have no idea what and how.
+		// stat = stat & 0xFB;
 	}
 
 	//Save proper STAT
@@ -2092,7 +2087,7 @@ static u8 _gpu_read_bgpd(void)
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
 	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
-		return g_gpu_reg.bgpd;
+		return background_palette_memory[g_gpu_reg.bgpi & 0x3F];
 	else
 		_gpu_error(
 			LOG_FATAL,
@@ -2114,13 +2109,13 @@ static void _gpu_write_bgpd(u8 new_bgpd)
 
 		//Update BGP
 		u8 bgpi = _gpu_read_bgpi();
-		_gpu_write_bgpm((bgpi & 0x1F), new_bgpd);
+		_gpu_write_bgpm((bgpi & 0x3F), new_bgpd);
 
 		//Increment BGPI if required
 		if((bgpi & B7) == B7) {
 			d8 new_bgpi = bgpi;
 			new_bgpi++;
-			new_bgpi &= !B6;
+			new_bgpi = new_bgpi & 0xBF;
 			_gpu_write_bgpi(new_bgpi);
 		}
 	} else {
@@ -2151,7 +2146,7 @@ static u8 _gpu_read_spd(void)
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
 	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
-		return g_gpu_reg.spd;
+		return sprite_palette_memory[g_gpu_reg.spi & 0x3F];
 	else
 		_gpu_error(
 			LOG_FATAL,
@@ -2173,13 +2168,13 @@ static void _gpu_write_spd(u8 new_spd)
 
 		//Update SP
 		u8 spi = _gpu_read_spi();
-		_gpu_write_spm((spi & 0x1F), new_spd);
+		_gpu_write_spm((spi & 0x3F), new_spd);
 
 		//Increment BGPI if required
 		if((spi & B7) == B7) {
 			u8 new_spi = spi;
 			new_spi++;
-			new_spi &= !B6;
+			new_spi = new_spi & 0xBF;
 			_gpu_write_spi(new_spi);
 		}
 	} else {
@@ -2332,7 +2327,7 @@ void gpu_prepare(char * rom_title)
 	display_prepare(1.0 / FRAME_RATE, rom_title);
 
 	g_gpu_reg.lcdc = 0x91;
-	g_gpu_reg.stat = 0x85;
+	g_gpu_reg.stat = 0xC0; // TODO 0x85;
 
 	g_gpu_reg.obp0 = BGPDefault;
 	g_gpu_reg.obp1 = BGPDefault;
@@ -2360,14 +2355,17 @@ void gpu_step(int cycles_delta)
 		//Draw the current scanline if neither
 		if(g_gpu_reg.ly == 144)
 			ints_request(INT_V_BLANK);
-		else if(g_gpu_reg.ly > 153)
-			g_gpu_reg.ly = 0;
+		//else if(g_gpu_reg.ly > 153)
+		//	g_gpu_reg.ly = 0;
 
 		if(g_gpu_reg.ly < 144)
 			_gpu_draw_scanline();
 
 		//Increment the LY register
-		g_gpu_reg.ly++;
+		if(g_gpu_reg.ly > 153)
+			g_gpu_reg.ly = 0;
+		else
+			g_gpu_reg.ly++;
 	}
 }
 
