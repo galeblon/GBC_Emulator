@@ -2,6 +2,7 @@
 #include"debug.h"
 #include"ints.h"
 #include"mem.h"
+#include"mem_priv.h"
 #include"regs.h"
 
 #define INSTRUCTIONS_NUMBER 256
@@ -24,6 +25,8 @@
 #define IME_OP_DI 0
 #define IME_OP_EI 1
 
+#define SPEED_SWITCH_ADDR 0xFF4D
+
 typedef int (*cpu_instruction_t)(void);
 
 static cpu_instruction_t g_instruction_table[INSTRUCTIONS_NUMBER];
@@ -35,6 +38,10 @@ static struct cpu_registers g_registers;
 static bool g_cpu_halted = 0;
 static bool g_cpu_stopped = 0;
 
+// cpu speed state
+static bool g_double_speed = false;
+static bool g_speed_switch = false;
+
 // cpu ime delay
 static int g_ime_delay = 0;
 static int g_ime_op = IME_OP_DI;
@@ -42,6 +49,22 @@ static int g_ime_op = IME_OP_DI;
 struct cpu_registers cpu_register_get()
 {
 	return g_registers;
+}
+
+static u8 _cpu_double_speed_read_handler(a16 addr)
+{
+	if (addr != SPEED_SWITCH_ADDR)
+		return 0;
+
+	return (g_double_speed ? 0x80 : 0x00) | (g_speed_switch ? 0x01 : 0x00);
+}
+
+static void _cpu_double_speed_write_handler(a16 addr, u8 data)
+{
+	if (addr != SPEED_SWITCH_ADDR)
+		return;
+
+	g_speed_switch = (data & 0x01) == 1;
 }
 
 static int _cpu_not_implemented(void)
@@ -70,7 +93,11 @@ static int _cpu_nop(void)
 
 static int _cpu_stop(void)
 {
-	g_cpu_stopped = 1;
+	if (g_speed_switch)
+		g_double_speed = !g_double_speed;
+	else
+		g_cpu_stopped = 1;
+
 	g_registers.PC += 2;
 	return 4;
 }
@@ -5497,6 +5524,8 @@ void cpu_prepare(void)
 	g_cb_prefix_instruction_table[0xFF] = _cpu_set_7_a;
 
 	registers_prepare(&g_registers);
+	mem_register_handlers(SPEED_SWITCH_ADDR,
+			_cpu_double_speed_read_handler, _cpu_double_speed_write_handler);
 }
 
 

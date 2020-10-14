@@ -203,14 +203,13 @@ static void* _logger_pop(__attribute__((unused)) void* args)
 
 void logger_print(
 	enum logger_log_type type,
-	char *title,
 	const char *fmt,
 	...
 )
 {
 	va_list args;
 	va_start(args, fmt);
-	_logger_store(CONCISE, type, title, fmt, args);
+	_logger_store(CONCISE, type, NULL, fmt, args);
 	va_end(args);
 }
 

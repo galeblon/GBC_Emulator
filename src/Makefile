@@ -2,7 +2,8 @@ CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
 CFLAGS_DEBUG = -g -O0 -DDEBUG
 INCL = -I./include
-SRCS = mem.c cpu.c logger.c regs.c rom.c ints.c gpu.c display.c main.c debug.c input.c joypad.c mem_rtc.c timer.c
+SRCS = cpu.c debug.c display.c gpu.c input.c ints.c joypad.c \
+	   logger.c main.c mem.c mem_rtc.c regs.c rom.c sys.c timer.c
 PKG = $$(pkg-config --libs allegro-5 allegro_primitives-5)
 LBR = -lpthread
 OBJS = $(SRCS:.c=.o)

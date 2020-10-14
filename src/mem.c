@@ -72,7 +72,7 @@ enum mem_dma_state {
 
 // Memory module state
 static bool g_ram_enable = 0;
-static u8 g_rom_bank = 1;
+static u16 g_rom_bank = 1;
 static u8 g_ram_bank = 0;
 static u8 g_wram_bank = 1;
 static u8 g_vram_bank = 0;
@@ -97,13 +97,13 @@ static struct mem_bank g_ram[MAX_RAM_BANKS] = {0};
 static struct mem_bank g_wram[NUM_WRAM_BANKS] = {0};
 static struct mem_bank g_vram[NUM_VRAM_BANKS] = {0};
 
-static void _mem_not_implemented(const char *feature)
+static void _mem_not_implemented(const char *feature, a16 addr)
 {
 	logger_log(
 		LOG_WARN,
 		"MEM: NOT IMPLEMENTED",
-		"%s NOT IMPLEMENTED\n",
-		feature);
+		"%s NOT IMPLEMENTED (0x%04X)\n",
+		feature, addr);
 }
 
 static inline void _mem_fatal(char *msg) {
@@ -162,13 +162,13 @@ static u8 _mem_read_cart_mem(a16 addr)
 		case MBC1:
 		case MBC2:
 		case MBC3:
+		case MBC5:
 			if (addr < 0x4000 || header->num_rom_banks == 1) {
 				return _mem_read_bank(g_rom[0], addr - BASE_ADDR_CART_MEM);
 			} else if (addr < 0x8000) {
 				return _mem_read_bank(g_rom[g_rom_bank], addr - BASE_ADDR_CART_MEM - header->rom_bank_size);
 			}
 			break;
-		case MBC5:
 		case MMM01:
 		case POCKET_CAMERA:
 		case BANDAI_TAMA5:
@@ -207,7 +207,7 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 				// is used (eg. if Bank 0 is selected Bank 1 will be used,
 				// Bank 20 -> Bank 21, etc.
 
-				g_rom_bank = (g_rom_bank & 0xE0) | (data & 0x1F);
+				g_rom_bank = (g_rom_bank & 0x00E0) | (data & 0x1F);
 				if ((data & 0x1F) == 0)
 					g_rom_bank += 1;
 			} else if (addr < 0x6000) {
@@ -217,7 +217,7 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 					// ROM Bank number upper:
 					// bits 0-1 of data are bits 5-6 of ROM Bank number
 
-					g_rom_bank = (g_rom_bank & 0x1F) | ((data & 0x03) << 5);
+					g_rom_bank = (g_rom_bank & 0x001F) | ((data & 0x03) << 5);
 				} else {
 					// RAM Bank number:
 					// bits 0-1 of data select RAM Bank number used
@@ -235,7 +235,7 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 				if (g_banking_mode == ROM_BANKING_MODE) {
 					g_ram_bank = 0x01;
 				} else {
-					g_rom_bank = g_rom_bank & 0x1F;
+					g_rom_bank = g_rom_bank & 0x001F;
 				}
 			}
 			break;
@@ -258,7 +258,7 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 				//       ROM Bank is set to 1 in case 0 is written here
 
 				if ((addr & 0x100) != 0) {
-					g_rom_bank = data & 0x0F;
+					g_rom_bank = data & 0x000F;
 
 					if ((data & 0x0F) == 0)
 						g_rom_bank += 1;
@@ -299,6 +299,29 @@ static void _mem_write_cart_mem(a16 addr, u8 data)
 			}
 			break;
 		case MBC5:
+			if (addr < 0x2000) {
+				// RAM Enable:
+				// RAM is enabled when the data written to 0x0000-0x1FFFF is equal
+				// to 0x0A, otherwise RAM is disabled
+
+				g_ram_enable = data == 0x0A;
+			} else if (addr < 0x3000) {
+				// ROM Bank number lower:
+				// data written to 0x2000-0x3FFF selects the lower 8 bits of the
+				// ROM Bank number
+				g_rom_bank = (g_rom_bank & 0xFF00) | data;
+			} else if (addr < 0x4000) {
+				// ROM Bank number higher:
+				// highest bit of the ROM Bank selection
+
+				g_rom_bank = (g_rom_bank & 0x00FF) | ((data & 1) << 8);
+			} else if (addr < 0x6000) {
+				// RAM Bank number:
+				// bits 0-3 of data select RAM Bank number used
+
+				g_ram_bank = data & 0x0F;
+			}
+		break;
 		case MMM01:
 		case POCKET_CAMERA:
 		case BANDAI_TAMA5:
@@ -339,6 +362,7 @@ static u8 _mem_read_ram_switch(a16 addr)
 			return _mem_read_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH);
 			break;
 		case MBC1:
+		case MBC5:
 			return _mem_read_bank(g_ram[g_ram_bank], addr - BASE_ADDR_RAM_SWITCH);
 			break;
 		case MBC2:
@@ -361,7 +385,6 @@ static u8 _mem_read_ram_switch(a16 addr)
 				return mem_rtc_read(g_ram_bank);
 			}
 			break;
-		case MBC5:
 		case MMM01:
 		case POCKET_CAMERA:
 		case BANDAI_TAMA5:
@@ -386,6 +409,7 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 			_mem_write_bank(g_ram[0], addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
 		case MBC1:
+		case MBC5:
 			_mem_write_bank(g_ram[g_ram_bank],
 					addr - BASE_ADDR_RAM_SWITCH, data);
 			break;
@@ -402,7 +426,6 @@ static void _mem_write_ram_switch(a16 addr, u8 data)
 				mem_rtc_write(g_ram_bank, data);
 			}
 			break;
-		case MBC5:
 		case MMM01:
 		case POCKET_CAMERA:
 		case BANDAI_TAMA5:
@@ -507,143 +530,159 @@ static inline void _mem_write_empty0(a16 addr __attribute__((unused)),
 static inline u8 _mem_io_ports_read_handler(a16 addr)
 {
 	switch (addr) {
-		case 0xFF55:
-			// VRAM DMA transfer remaining
-			// Returns:
-			//   0xFF: when transfer completed
-			//   (length_remaining / 0x10) - 1: while transfer in progress
-			//   0x80 + (length_remaining / 0x10) - 1:
-			//		after terminated H-blank transfer
-			// Bit 7 signifies if transfer is active (0) or not (1).
-			//
-			// Right now all VRAM DMA is instant, so we always return 0xFF.
-			if (rom_is_cgb()) {
-				switch (g_dma_state) {
-					case DMA_NONE:
-					case DMA_VRAM_SUCCESS:
-						return 0xFF;
-					case DMA_GENERAL_IN_PROGRESS:
-					case DMA_H_BLANK_IN_PROGRESS:
-						return (g_dma_remaining / 0x10) - 1;
-					case DMA_H_BLANK_TERMINATED:
-						return 0x80 | ((g_dma_remaining / 0x10) - 1);
-					default:
-						debug_assert(false, "_mem_read_io_ports: invalid DMA state");
-						g_dma_state = DMA_NONE;
-				}
+	case 0xFF4F:
+		// VBK: VRAM Bank selection
+		if (rom_is_cgb())
+			return 0xFE | g_vram_bank;
+		break;
+	case 0xFF55:
+		// VRAM DMA transfer remaining
+		// Returns:
+		//   0xFF: when transfer completed
+		//   (length_remaining / 0x10) - 1: while transfer in progress
+		//   0x80 + (length_remaining / 0x10) - 1:
+		//		after terminated H-blank transfer
+		// Bit 7 signifies if transfer is active (0) or not (1).
+		//
+		// Right now all VRAM DMA is instant, so we always return 0xFF.
+		if (rom_is_cgb()) {
+			switch (g_dma_state) {
+			case DMA_NONE:
+			case DMA_VRAM_SUCCESS:
+				return 0xFF;
+			case DMA_GENERAL_IN_PROGRESS:
+			case DMA_H_BLANK_IN_PROGRESS:
+				return (g_dma_remaining / 0x10) - 1;
+			case DMA_H_BLANK_TERMINATED:
+				return 0x80 | ((g_dma_remaining / 0x10) - 1);
+			default:
+				debug_assert(false, "_mem_read_io_ports: invalid DMA state");
+				g_dma_state = DMA_NONE;
 			}
-			break;
-		default:
-			_mem_not_implemented("IO ports");
-			return g_io_ports[addr - BASE_ADDR_IO_PORTS];
+		}
+		break;
+	case 0xFF70:
+		// SVBK: WRAM Bank selection
+		if (rom_is_cgb())
+			return g_wram_bank;
+		break;
+	case 0xFF46: // OAM DMA
+	case 0xFF51: // HDMA1
+	case 0xFF52: // HDMA2
+	case 0xFF53: // HDMA3
+	case 0xFF54: // HDMA4
+		break;
+	default:
+		_mem_not_implemented("IO ports read", addr);
+		return g_io_ports[addr - BASE_ADDR_IO_PORTS];
 	}
 
-	return 0;
+	return 0xFF;
 }
 
 static inline void _mem_io_ports_write_handler(a16 addr, u8 data)
 {
 	switch (addr) {
-		case 0xFF46:
-			// DMA: OAM DMA transfer address
-			if (data <= 0xF1) {
-				g_dma_dst = BASE_ADDR_SPRITE_ATTR;
-				g_dma_src = (a16)data << 8;
-				_mem_dma_start(SIZE_SPRITE_ATTR);
-				_mem_dma(SIZE_SPRITE_ATTR);
-				g_dma_lock = 160;
-			} else {
-				debug_assert(true, "_mem_write_empty1: invalid OAM DMA address");
-			}
-			break;
-		case 0xFF4F:
-			// VBK: VRAM Bank selection
-			if (rom_is_cgb())
-				g_vram_bank = data & 0x01;
-			break;
-		case 0xFF51:
-			// HDMA1: VRAM DMA Source address, higher
-			if (rom_is_cgb())
-				g_dma_src = (g_dma_src & 0x00FF) | ((a16)data << 8);
-			break;
-		case 0xFF52:
-			// HDMA2: VRAM DMA Source address, lower
-			// Bits 0-3 are ignored (zeros are used)
-			if (rom_is_cgb())
-				g_dma_src = (g_dma_src & 0xFF00) | data;
-			break;
-		case 0xFF53:
-			// HDMA3: VRAM DMA Destination address, higher
-			// Bits 5-7 are ignored (0x80 is used)
-			if (rom_is_cgb())
-				g_dma_dst = (g_dma_dst & 0x00FF) | ((a16)data << 8);
-			break;
-		case 0xFF54:
-			// HDMA4: VRAM DMA Destination address, lower
-			// Bits 0-3 are ignored (zeros are used)
-			if (rom_is_cgb())
-				g_dma_dst = (g_dma_dst & 0xFF00) | data;
-			break;
-		case 0xFF55:
-			// HDMA5: VRAM DMA mode/length
-			// Bit 7 is DMA Mode:
-			//     0 - General DMA - blocks execution and transfers right away
-			//     1 - H-blank DMA - tranfers 0x10 bytes on each H-blank
-			// Bits 0-6 are (transfer_length / 0x10) - 1
-			if (rom_is_cgb()) {
-				a16 length;
+	case 0xFF46:
+		// DMA: OAM DMA transfer address
+		if (data <= 0xF1) {
+			g_dma_dst = BASE_ADDR_SPRITE_ATTR;
+			g_dma_src = (a16)data << 8;
+			_mem_dma_start(SIZE_SPRITE_ATTR);
+			_mem_dma(SIZE_SPRITE_ATTR);
+			g_dma_lock = 160;
+		} else {
+			debug_assert(true, "_mem_write_empty1: invalid OAM DMA address");
+		}
+		break;
+	case 0xFF4F:
+		// VBK: VRAM Bank selection
+		if (rom_is_cgb())
+			g_vram_bank = data & 0x01;
+		break;
+	case 0xFF51:
+		// HDMA1: VRAM DMA Source address, higher
+		if (rom_is_cgb())
+			g_dma_src = (g_dma_src & 0x00FF) | ((a16)data << 8);
+		break;
+	case 0xFF52:
+		// HDMA2: VRAM DMA Source address, lower
+		// Bits 0-3 are ignored (zeros are used)
+		if (rom_is_cgb())
+			g_dma_src = (g_dma_src & 0xFF00) | data;
+		break;
+	case 0xFF53:
+		// HDMA3: VRAM DMA Destination address, higher
+		// Bits 5-7 are ignored (0x80 is used)
+		if (rom_is_cgb())
+			g_dma_dst = (g_dma_dst & 0x00FF) | ((a16)data << 8);
+		break;
+	case 0xFF54:
+		// HDMA4: VRAM DMA Destination address, lower
+		// Bits 0-3 are ignored (zeros are used)
+		if (rom_is_cgb())
+			g_dma_dst = (g_dma_dst & 0xFF00) | data;
+		break;
+	case 0xFF55:
+		// HDMA5: VRAM DMA mode/length
+		// Bit 7 is DMA Mode:
+		//     0 - General DMA - blocks execution and transfers right away
+		//     1 - H-blank DMA - tranfers 0x10 bytes on each H-blank
+		// Bits 0-6 are (transfer_length / 0x10) - 1
+		if (rom_is_cgb()) {
+			a16 length;
 
-				switch (g_dma_state) {
-					case DMA_NONE:
-					case DMA_VRAM_SUCCESS:
-					case DMA_H_BLANK_TERMINATED:
-						g_dma_dst &= 0x1FF0;
-						g_dma_src &= 0xFFF0;
-						length = ((data & 0x7F) + 1) << 8;
+			switch (g_dma_state) {
+			case DMA_NONE:
+			case DMA_VRAM_SUCCESS:
+			case DMA_H_BLANK_TERMINATED:
+				g_dma_dst &= 0x1FF0;
+				g_dma_src &= 0xFFF0;
+				length = ((data & 0x7F) + 1) << 8;
 
-						// Prevent DMA from overflowing beyond VRAM
-						if (g_dma_dst + length > SIZE_VRAM)
-							length = SIZE_VRAM - g_dma_dst;
+				// Prevent DMA from overflowing beyond VRAM
+				if (g_dma_dst + length > SIZE_VRAM)
+					length = SIZE_VRAM - g_dma_dst;
 
-						_mem_dma_start(length);
+				_mem_dma_start(length);
 
-						if ((data & 0x80) == 0) {
-							// Execute General DMA all at once
-							g_dma_state = DMA_GENERAL_IN_PROGRESS;
-							g_dma_lock = DMA_CYCLES_PER_10H * (g_dma_length / 0x10);
-							cpu_set_halted(true);
-							_mem_dma(length);
-						} else {
-							g_dma_state = DMA_H_BLANK_IN_PROGRESS;
-						}
-						break;
-					case DMA_H_BLANK_IN_PROGRESS:
-						// Assuming writes with bit 7 = 1 are ignored
-						if ((data & 0x80) == 0)
-							g_dma_state = DMA_H_BLANK_TERMINATED;
-						break;
-					default:
-						debug_assert(false, "_mem_write_io_ports: invalid DMA state");
-						g_dma_state = DMA_NONE;
+				if ((data & 0x80) == 0) {
+					// Execute General DMA all at once
+					g_dma_state = DMA_GENERAL_IN_PROGRESS;
+					g_dma_lock = DMA_CYCLES_PER_10H * (g_dma_length / 0x10);
+					cpu_set_halted(true);
+					_mem_dma(length);
+				} else {
+					g_dma_state = DMA_H_BLANK_IN_PROGRESS;
 				}
+				break;
+			case DMA_H_BLANK_IN_PROGRESS:
+				// Assuming writes with bit 7 = 1 are ignored
+				if ((data & 0x80) == 0)
+					g_dma_state = DMA_H_BLANK_TERMINATED;
+				break;
+			default:
+				debug_assert(false, "_mem_write_io_ports: invalid DMA state");
+				g_dma_state = DMA_NONE;
 			}
-			break;
-		case 0xFF70:
-			if (rom_is_cgb()) {
-				// SVBK: WRAM Bank selection
-				g_wram_bank = data & 0x03;
-				if (g_wram_bank == 0)
-					g_wram_bank = 1;
-			}
-			break;
-		default:
-			// If an address within IO ports does not have any special handling
-			// implemented just write the data, so that it can be read through
-			// mem_readX later
-			g_io_ports[addr - BASE_ADDR_IO_PORTS] = data;
+		}
+		break;
+	case 0xFF70:
+		// SVBK: WRAM Bank selection
+		if (rom_is_cgb()) {
+			g_wram_bank = data & 0x03;
+			if (g_wram_bank == 0)
+				g_wram_bank = 1;
+		}
+		break;
+	default:
+		// If an address within IO ports does not have any special handling
+		// implemented just write the data, so that it can be read through
+		// mem_readX later
+		g_io_ports[addr - BASE_ADDR_IO_PORTS] = data;
 
-			_mem_not_implemented("IO ports");
-			break;
+		_mem_not_implemented("IO ports write", addr);
+		break;
 	}
 }
 
@@ -844,7 +883,7 @@ void mem_write16(a16 addr, u16 data)
 	block_2->write(addr + 1, _mem_u16_higher(data));
 }
 
-int _mem_load_rom(char *path)
+int _mem_load_rom(const char *path)
 {
 	long rom_len;
 	u8 rom0[0x4000];
@@ -890,9 +929,94 @@ int _mem_load_rom(char *path)
 	return 1;
 }
 
-int mem_prepare(char *rom_path)
+static int _mem_save_ram(const char *save_path)
 {
-	int rc;
+	FILE *file = fopen(save_path, "wb+");
+
+	if(file == NULL) {
+		_mem_fatal("Couldn't open save file");
+		return 0;
+	}
+
+	const struct rom_header *header = rom_get_header();
+
+	for (int i = 0; i < header->num_ram_banks; i++) {
+		debug_assert(g_ram[i].mem != NULL,
+				"mem_destroy: null RAM Bank memory");
+		fwrite(g_ram[i].mem, g_ram[i].size, 1, file);
+	}
+
+	if (header->mbc == MBC3) {
+		struct mem_rtc_save rtc = mem_rtc_get_save();
+		fwrite(&rtc, sizeof(rtc), 1, file);
+	}
+
+	fclose(file);
+	return 1;
+}
+
+static int _mem_load_ram(const char *save_path)
+{
+	long file_len;
+	struct mem_rtc_save rtc;
+	FILE *file = fopen(save_path, "rb");
+	const struct rom_header *header = rom_get_header();
+
+	if(file == NULL) {
+		logger_print(LOG_INFO, "Save file does not exist, skipping save load");
+		if (header->mbc == MBC3)
+			mem_rtc_prepare(NULL);
+		return 1;
+	}
+
+	fseek(file, 0, SEEK_END);
+	file_len = ftell(file);
+	rewind(file);
+
+	int expected_len = header->num_ram_banks * header->ram_bank_size;
+
+	if (header->mbc == MBC3)
+		expected_len += sizeof(struct mem_rtc_save);
+
+	if (file_len != expected_len) {
+		_mem_fatal("Save file size is incorrect for this cartridge type");
+		fclose(file);
+		return 0;
+	}
+
+	for (int i = 0; i < header->num_ram_banks; i++) {
+		debug_assert(g_ram[i].mem != NULL,
+				"mem_destroy: null RAM Bank memory");
+		fread(g_ram[i].mem, g_ram[i].size, 1, file);
+	}
+
+	if (header->mbc == MBC3)
+		fread(&rtc, sizeof(struct mem_rtc_save), 1, file);
+
+	fclose(file);
+
+	mem_rtc_prepare(&rtc);
+
+	return 1;
+}
+
+/**
+ * Initialize memory module:
+ *	- parse cartridge header into rom_header
+ *	- allocate memory for ROM and RAM
+ *	- load ROM contents from ROM file
+ *	- optionally load RAM content from save file
+ *
+ *	@param  rom_path    path to file containing ROM data to load
+ *	@param	save_path   path to file containing saved RAM data to load. If NULL
+ *	                    is passed, then RAM is ininitialized to 0
+ *
+ *	@return	1 if everything succeeded, 0 if an error occurred during module
+ *          initialization
+ */
+int mem_prepare(const char *rom_path, const char *save_path)
+{
+	int rc = 1;
 
 	rc = _mem_load_rom(rom_path);
 
@@ -924,14 +1048,30 @@ int mem_prepare(char *rom_path)
 		g_wram[1].size = SIZE_WRAM;
 	}
 
-	if (header->mbc == MBC3)
-		mem_rtc_prepare();
+	if (save_path) {
+		rc = _mem_load_ram(save_path);
+		if (rc != 1) {
+			mem_destroy(NULL);
+			return rc;
+		}
+	} else if (header->mbc == MBC3) {
+		mem_rtc_prepare(NULL);
+	}
 
 	return 1;
 }
 
-void mem_destroy(void)
+/**
+ * Safely terminate the module and optionally save RAM contents to given path.
+ *
+ * @param   save_path   path to file to dump RAM to. If NULL is passed, RAM is
+ *                      not saved.
+ */
+void mem_destroy(const char *save_path)
 {
+	if (save_path)
+		_mem_save_ram(save_path);
+
 	const struct rom_header *header = rom_get_header();
 
 	for (int i = 0; i < header->num_rom_banks; i++) {

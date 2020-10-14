@@ -43,7 +43,7 @@ int rom_checksum_validate(void)
 	u8 header_checksum_verify = 0;
 	for (int i=0x134; i<=0x14C; i++)
 		header_checksum_verify -= mem_read8(i) + 1;
-	logger_print(LOG_INFO, NULL, "ROM header checksum: 0x%X\n"
+	logger_print(LOG_INFO, "ROM header checksum: 0x%X\n"
 			"ROM header checksum calculated: 0x%X\n", header_checksum,
 			header_checksum_verify);
 	return header_checksum == header_checksum_verify;
