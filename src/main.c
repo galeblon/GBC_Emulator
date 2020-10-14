@@ -17,6 +17,7 @@ static struct sys_args g_args;
 int main(int argc, char *argv[])
 {
 	char *save_path = NULL;
+	struct input_bindings *input_bindings = NULL;
 
 	logger_prepare();
 
@@ -25,6 +26,8 @@ int main(int argc, char *argv[])
 
 	if (g_args.save_path[0] != '\0')
 		save_path = g_args.save_path;
+	if (g_args.input_bindings.filled)
+		input_bindings = &g_args.input_bindings;
 
 	if (!mem_prepare(g_args.rom_path, save_path))
 		return 1;
@@ -44,7 +47,8 @@ int main(int argc, char *argv[])
 	cpu_prepare();
 	ints_prepare();
 	gpu_prepare(title);
-	input_prepare();
+	if(!input_prepare(input_bindings))
+		return 1;
 	joypad_prepare();
 	timer_prepare();
 
