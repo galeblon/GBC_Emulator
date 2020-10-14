@@ -1,31 +1,7 @@
 #include<allegro5/allegro5.h>
-#include<stdio.h>
 #include"input.h"
 #include"logger.h"
 #include"types.h"
-
-#define BINDINGS_TO_READ 15
-
-struct keyboard_bindings {
-	int a_button;
-	int b_button;
-	int start;
-	int select;
-	int up;
-	int down;
-	int left;
-	int right;
-};
-
-struct gamepad_bindings {
-	int a_button;
-	int b_button;
-	int start;
-	int select;
-	int d_pad;
-	int axis_h;
-	int axis_v;
-};
 
 static ALLEGRO_EVENT_QUEUE *g_event_queue = NULL;
 static ALLEGRO_EVENT g_event;
@@ -63,98 +39,48 @@ void _input_load_default_bindings() {
 	g_gamepad_bindings = pad_bindings;
 }
 
-int _input_load_custom_bindings(const char *input_config_path) {
-	logger_print(LOG_INFO, "INPUT MODULE: loading custom bindings from %s.\n", input_config_path);
-
-
-	FILE *bindings_fileptr = fopen(input_config_path, "rb");
-
-	if(bindings_fileptr == NULL) {
-		_input_error("Couldn't open bindings file");
-		return 0;
-	}
-
-	char line[256];
-
-	int binding_values[BINDINGS_TO_READ];
-	int current_index = 0;
-	while(fgets(line, sizeof(line), bindings_fileptr)) {
-		if(line[0] == '#')
-			continue;
-		int value = atoi(line);
-		binding_values[current_index++] = value;
-		if(current_index == BINDINGS_TO_READ)
-			break;
-	}
-
-	fclose(bindings_fileptr);
-	if(current_index != BINDINGS_TO_READ) {
-		_input_error("Config file doesn't contain all sections");
-		return 0;
-	}
-
-	// Fill from sections
-	struct keyboard_bindings bindings = {
-			binding_values[0],
-			binding_values[1],
-			binding_values[2],
-			binding_values[3],
-			binding_values[4],
-			binding_values[5],
-			binding_values[6],
-			binding_values[7]
-	};
-
-	g_keyboard_bindings = bindings;
-
-	struct gamepad_bindings pad_bindings = {
-			binding_values[8],
-			binding_values[9],
-			binding_values[10],
-			binding_values[11],
-			binding_values[12],
-			binding_values[13],
-			binding_values[14]
-	};
-
-	g_gamepad_bindings = pad_bindings;
-	return 1;
-}
 
 /**
  * Initialize input module:
  *	- Install both keyboard and joypad support
  *	- Load configuration
  *
- *	@param  input_config_path    path to file containing input bindings data to load.
+ *	@param  input_bindngs    pointer to input binding structure..
  *								 If NULL, default bindings are used.
  *
  *	@return	1 if everything succeeded, 0 if an error occurred during module
  *          initialization
  */
-int input_prepare(const char *input_config_path)
+int input_prepare(struct input_bindings *input_bindings)
 {
 	if (!al_install_keyboard()) {
 		_input_error("Keyboard initialization failure");
+		return 0;
 	}
 	if (!al_install_joystick()) {
 		_input_error("Joystick initialization failure");
+		return 0;
 	}
 
 	g_event_queue = al_create_event_queue();
 	if (!g_event_queue) {
 		_input_error("Event queue initialization failure");
+		return 0;
 	}
 
 	al_register_event_source(g_event_queue, al_get_keyboard_event_source());
 	al_register_event_source(g_event_queue, al_get_joystick_event_source());
 
-	if(input_config_path == NULL) {
+	if(input_bindings == NULL) {
+		logger_print(LOG_INFO, "INPUT MODULE: using default bindings.\n");
 		_input_load_default_bindings();
-		return 1;
 	} else {
-		return _input_load_custom_bindings(input_config_path);
+		logger_print(LOG_INFO, "INPUT MODULE: using custom bindings.\n");
+		g_keyboard_bindings = input_bindings->keyboard;
+		g_gamepad_bindings = input_bindings->gamepad;
 	}
+
+	return 1;
 }
 
 void _input_parse_keyboard(bool is_down)
