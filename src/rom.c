@@ -8,7 +8,7 @@ static struct rom_header g_header = {0};
 
 static void _rom_cart_type_not_implemented(u8 type_byte, u8 rom_size_byte)
 {
-	logger_store(VERBOSE,
+	logger_log(
 		LOG_WARN,
 		"MEM: CART TYPE NOT IMPLEMENTED",
 		"CARTRIDGE TYPE 0x%02X ROM SIZE 0x%02X NOT IMPLEMENTED\n",
@@ -17,7 +17,7 @@ static void _rom_cart_type_not_implemented(u8 type_byte, u8 rom_size_byte)
 
 static void _rom_log_cart_type(void)
 {
-	logger_store(VERBOSE,
+	logger_log(
 		LOG_INFO,
 		"ROM: HEADER INFO PARSED",
 		"ROM Header parsed:\n"
@@ -43,7 +43,7 @@ int rom_checksum_validate(void)
 	u8 header_checksum_verify = 0;
 	for (int i=0x134; i<=0x14C; i++)
 		header_checksum_verify -= mem_read8(i) + 1;
-	logger_store(CONCISE, LOG_INFO, NULL, "ROM header checksum: 0x%X\n"
+	logger_print(LOG_INFO, NULL, "ROM header checksum: 0x%X\n"
 			"ROM header checksum calculated: 0x%X\n", header_checksum,
 			header_checksum_verify);
 	return header_checksum == header_checksum_verify;

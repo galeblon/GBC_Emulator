@@ -7,6 +7,11 @@
 #include"logger.h"
 #include"regs.h"
 
+enum logger_verbosity {
+	CONCISE,
+	VERBOSE
+};
+
 typedef struct log_info {
 	enum logger_verbosity verbosity;
 	enum logger_log_type  type;
@@ -18,7 +23,7 @@ typedef struct log_info {
 static log_info g_log_buffer[LOG_BUFFER_SIZE];
 static bool g_kill = false;
 static s8 g_start_index = 0,
-	g_end_index = 0;
+	      g_end_index = 0;
 
 static pthread_t       g_logger_thread;
 static pthread_cond_t  g_condition_not_empty = PTHREAD_COND_INITIALIZER;
@@ -69,12 +74,12 @@ static inline bool _logger_is_buffer_empty(void)
 	return g_start_index == g_end_index;
 }
 
-void logger_store(
+static void _logger_store(
 	enum logger_verbosity verbosity,
 	enum logger_log_type type,
 	char *title,
 	const char *fmt,
-	...
+	va_list args
 )
 {
 	pthread_mutex_lock(&g_lock);
@@ -97,15 +102,12 @@ void logger_store(
 
 	g_log_buffer[g_end_index].registers = cpu_register_get(type);
 
-	va_list args;
-	va_start(args, fmt);
 	vsnprintf(
 		g_log_buffer[g_end_index].message,
 		LOG_MESSAGE_MAX_SIZE,
 		fmt,
 		args
 	);
-	va_end(args);
 
 	g_end_index = (g_end_index + 1) % LOG_BUFFER_SIZE;
 
@@ -115,7 +117,7 @@ void logger_store(
 	pthread_mutex_unlock(&g_lock);
 }
 
-void* logger_pop(__attribute__((unused)) void* args)
+static void* _logger_pop(__attribute__((unused)) void* args)
 {
 	while(true) {
 		pthread_mutex_lock(&g_lock);
@@ -134,10 +136,11 @@ void* logger_pop(__attribute__((unused)) void* args)
 				_logger_log_type_to_text(g_log_buffer[g_start_index].type)
 			);
 
-			fprintf(output,
-				":\n%s",
-				g_log_buffer[g_start_index].title
-			);
+			if(g_log_buffer[g_start_index].title[0] != '\0')
+				fprintf(output,
+					":\n%s",
+					g_log_buffer[g_start_index].title
+				);
 
 			fprintf(output, "\nRegisters:\n");
 			fprintf(
@@ -198,9 +201,35 @@ void* logger_pop(__attribute__((unused)) void* args)
 	return NULL;
 }
 
+void logger_print(
+	enum logger_log_type type,
+	char *title,
+	const char *fmt,
+	...
+)
+{
+	va_list args;
+	va_start(args, fmt);
+	_logger_store(CONCISE, type, title, fmt, args);
+	va_end(args);
+}
+
+void logger_log(
+	enum logger_log_type type,
+	char *title,
+	const char *fmt,
+	...
+)
+{
+	va_list args;
+	va_start(args, fmt);
+	_logger_store(VERBOSE, type, title, fmt, args);
+	va_end(args);
+}
+
 void logger_prepare(void)
 {
-	if (pthread_create(&g_logger_thread, NULL, logger_pop, NULL) != 0)
+	if (pthread_create(&g_logger_thread, NULL, _logger_pop, NULL) != 0)
 		perror("TODO: handle logger thread error");  // TODO
 }
 

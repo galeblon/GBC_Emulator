@@ -15,25 +15,25 @@ int main(int argc, char *argv[])
 {
 	logger_prepare();
 	if (argc < 2) {
-		logger_store(CONCISE, LOG_FATAL, NULL, "ROM file not specified.\n");
+		logger_print(LOG_FATAL, NULL, "ROM file not specified.\n");
 		return 1;
 	}
 
 	if (!mem_prepare(argv[1])) {
-		logger_store(CONCISE, LOG_FATAL, NULL, "ROM file preparation failed.\n");
+		logger_print(LOG_FATAL, NULL, "ROM file preparation failed.\n");
 		logger_destroy();
 		return 1;
 	}
 
-	logger_store(CONCISE, LOG_INFO, NULL, "Loaded ROM contents to memory.\n");
+	logger_print(LOG_INFO, NULL, "Loaded ROM contents to memory.\n");
 
 	if (!rom_checksum_validate())
-		logger_store(CONCISE, LOG_WARN, NULL, "ROM header checksum failed.\n");
+		logger_print(LOG_WARN, NULL, "ROM header checksum failed.\n");
 
-	logger_store(CONCISE, LOG_INFO, NULL, "ROM header checksum passed.\n");
+	logger_print(LOG_INFO, NULL, "ROM header checksum passed.\n");
 	char title[16];
 	rom_get_title(title);
-	logger_store(CONCISE, LOG_INFO, NULL, "ROM title: %.16s\n", title);
+	logger_print(LOG_INFO, NULL, "ROM title: %.16s\n", title);
 
 	//TODO prepare memory and fill stack with data according to powerup sequence
 	//TODO prepare sound
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	joypad_prepare();
 	timer_prepare();
 
-	logger_store(CONCISE, LOG_INFO, NULL, "Starting emulation.\n");
+	logger_print(LOG_INFO, NULL, "Starting emulation.\n");
 	int cycles_delta = 0;
 
 	// Main Loop
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 		ints_check();
 	}
 
-	logger_store(CONCISE, LOG_INFO, NULL, "Halting emulation.\n");
+	logger_print(LOG_INFO, NULL, "Halting emulation.\n");
 
 	gpu_destroy();
 	mem_destroy();

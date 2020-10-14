@@ -1098,8 +1098,7 @@ static palette_config const g_palette_configurations[6][29] = {
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
 {
-	logger_store(
-		VERBOSE,
+	logger_log(
 		type,
 		title,
 		"[GPU MODULE] %s\n",

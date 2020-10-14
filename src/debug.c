@@ -552,22 +552,22 @@ void debug_print_instruction(u16 pc)
 	int len = _debug_op_length(opcode);
 	switch(len) {
 	case 1:
-		logger_store(CONCISE, LOG_INFO, NULL, "0x%04X\t%s\n", pc,
+		logger_print(LOG_INFO, NULL, "0x%04X\t%s\n", pc,
 				_debug_op_mnemonic_format(opcode));
 		break;
 	case 2:
-		logger_store(CONCISE, LOG_INFO, NULL, "0x%04X\t", pc);
-		logger_store(CONCISE, LOG_INFO, NULL, _debug_op_mnemonic_format(opcode), mem_read8(pc+1));
-		logger_store(CONCISE, LOG_INFO, NULL, "\n");
+		logger_print(LOG_INFO, NULL, "0x%04X\t", pc);
+		logger_print(LOG_INFO, NULL, _debug_op_mnemonic_format(opcode), mem_read8(pc+1));
+		logger_print(LOG_INFO, NULL, "\n");
 		break;
 	case 3:
-		logger_store(CONCISE, LOG_INFO, NULL, "0x%04X\t", pc);
-		logger_store(CONCISE, LOG_INFO, NULL, _debug_op_mnemonic_format(opcode), mem_read16(pc+1));
-		logger_store(CONCISE, LOG_INFO, NULL, "\n");
+		logger_print(LOG_INFO, NULL, "0x%04X\t", pc);
+		logger_print(LOG_INFO, NULL, _debug_op_mnemonic_format(opcode), mem_read16(pc+1));
+		logger_print(LOG_INFO, NULL, "\n");
 		break;
 	case 4:
 		// CB prefix special print
-		logger_store(CONCISE, LOG_INFO, NULL, "0x%04X\tCB %s\n", pc,
+		logger_print(LOG_INFO, NULL, "0x%04X\tCB %s\n", pc,
 				_debug_op_extended_mnemonic_format(mem_read8(pc+1)));
 	}
 }
@@ -576,7 +576,7 @@ void debug_assert(bool expr, const char *msg)
 {
 #ifdef DEBUG
 	if (!expr) {
-		logger_store(VERBOSE, LOG_ASSERT, "ASSERT", msg);
+		logger_log(LOG_ASSERT, "ASSERT", msg);
 		exit(1);
 	}
 #endif

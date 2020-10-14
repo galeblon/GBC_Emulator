@@ -46,8 +46,7 @@ static u8 g_old_if = 0;
 
 static void _ints_undefined_int_info(u8 i_e, u8 i_f)
 {
-	logger_store(
-		VERBOSE,
+	logger_log(
 		LOG_WARN,
 		"UNDEFINED INTERRUPT",
 		"[INTERRUPT MODULE] UNDEFINED BEHAVIOUR ERROR - INTERRUPT TRIGGERED DOES NOT EXIST.\n    IF: 0x%X    IE: 0x%X\n",

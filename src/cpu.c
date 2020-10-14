@@ -48,7 +48,7 @@ static int _cpu_not_implemented(void)
 {
 	// This  way of accessing memory is temporary
 	d8 instruction_code = mem_read8(g_registers.PC);
-	logger_store(VERBOSE,
+	logger_log(
 		LOG_FATAL,
 		"UNKOWN INSTRUCTION",
 		"INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n",
