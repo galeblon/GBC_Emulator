@@ -19,8 +19,6 @@ static void _input_error(const char *feature)
 }
 
 void _input_load_default_bindings() {
-	logger_print(LOG_INFO, "INPUT MODULE: loading default bindings.\n");
-
 	struct keyboard_bindings bindings = {
 			ALLEGRO_KEY_Z,
 			ALLEGRO_KEY_X,
