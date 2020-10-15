@@ -5,7 +5,7 @@ INCL = -I./include
 SRCS = cpu.c debug.c display.c gpu.c input.c ints.c joypad.c \
 	   logger.c main.c mem.c mem_rtc.c regs.c rom.c sys.c timer.c
 PKG = $$(pkg-config --libs allegro-5 allegro_primitives-5)
-LBR = -lpthread
+LBR = -pthread
 OBJS = $(SRCS:.c=.o)
 BIN = gbc
 

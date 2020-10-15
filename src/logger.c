@@ -21,9 +21,9 @@ typedef struct log_info {
 } log_info;
 
 static log_info g_log_buffer[LOG_BUFFER_SIZE];
-static bool g_kill = false;
-static s8 g_start_index = 0,
-	      g_end_index = 0;
+static bool     g_kill                        = false;
+static s8       g_start_index                 = 0,
+	            g_end_index                   = 0;
 
 static pthread_t       g_logger_thread;
 static pthread_cond_t  g_condition_not_empty = PTHREAD_COND_INITIALIZER;
@@ -117,7 +117,7 @@ static void _logger_store(
 	pthread_mutex_unlock(&g_lock);
 }
 
-static void* _logger_pop(__attribute__((unused)) void* args)
+static void* _logger_pop(__attribute__((unused)) void* arg)
 {
 	while(true) {
 		pthread_mutex_lock(&g_lock);
@@ -226,10 +226,29 @@ void logger_log(
 	va_end(args);
 }
 
-void logger_prepare(void)
+bool logger_prepare(void)
 {
-	if (pthread_create(&g_logger_thread, NULL, _logger_pop, NULL) != 0)
-		perror("TODO: handle logger thread error");  // TODO
+	int error_code;
+	if (
+		(
+			error_code = pthread_create(&g_logger_thread, NULL, _logger_pop, NULL)
+		) != 0
+	) {
+		FILE *output = _logger_get_output(LOG_FATAL);
+
+		fprintf(output,
+				"GBC_log %s:\n"
+				"LOGGER PERROR\n"
+				"Description:\n"
+				"PTHREAD COULD NOT BE CREATED - ERROR CODE %d\n",
+				_logger_log_type_to_text(LOG_FATAL),
+				error_code
+		);
+
+		return false;
+	}
+
+	return true;
 }
 
 void logger_destroy(void)
