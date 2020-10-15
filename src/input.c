@@ -100,11 +100,12 @@ void _input_parse_gamepad_buttons(ALLEGRO_EVENT event, struct all_inputs* inputs
 
 void _input_parse_gamepad_joysticks(ALLEGRO_EVENT event, struct all_inputs* inputs) {
 	if(event.joystick.stick == g_gamepad_bindings.d_pad) {
+		float pos_abs = event.joystick.pos < 0 ? -event.joystick.pos : event.joystick.pos;
 		if(event.joystick.axis == g_gamepad_bindings.axis_h) {
 			inputs->LEFT = false;
 			inputs->RIGHT = false;
 
-			if(abs(event.joystick.pos) < 0.1)
+			if(pos_abs < 0.1)
 				return;
 			if(event.joystick.pos < 0)
 				inputs->LEFT = true;
@@ -114,7 +115,7 @@ void _input_parse_gamepad_joysticks(ALLEGRO_EVENT event, struct all_inputs* inpu
 			inputs->UP = false;
 			inputs->DOWN = false;
 
-			if(abs(event.joystick.pos) < 0.1)
+			if(pos_abs < 0.1)
 				return;
 			if(event.joystick.pos < 0)
 				inputs->UP = true;
