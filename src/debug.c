@@ -573,8 +573,14 @@ void debug_print_instruction(u16 pc)
 }
 
 void debug_assert(
-		bool expr __attribute__((unused)),
-		const char *msg __attribute__((unused))
+#ifdef DEBUG
+		bool         expr,
+		const char * msg
+#endif
+#ifndef DEBUG
+		bool         expr __attribute__((unused)),
+		const char * msg  __attribute__((unused))
+#endif
 )
 {
 #ifdef DEBUG
