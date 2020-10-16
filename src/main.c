@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
 	char *save_path = NULL;
 	struct input_bindings *input_bindings = NULL;
 
-	logger_prepare();
+	if(!logger_prepare())
+		return 1;
 
 	if (!sys_parse_args(argc, argv, &g_args))
 		return 1;

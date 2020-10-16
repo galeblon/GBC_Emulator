@@ -99,7 +99,8 @@ static struct mem_bank g_vram[NUM_VRAM_BANKS] = {0};
 
 static void _mem_not_implemented(const char *feature, a16 addr)
 {
-	logger_log(LOG_WARN,
+	logger_log(
+		LOG_WARN,
 		"MEM: NOT IMPLEMENTED",
 		"%s NOT IMPLEMENTED (0x%04X)\n",
 		feature, addr);

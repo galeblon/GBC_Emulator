@@ -46,31 +46,9 @@ static bool g_speed_switch = false;
 static int g_ime_delay = 0;
 static int g_ime_op = IME_OP_DI;
 
-void cpu_register_print(enum logger_log_type log)
+struct cpu_registers cpu_register_get()
 {
-	logger_print(log,
-		"\tA: 0x%02X F: 0x%02X\n"
-		"\tB: 0x%02X C: 0x%02X\n"
-		"\tD: 0x%02X E: 0x%02X\n"
-		"\tH: 0x%02X L: 0x%02X\n"
-		"\tSP: 0x%04X\n"
-		"\tPC: 0x%04X\n"
-		"\tZNHC\n"
-		"\t%d%d%d%d\n",
-		g_registers.A,
-		g_registers.F,
-		g_registers.B,
-		g_registers.C,
-		g_registers.D,
-		g_registers.E,
-		g_registers.H,
-		g_registers.L,
-		g_registers.SP,
-		g_registers.PC,
-		g_registers.FLAGS.Z,
-		g_registers.FLAGS.N,
-		g_registers.FLAGS.H,
-		g_registers.FLAGS.C);
+	return g_registers;
 }
 
 static u8 _cpu_double_speed_read_handler(a16 addr)
@@ -93,7 +71,8 @@ static int _cpu_not_implemented(void)
 {
 	// This  way of accessing memory is temporary
 	d8 instruction_code = mem_read8(g_registers.PC);
-	logger_log(LOG_FATAL,
+	logger_log(
+		LOG_FATAL,
 		"UNKOWN INSTRUCTION",
 		"INSTRUCTION CODE 0x%02X NOT IMPLEMENTED\n",
 		instruction_code);

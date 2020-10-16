@@ -549,27 +549,39 @@ void debug_print_instruction(u16 pc)
 {
 	d8 opcode = mem_read8(pc);
 
-	logger_print(LOG_INFO, "0x%04X\t", pc);
 	int len = _debug_op_length(opcode);
 	switch(len) {
 	case 1:
-		logger_print(LOG_INFO, "%s" ,_debug_op_mnemonic_format(opcode));
+		logger_print(LOG_INFO, "0x%04X\t%s\n", pc,
+				_debug_op_mnemonic_format(opcode));
 		break;
 	case 2:
+		logger_print(LOG_INFO, "0x%04X\t", pc);
 		logger_print(LOG_INFO, _debug_op_mnemonic_format(opcode), mem_read8(pc+1));
+		logger_print(LOG_INFO, "\n");
 		break;
 	case 3:
+		logger_print(LOG_INFO, "0x%04X\t", pc);
 		logger_print(LOG_INFO, _debug_op_mnemonic_format(opcode), mem_read16(pc+1));
+		logger_print(LOG_INFO, "\n");
 		break;
 	case 4:
 		// CB prefix special print
-		logger_print(LOG_INFO, "CB %s",
+		logger_print(LOG_INFO, "0x%04X\tCB %s\n", pc,
 				_debug_op_extended_mnemonic_format(mem_read8(pc+1)));
 	}
-	logger_print(LOG_INFO, "\n");
 }
 
-void debug_assert(bool expr, const char *msg)
+void debug_assert(
+#ifdef DEBUG
+		bool         expr,
+		const char * msg
+#endif
+#ifndef DEBUG
+		bool         expr __attribute__((unused)),
+		const char * msg  __attribute__((unused))
+#endif
+)
 {
 #ifdef DEBUG
 	if (!expr) {

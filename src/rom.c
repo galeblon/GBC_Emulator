@@ -8,7 +8,8 @@ static struct rom_header g_header = {0};
 
 static void _rom_cart_type_not_implemented(u8 type_byte, u8 rom_size_byte)
 {
-	logger_log(LOG_WARN,
+	logger_log(
+		LOG_WARN,
 		"MEM: CART TYPE NOT IMPLEMENTED",
 		"CARTRIDGE TYPE 0x%02X ROM SIZE 0x%02X NOT IMPLEMENTED\n",
 		type_byte, rom_size_byte);
@@ -16,7 +17,8 @@ static void _rom_cart_type_not_implemented(u8 type_byte, u8 rom_size_byte)
 
 static void _rom_log_cart_type(void)
 {
-	logger_log(LOG_INFO,
+	logger_log(
+		LOG_INFO,
 		"ROM: HEADER INFO PARSED",
 		"ROM Header parsed:\n"
 		"  MBC:       0x%02X\n"

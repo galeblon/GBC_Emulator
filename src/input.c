@@ -12,7 +12,8 @@ static bool g_pressed_keys[ALLEGRO_KEY_MAX];
 
 static void _input_error(const char *feature)
 {
-	logger_log(LOG_FATAL,
+	logger_log(
+		LOG_FATAL,
 		"INPUT MODULE",
 		"%s failure.\n",
 		feature);
