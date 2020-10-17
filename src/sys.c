@@ -4,6 +4,8 @@
 #include"logger.h"
 #include"sys.h"
 
+#define DEFAULT_FRAME_RATE 30
+
 int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *opts) {
 	logger_print(LOG_INFO, "SYS MODULE: loading custom bindings from %s.\n", input_config_path);
 
@@ -71,6 +73,8 @@ int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *op
  *                     and saved after emulation finishes
  *     -c <input bindings> path to input bindings file. For reference
  *                     check the provided input.config file
+ *     -f              run in fulscreen window
+ *     -r <frame rate> adjust display frame rate
  *
  * @param argc  argument count from main
  * @param argv  argument vector form main
@@ -81,6 +85,8 @@ int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *op
 bool sys_parse_args(int argc, char *argv[], struct sys_args *opts)
 {
 	memset(opts, 0, sizeof(struct sys_args));
+
+	opts->frame_rate = DEFAULT_FRAME_RATE;
 
 	char *arg;
 
@@ -94,6 +100,14 @@ bool sys_parse_args(int argc, char *argv[], struct sys_args *opts)
 				break;
 			case 'c':
 				_sys_load_custom_bindings(argv[++i], opts);
+				break;
+			case 'f':
+				opts->fullscreen = true;
+				break;
+			case 'r':
+				opts->frame_rate = atoi(argv[++i]);
+				if (opts->frame_rate <= 0)
+					opts->frame_rate = DEFAULT_FRAME_RATE;
 				break;
 			}
 		} else if (opts->rom_path[0] == '\0') {

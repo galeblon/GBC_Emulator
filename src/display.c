@@ -11,6 +11,7 @@ static ALLEGRO_EVENT_QUEUE *g_close_event_queue = NULL;
 static ALLEGRO_EVENT_QUEUE *g_event_queue       = NULL;
 static ALLEGRO_EVENT       g_event;
 
+static float g_scale = SCALING_FACTOR;
 
 static void _display_error(enum logger_log_type type, char *title, char *message)
 {
@@ -22,7 +23,7 @@ static void _display_error(enum logger_log_type type, char *title, char *message
 	);
 }
 
-void display_prepare(float frequency, char * rom_title)
+void display_prepare(float frequency, char * rom_title, bool fullscreen)
 {
 	if(!al_init()) {
 		_display_error(
@@ -43,7 +44,18 @@ void display_prepare(float frequency, char * rom_title)
 		return;
 	}
 
-	g_display = al_create_display( 160 * SCALING_FACTOR, 144 * SCALING_FACTOR );
+	if (fullscreen) {
+		al_set_new_display_flags(ALLEGRO_FULLSCREEN_WINDOW);
+		ALLEGRO_MONITOR_INFO monitor;
+
+		if(al_get_monitor_info(0, &monitor)) {
+			int w = monitor.x2 - monitor.x1;
+			int h = monitor.y2 - monitor.y1;
+			g_scale = MIN((float)w / SCREEN_WIDTH, (float)h / SCREEN_HEIGHT);
+		}
+	}
+
+	g_display = al_create_display(SCREEN_WIDTH * g_scale, SCREEN_HEIGHT * g_scale);
 	if(!g_display) {
 		_display_error(
 			LOG_FATAL,
@@ -54,7 +66,7 @@ void display_prepare(float frequency, char * rom_title)
 	}
 
 	al_set_new_bitmap_format(ALLEGRO_PIXEL_FORMAT_ABGR_8888);
-	g_bitmap = al_create_bitmap( 160 * SCALING_FACTOR, 144 * SCALING_FACTOR );
+	g_bitmap = al_create_bitmap(SCREEN_WIDTH, SCREEN_HEIGHT);
 	if(!g_bitmap) {
 		_display_error(
 			LOG_FATAL,
@@ -101,44 +113,57 @@ void display_prepare(float frequency, char * rom_title)
 	al_flip_display();
 }
 
-
-void display_draw_line(colour line[160], int index)
+void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 {
-	debug_assert(index < 144, "display_draw_line: index out of bounds");
+	ALLEGRO_EVENT event;
+
+	bool event_present = al_get_next_event(g_event_queue, &event);
+
+	// Drop frames which would not be seen due to refresh rate
+	if(!event_present || event.type != ALLEGRO_EVENT_TIMER) {
+		logger_print(LOG_INFO, "[Display] Frame dropped\n");
+		return;
+	}
 
 	al_set_target_bitmap(g_bitmap);
-	ALLEGRO_LOCKED_REGION *lr = al_lock_bitmap_region(
+	ALLEGRO_LOCKED_REGION *lr = al_lock_bitmap(
 		g_bitmap,
-		0,
-		index*SCALING_FACTOR,
-		160*SCALING_FACTOR,
-		SCALING_FACTOR,
 		ALLEGRO_PIXEL_FORMAT_ANY,
 		ALLEGRO_LOCK_WRITEONLY
 	);
-	u8 * ptr;
 
-	for(int y=0; y<SCALING_FACTOR; y++)
-	{
-		ptr = (u8*) lr->data + y * lr->pitch;
-		for(int i=0; i<160; i++)
-		{
-			for(int j=0; j<SCALING_FACTOR; j++)
-			{
-				*ptr++ = line[i].r;
-				*ptr++ = line[i].g;
-				*ptr++ = line[i].b;
-				*ptr++ = (line[i].a) ? 0 : 255;
-			}
+	u8 *ptr = (u8*) lr->data;
+	for (int y = 0; y < SCREEN_HEIGHT; y++) {
+		colour *line = screen[y];
+
+		for(int x = 0; x < SCREEN_WIDTH; x++) {
+			*ptr++ = line[x].r;
+			*ptr++ = line[x].g;
+			*ptr++ = line[x].b;
+			*ptr++ = (line[x].a) ? 0 : 255;
 		}
-	}
-	al_unlock_bitmap(g_bitmap);
 
-	if(index == 143) {
-		al_set_target_backbuffer(g_display);
-		al_draw_bitmap(g_bitmap, 0, 0, 0);
-		al_flip_display();
+		// Bitmap is flipped, so after copying colors to a row n ptr points to
+		// first element of row n-1. We need to move to row n+1, so the row
+		// size is subtracted twice (lr->pitch is negative in upside-down
+		// bitmap).
+		ptr += lr->pitch * 2;
 	}
+
+	al_unlock_bitmap(g_bitmap);
+	al_set_target_backbuffer(g_display);
+	al_draw_scaled_bitmap(
+			g_bitmap,
+			0,
+			0,
+			SCREEN_WIDTH,
+			SCREEN_HEIGHT,
+			0,
+			0,
+			SCREEN_WIDTH * g_scale,
+			SCREEN_HEIGHT * g_scale,
+			0);
+	al_flip_display();
 }
 
 

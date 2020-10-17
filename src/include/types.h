@@ -5,6 +5,8 @@
 #include<stdint.h>
 
 #define BV(reg, bit)  (((reg) & (1 << (bit))) >> (bit))
+#define MIN(a,b) (a < b ? a : b)
+#define MAX(a,b) (a > b ? a : b)
 
 // 8 bits
 typedef uint8_t u8;
