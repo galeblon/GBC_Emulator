@@ -3,12 +3,7 @@
 
 #include"cpu.h"
 
-#define CYCLES_PER_FRAME (CPU_CLOCK_SPEED/FRAME_RATE)
-
-#define FRAME_RATE 60
-
-
-void gpu_prepare(char * rom_title);
+void gpu_prepare(char * rom_title, int frame_rate, bool fullscreen);
 void gpu_step(int cycles_delta);
 void gpu_destroy(void);
 

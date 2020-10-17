@@ -1094,6 +1094,8 @@ static palette_config const g_palette_configurations[6][29] = {
 	}
 };
 
+static colour g_gpu_screen[SCREEN_HEIGHT][SCREEN_WIDTH];
+
 
 static void _gpu_error(enum logger_log_type type, char *title, char *message)
 {
@@ -1317,9 +1319,9 @@ static void _gpu_get_colour_numbers(
 
 
 static void _gpu_put_sprites(
-	colour line[160],
-	bool bg_bit_7[160],
-	bool bg_colour_is_0[160],
+	colour line[SCREEN_WIDTH],
+	bool bg_bit_7[SCREEN_WIDTH],
+	bool bg_colour_is_0[SCREEN_WIDTH],
 	bool always_prioritised
 )
 {
@@ -1404,7 +1406,7 @@ static void _gpu_put_sprites(
 					&& sprites[i].has_priority_over_bg_1_3
 				)
 			) {
-				if(current_index >= 160)
+				if(current_index >= SCREEN_WIDTH)
 					break;
 				colour col = _gpu_get_colour(
 						colour_numbers[i][j],
@@ -1445,7 +1447,10 @@ static void _gpu_get_tile_number_attr(
 }
 
 
-static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
+static void _gpu_put_window(
+	colour line[SCREEN_WIDTH],
+	bool bg_bit_7[SCREEN_WIDTH],
+	bool bg_colour_is_0[SCREEN_WIDTH])
 {
 	//Get data
 	u8  ly              = g_gpu_reg.ly;
@@ -1494,7 +1499,7 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 		u8 current_index;
 		for(u8 j = 0; j < 8; j++)
 		{
-			current_index = (wx + i * 8 + j) % 160;
+			current_index = (wx + i * 8 + j) % SCREEN_WIDTH;
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
 			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
 			line[current_index] = _gpu_get_colour(
@@ -1507,7 +1512,11 @@ static void _gpu_put_window(colour line[160], bool bg_bit_7[160], bool bg_colour
 }
 
 
-static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_colour_is_0[160])
+static void _gpu_put_background(
+	colour line[SCREEN_WIDTH],
+	bool bg_bit_7[SCREEN_WIDTH],
+	bool bg_colour_is_0[SCREEN_WIDTH]
+)
 {
 	//Get data
 	u8 ly              = g_gpu_reg.ly;
@@ -1555,7 +1564,7 @@ static void _gpu_put_background(colour line[160], bool bg_bit_7[160], bool bg_co
 		offset = i == 0 ? scx % 8 : 0;
 		for(j = offset; j < 8; j++)
 		{
-			if(current_index >= 160)
+			if(current_index >= SCREEN_WIDTH)
 				break;
 			bg_colour_is_0[current_index] = tile_colour_numbers[j] == 0;
 			bg_bit_7[current_index]       = rom_is_cgb() ? tile_attr.has_priority_over_oam : false;
@@ -1594,13 +1603,13 @@ static void _gpu_draw_scanline(void)
 	g_sprite_height = isLCDC2(lcdc) ? 16 : 8;
 
 	if(isLCDC7(lcdc)) {
-		colour line[160];
-		bool   bg_colour_is_0[160];
-		bool   bg_bit_7[160];
+		colour *line = g_gpu_screen[g_gpu_reg.ly];
+		bool   bg_colour_is_0[SCREEN_WIDTH];
+		bool   bg_bit_7[SCREEN_WIDTH];
 
 		//Check if the screen is not fully white
 		if(!rom_is_cgb() && !isLCDC0(lcdc)) {
-			for(u8 i = 0; i < 160; i++)
+			for(u8 i = 0; i < SCREEN_WIDTH; i++)
 			{
 				line[i]           = (colour)g_cgb_ffffff;
 				bg_colour_is_0[i] = true;
@@ -1624,11 +1633,8 @@ static void _gpu_draw_scanline(void)
 				rom_is_cgb() && !isLCDC0(lcdc)
 			);
 		}
-
-		display_draw_line( line, g_gpu_reg.ly );
 	}
 }
-
 
 static void _gpu_update_lcd_status(void)
 {
@@ -1650,7 +1656,7 @@ static void _gpu_update_lcd_status(void)
 	u8 current_mode;
 	u8 hitherto_mode = stat & 0x03;
 	u8 ly = g_gpu_reg.ly;
-	if(ly >= 144)
+	if(ly >= SCREEN_HEIGHT)
 		current_mode = GPU_V_BLANK;
 	else if(g_current_clocks >= g_mode_2_boundary)
 		current_mode = GPU_OAM;
@@ -2314,7 +2320,7 @@ static void _gpu_register_mem_handler(void)
 
 }
 
-void gpu_prepare(char * rom_title)
+void gpu_prepare(char * rom_title, int frame_rate, bool fullscreen)
 {
 	_gpu_register_mem_handler();
 
@@ -2324,7 +2330,7 @@ void gpu_prepare(char * rom_title)
 
 	_gpu_restart_boundaries();
 
-	display_prepare(1.0 / FRAME_RATE, rom_title);
+	display_prepare(1.0 / frame_rate, rom_title, fullscreen);
 
 	g_gpu_reg.lcdc = 0x91;
 	g_gpu_reg.stat = 0xC0; // TODO 0x85;
@@ -2353,12 +2359,14 @@ void gpu_step(int cycles_delta)
 		//Trigger the V-Blank interrupt if in V-Blank
 		//Reset LY when we reach the end
 		//Draw the current scanline if neither
-		if(g_gpu_reg.ly == 144)
+		if(g_gpu_reg.ly == SCREEN_HEIGHT) {
 			ints_request(INT_V_BLANK);
+			display_draw(g_gpu_screen);
+		}
 		//else if(g_gpu_reg.ly > 153)
 		//	g_gpu_reg.ly = 0;
 
-		if(g_gpu_reg.ly < 144)
+		if(g_gpu_reg.ly < SCREEN_HEIGHT)
 			_gpu_draw_scanline();
 
 		//Increment the LY register

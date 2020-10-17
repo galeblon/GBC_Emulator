@@ -4,7 +4,8 @@
 #include"types.h"
 
 #define SCALING_FACTOR 1
-
+#define SCREEN_WIDTH  160
+#define SCREEN_HEIGHT 144
 
 typedef struct colour {
 	d8   r;
@@ -14,8 +15,8 @@ typedef struct colour {
 } colour;
 
 
-void display_prepare(float frequency, char * rom_title);
-void display_draw_line(colour line[160], int index);
+void display_prepare(float frequency, char * rom_title, bool fullscreen);
+void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH]);
 bool display_get_closed_status(void);
 void display_destroy(void);
 

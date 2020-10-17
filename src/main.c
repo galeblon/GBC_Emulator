@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	//TODO prepare sound
 	cpu_prepare();
 	ints_prepare();
-	gpu_prepare(title);
+	gpu_prepare(title, g_args.frame_rate, g_args.fullscreen);
 	if(!input_prepare(input_bindings))
 		return 1;
 	joypad_prepare();
