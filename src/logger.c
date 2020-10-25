@@ -50,6 +50,7 @@ static char *_logger_log_type_to_text(enum logger_log_type type)
 
 static inline FILE *_logger_get_output(enum logger_log_type type)
 {
+	/*
 	switch(type) {
 		case LOG_INFO:
 			return stdout;
@@ -61,6 +62,7 @@ static inline FILE *_logger_get_output(enum logger_log_type type)
 			return stderr;
 	}
 
+	*/
 	return NULL;
 }
 
@@ -82,6 +84,7 @@ static void _logger_store(
 	va_list args
 )
 {
+	/*
 	pthread_mutex_lock(&g_lock);
 
 	//If not full, go
@@ -115,6 +118,7 @@ static void _logger_store(
 	pthread_cond_signal(&g_condition_not_empty);
 
 	pthread_mutex_unlock(&g_lock);
+	*/
 }
 
 static void* _logger_pop(__attribute__((unused)) void* arg)
@@ -228,6 +232,7 @@ void logger_log(
 
 bool logger_prepare(void)
 {
+	/*
 	int error_code = 0;
 	error_code |= pthread_mutex_init(&g_lock, NULL);
 	error_code |= pthread_cond_init(&g_condition_not_full, NULL);
@@ -247,12 +252,13 @@ bool logger_prepare(void)
 
 		return false;
 	}
-
+	 */
 	return true;
 }
 
 void logger_destroy(void)
 {
+	/*
 	pthread_mutex_lock(&g_lock);
 	g_kill = true;
 	pthread_mutex_unlock(&g_lock);
@@ -260,4 +266,5 @@ void logger_destroy(void)
 	pthread_cond_destroy(&g_condition_not_empty);
 	pthread_cond_destroy(&g_condition_not_full);
 	pthread_mutex_destroy(&g_lock);
+	*/
 }
