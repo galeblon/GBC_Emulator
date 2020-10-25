@@ -26,9 +26,9 @@ static s8       g_start_index                 = 0,
                 g_end_index                   = 0;
 
 static pthread_t       g_logger_thread;
-static pthread_cond_t  g_condition_not_empty = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t  g_condition_not_full  = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t g_lock                = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  g_condition_not_empty;
+static pthread_cond_t  g_condition_not_full;
+static pthread_mutex_t g_lock;
 
 static char *_logger_log_type_to_text(enum logger_log_type type)
 {
@@ -228,7 +228,11 @@ void logger_log(
 
 bool logger_prepare(void)
 {
-	int error_code = pthread_create(&g_logger_thread, NULL, _logger_pop, NULL);
+	int error_code = 0;
+	error_code |= pthread_mutex_init(&g_lock, NULL);
+	error_code |= pthread_cond_init(&g_condition_not_full, NULL);
+	error_code |= pthread_cond_init(&g_condition_not_empty, NULL);
+	error_code |= pthread_create(&g_logger_thread, NULL, _logger_pop, NULL);
 	if (error_code != 0) {
 		FILE *output = _logger_get_output(LOG_FATAL);
 
@@ -253,4 +257,7 @@ void logger_destroy(void)
 	g_kill = true;
 	pthread_mutex_unlock(&g_lock);
 	pthread_join(g_logger_thread, NULL);
+	pthread_cond_destroy(&g_condition_not_empty);
+	pthread_cond_destroy(&g_condition_not_full);
+	pthread_mutex_destroy(&g_lock);
 }

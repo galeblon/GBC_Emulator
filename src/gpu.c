@@ -2361,7 +2361,7 @@ void gpu_step(int cycles_delta)
 		//Draw the current scanline if neither
 		if(g_gpu_reg.ly == SCREEN_HEIGHT) {
 			ints_request(INT_V_BLANK);
-			display_draw(g_gpu_screen);
+			display_submit(g_gpu_screen);
 		}
 		//else if(g_gpu_reg.ly > 153)
 		//	g_gpu_reg.ly = 0;

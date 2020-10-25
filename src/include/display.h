@@ -15,8 +15,8 @@ typedef struct colour {
 } colour;
 
 
-void display_prepare(float frequency, char * rom_title, bool fullscreen);
-void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH]);
+bool display_prepare(float frequency, char * rom_title, bool fullscreen);
+void display_submit(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH]);
 bool display_get_closed_status(void);
 void display_destroy(void);
 
