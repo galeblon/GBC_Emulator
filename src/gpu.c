@@ -2369,14 +2369,6 @@ void gpu_step(int cycles_delta)
 
 		if(g_gpu_reg.ly < SCREEN_HEIGHT)
 			_gpu_draw_scanline();
-
-		/* TODO delete
-		//Increment the LY register
-		if(g_gpu_reg.ly > 153)
-			g_gpu_reg.ly = 0;
-		else
-			g_gpu_reg.ly++;
-		*/
 	}
 }
 
