@@ -9,8 +9,11 @@
 #include"types.h"
 
 #define _CLOCKS_PER_SCANLINE 456
-#define _MODE_2_BOUNDS       (_CLOCKS_PER_SCANLINE - 80)
-#define _MODE_3_BOUNDS       (_MODE_2_BOUNDS - 172)
+
+#define MODE_0_CLOCKS		204
+#define MODE_1_CLOCKS		4560
+#define MODE_2_CLOCKS		80
+#define MODE_3_CLOCKS		172
 
 #define BGPDefault 0xE4 	/* Default value for BGP, b11100100 */
 
@@ -192,8 +195,6 @@ static struct {
 
 static u16       g_current_clocks                  = 0;
 static u8        g_sprite_height                   = 0;
-static u16       g_mode_2_boundary                 = 0;
-static u16       g_mode_3_boundary                 = 0;
 static s16       g_mode_clocks_counter             = 0;
 static a16       g_window_tile_map_display_address = 0;
 static a16       g_bg_window_tile_data_address     = 0;
@@ -1579,18 +1580,8 @@ static void _gpu_put_background(
 	}
 }
 
-
-static void _gpu_restart_boundaries(void)
-{
-	g_mode_2_boundary = _MODE_2_BOUNDS;
-	g_mode_3_boundary = _MODE_3_BOUNDS;
-}
-
-
 static void _gpu_draw_scanline(void)
 {
-	_gpu_restart_boundaries();
-
 	//Get LCD Controller (LCDC) Register
 	u8 lcdc = g_gpu_reg.lcdc;
 
@@ -1661,14 +1652,14 @@ static void _gpu_update_lcd_status(int cycles_delta)
 		u8 hitherto_mode = stat & 0x03;
 		u8 ly = g_gpu_reg.ly;
 		switch (hitherto_mode) {
-			case 0: // H_BLANK
+			case GPU_H_BLANK:
 				if(ly == 143) {
-					current_mode = 1;
-					g_mode_clocks_counter = 4560; // MODE_1
+					current_mode = GPU_V_BLANK;
+					g_mode_clocks_counter = MODE_1_CLOCKS;
 					request_interrupt = (stat & B3) != 0;
 				} else {
-					current_mode = 2;
-					g_mode_clocks_counter = 80; // MODE 2
+					current_mode = GPU_OAM;
+					g_mode_clocks_counter = MODE_2_CLOCKS;
 				}
 
 				// Increment ly reg
@@ -1683,17 +1674,17 @@ static void _gpu_update_lcd_status(int cycles_delta)
 					stat = stat & 0xFB;
 				}
 				break;
-			case 1: // VBlank
-				current_mode = 2;
-				g_mode_clocks_counter = 80;
+			case GPU_V_BLANK:
+				current_mode = GPU_OAM;
+				g_mode_clocks_counter = MODE_2_CLOCKS;
 				break;
-			case 2: // OAM
-				current_mode = 3;
-				g_mode_clocks_counter = 172;
+			case GPU_OAM:
+				current_mode = GPU_VRAM;
+				g_mode_clocks_counter = MODE_3_CLOCKS;
 				break;
-			case 3: // Line render
-				current_mode = 0;
-				g_mode_clocks_counter = 204;
+			case GPU_VRAM:
+				current_mode = GPU_H_BLANK;
+				g_mode_clocks_counter = MODE_0_CLOCKS;
 				mem_h_blank_notify();
 				break;
 			default:
@@ -1702,11 +1693,11 @@ static void _gpu_update_lcd_status(int cycles_delta)
 		stat = stat & 0xFC;
 		stat |= current_mode;
 
-		if((stat & B3) && current_mode == 0)
+		if((stat & B3) && current_mode == GPU_H_BLANK)
 			request_interrupt = true;
-		if((stat & B4) && current_mode == 1)
+		if((stat & B4) && current_mode == GPU_V_BLANK)
 			request_interrupt = true;
-		if((stat & B5) && current_mode == 2)
+		if((stat & B5) && current_mode == GPU_OAM)
 			request_interrupt = true;
 
 		if(request_interrupt)
@@ -1716,53 +1707,6 @@ static void _gpu_update_lcd_status(int cycles_delta)
 		g_gpu_reg.stat = stat;
 
 	}
-	/*
-	if(ly >= SCREEN_HEIGHT)
-		current_mode = GPU_V_BLANK;
-	else if(g_current_clocks >= g_mode_2_boundary)
-		current_mode = GPU_OAM;
-	else if(g_current_clocks >= g_mode_3_boundary)
-		current_mode = GPU_VRAM;
-	else
-		current_mode = GPU_H_BLANK;
-
-	//Change STAT and determine whether interrupt is needed
-	bool request_interrupt = 0;
-	stat = stat & 0xFC;
-	stat |= current_mode;
-	switch(current_mode) {
-	case GPU_H_BLANK:
-		request_interrupt = (stat & B3) != 0;
-		if (current_mode != hitherto_mode)
-			mem_h_blank_notify();
-		break;
-	case GPU_V_BLANK:
-		request_interrupt = (stat & B4) != 0;
-		break;
-	case GPU_OAM:
-		request_interrupt = (stat & B5) != 0;
-		break;
-	case GPU_VRAM:
-		break;
-	}
-	//Request an interrupt if we have just changed the mode
-	if(request_interrupt && (current_mode != hitherto_mode))
-		ints_request(INT_LCDC);
-	*/
-
-	/*
-	//Check the coincidence flag
-	u8 lyc = g_gpu_reg.lyc;
-	if(ly == lyc) {
-		stat |= B2;
-		if((stat & B6) != 0)
-			ints_request(INT_LCDC);
-	} else {
-		stat = 0x00;
-		// TODO something horrible happens because of this and I have no idea what and how.
-		// stat = stat & 0xFB;
-	}
-	*/
 }
 
 
@@ -2387,8 +2331,6 @@ void gpu_prepare(char * rom_title, int frame_rate, bool fullscreen)
 	_gpu_check_uninitialized_palettes();
 
 	_gpu_check_assigned_palette_configurations();
-
-	_gpu_restart_boundaries();
 
 	display_prepare(1.0 / frame_rate, rom_title, fullscreen);
 
