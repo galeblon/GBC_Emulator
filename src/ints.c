@@ -114,7 +114,7 @@ void ints_check(void)
 {
 	// Resolve cpu halted/stopped state
 	// Doesn't require interrupts service to be enabled
-	if (g_old_if != g_if) {
+	if(g_if & g_ie) {
 		cpu_set_halted(0);
 		cpu_set_stopped(0);
 	}

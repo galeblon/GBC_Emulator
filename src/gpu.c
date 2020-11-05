@@ -194,6 +194,7 @@ static u16       g_current_clocks                  = 0;
 static u8        g_sprite_height                   = 0;
 static u16       g_mode_2_boundary                 = 0;
 static u16       g_mode_3_boundary                 = 0;
+static s16       g_mode_clocks_counter             = 0;
 static a16       g_window_tile_map_display_address = 0;
 static a16       g_bg_window_tile_data_address     = 0;
 static const a16 g_sprite_tile_data_address        = 0x8000;
@@ -1636,7 +1637,7 @@ static void _gpu_draw_scanline(void)
 	}
 }
 
-static void _gpu_update_lcd_status(void)
+static void _gpu_update_lcd_status(int cycles_delta)
 {
 	//Get required registers
 	u8 lcdc = g_gpu_reg.lcdc;
@@ -1652,10 +1653,70 @@ static void _gpu_update_lcd_status(void)
 		return;
 	}
 
-	//Check in which mode are we now
-	u8 current_mode;
-	u8 hitherto_mode = stat & 0x03;
-	u8 ly = g_gpu_reg.ly;
+	g_mode_clocks_counter -= cycles_delta;
+	if(g_mode_clocks_counter < 0) {
+		bool request_interrupt = 0;
+		//Check in which mode are we now
+		u8 current_mode;
+		u8 hitherto_mode = stat & 0x03;
+		u8 ly = g_gpu_reg.ly;
+		switch (hitherto_mode) {
+			case 0: // H_BLANK
+				if(ly == 143) {
+					current_mode = 1;
+					g_mode_clocks_counter = 4560; // MODE_1
+					request_interrupt = (stat & B3) != 0;
+				} else {
+					current_mode = 2;
+					g_mode_clocks_counter = 80; // MODE 2
+				}
+
+				// Increment ly reg
+				g_gpu_reg.ly = (g_gpu_reg.ly + 1) % 154;
+				// Coincidence flag
+				u8 lyc = g_gpu_reg.lyc;
+				if(ly == lyc) {
+					stat |= B2;
+					if((stat & B6) != 0)
+						ints_request(INT_LCDC);
+				} else {
+					stat = stat & 0xFB;
+				}
+				break;
+			case 1: // VBlank
+				current_mode = 2;
+				g_mode_clocks_counter = 80;
+				break;
+			case 2: // OAM
+				current_mode = 3;
+				g_mode_clocks_counter = 172;
+				break;
+			case 3: // Line render
+				current_mode = 0;
+				g_mode_clocks_counter = 204;
+				mem_h_blank_notify();
+				break;
+			default:
+				break;
+		}
+		stat = stat & 0xFC;
+		stat |= current_mode;
+
+		if((stat & B3) && current_mode == 0)
+			request_interrupt = true;
+		if((stat & B4) && current_mode == 1)
+			request_interrupt = true;
+		if((stat & B5) && current_mode == 2)
+			request_interrupt = true;
+
+		if(request_interrupt)
+				ints_request(INT_LCDC);
+
+		//Save proper STAT
+		g_gpu_reg.stat = stat;
+
+	}
+	/*
 	if(ly >= SCREEN_HEIGHT)
 		current_mode = GPU_V_BLANK;
 	else if(g_current_clocks >= g_mode_2_boundary)
@@ -1684,11 +1745,12 @@ static void _gpu_update_lcd_status(void)
 	case GPU_VRAM:
 		break;
 	}
-
 	//Request an interrupt if we have just changed the mode
 	if(request_interrupt && (current_mode != hitherto_mode))
 		ints_request(INT_LCDC);
+	*/
 
+	/*
 	//Check the coincidence flag
 	u8 lyc = g_gpu_reg.lyc;
 	if(ly == lyc) {
@@ -1700,9 +1762,7 @@ static void _gpu_update_lcd_status(void)
 		// TODO something horrible happens because of this and I have no idea what and how.
 		// stat = stat & 0xFB;
 	}
-
-	//Save proper STAT
-	g_gpu_reg.stat = stat;
+	*/
 }
 
 
@@ -2333,7 +2393,8 @@ void gpu_prepare(char * rom_title, int frame_rate, bool fullscreen)
 	display_prepare(1.0 / frame_rate, rom_title, fullscreen);
 
 	g_gpu_reg.lcdc = 0x91;
-	g_gpu_reg.stat = 0xC0; // TODO 0x85;
+	g_gpu_reg.stat = 0xC0;
+	g_mode_clocks_counter = 204;
 
 	g_gpu_reg.obp0 = BGPDefault;
 	g_gpu_reg.obp1 = BGPDefault;
@@ -2346,7 +2407,7 @@ void gpu_step(int cycles_delta)
 	u8 lcdc = g_gpu_reg.lcdc;
 
 	//Update STAT register
-	_gpu_update_lcd_status();
+	_gpu_update_lcd_status(cycles_delta);
 
 	//Update cycles only if LCD is enabled
 	if(isLCDC7(lcdc))
@@ -2363,17 +2424,17 @@ void gpu_step(int cycles_delta)
 			ints_request(INT_V_BLANK);
 			display_draw(g_gpu_screen);
 		}
-		//else if(g_gpu_reg.ly > 153)
-		//	g_gpu_reg.ly = 0;
 
 		if(g_gpu_reg.ly < SCREEN_HEIGHT)
 			_gpu_draw_scanline();
 
+		/* TODO delete
 		//Increment the LY register
 		if(g_gpu_reg.ly > 153)
 			g_gpu_reg.ly = 0;
 		else
 			g_gpu_reg.ly++;
+		*/
 	}
 }
 

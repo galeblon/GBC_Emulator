@@ -650,8 +650,8 @@ static inline void _mem_io_ports_write_handler(a16 addr, u8 data)
 					// Execute General DMA all at once
 					g_dma_state = DMA_GENERAL_IN_PROGRESS;
 					g_dma_lock = DMA_CYCLES_PER_10H * (g_dma_length / 0x10);
-					cpu_set_halted(true);
 					_mem_dma(length);
+					g_dma_lock = 0;
 				} else {
 					g_dma_state = DMA_H_BLANK_IN_PROGRESS;
 				}
@@ -1106,7 +1106,6 @@ void mem_step(int cycles_delta)
 	}
 
 	if (g_dma_state == DMA_GENERAL_IN_PROGRESS && g_dma_lock == 0) {
-		cpu_set_halted(false);
 		g_dma_state = DMA_VRAM_SUCCESS;
 	}
 }
