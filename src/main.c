@@ -60,11 +60,11 @@ int main(int argc, char *argv[])
 	while ( cycles_delta != -1 && !display_get_closed_status() ) {
 		cycles_delta = cpu_single_step();
 		gpu_step(cycles_delta);
+		mem_step(cycles_delta);
 		// sound_step(cycles_delta)
 		joypad_step();
 		timer_step(cycles_delta);
 		ints_check();
-		mem_step(cycles_delta);
 	}
 
 	logger_print(LOG_INFO, "Halting emulation.\n");

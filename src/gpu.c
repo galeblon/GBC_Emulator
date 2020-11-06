@@ -1655,36 +1655,24 @@ static void _gpu_update_lcd_status(int cycles_delta)
 			case GPU_H_BLANK:
 				if(ly == 143) {
 					current_mode = GPU_V_BLANK;
-					g_mode_clocks_counter = MODE_1_CLOCKS;
+					g_mode_clocks_counter += MODE_1_CLOCKS;
 					request_interrupt = (stat & B3) != 0;
 				} else {
 					current_mode = GPU_OAM;
-					g_mode_clocks_counter = MODE_2_CLOCKS;
-				}
-
-				// Increment ly reg
-				g_gpu_reg.ly = (g_gpu_reg.ly + 1) % 154;
-				// Coincidence flag
-				u8 lyc = g_gpu_reg.lyc;
-				if(ly == lyc) {
-					stat |= B2;
-					if((stat & B6) != 0)
-						ints_request(INT_LCDC);
-				} else {
-					stat = stat & 0xFB;
+					g_mode_clocks_counter += MODE_2_CLOCKS;
 				}
 				break;
 			case GPU_V_BLANK:
 				current_mode = GPU_OAM;
-				g_mode_clocks_counter = MODE_2_CLOCKS;
+				g_mode_clocks_counter += MODE_2_CLOCKS;
 				break;
 			case GPU_OAM:
 				current_mode = GPU_VRAM;
-				g_mode_clocks_counter = MODE_3_CLOCKS;
+				g_mode_clocks_counter += MODE_3_CLOCKS;
 				break;
 			case GPU_VRAM:
 				current_mode = GPU_H_BLANK;
-				g_mode_clocks_counter = MODE_0_CLOCKS;
+				g_mode_clocks_counter += MODE_0_CLOCKS;
 				mem_h_blank_notify();
 				break;
 			default:
@@ -2369,6 +2357,18 @@ void gpu_step(int cycles_delta)
 
 		if(g_gpu_reg.ly < SCREEN_HEIGHT)
 			_gpu_draw_scanline();
+
+		// Increment ly reg
+		g_gpu_reg.ly = (g_gpu_reg.ly + 1) % 154;
+		// Coincidence flag
+		u8 lyc = g_gpu_reg.lyc;
+		if(g_gpu_reg.ly == lyc) {
+			g_gpu_reg.stat |= B2;
+			if((g_gpu_reg.stat & B6) != 0)
+				ints_request(INT_LCDC);
+		} else {
+			g_gpu_reg.stat &= 0xFB;
+		}
 	}
 }
 
