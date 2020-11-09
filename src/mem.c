@@ -670,7 +670,7 @@ static inline void _mem_io_ports_write_handler(a16 addr, u8 data)
 	case 0xFF70:
 		// SVBK: WRAM Bank selection
 		if (rom_is_cgb()) {
-			g_wram_bank = data & 0x03;
+			g_wram_bank = data & 0x07;
 			if (g_wram_bank == 0)
 				g_wram_bank = 1;
 		}

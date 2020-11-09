@@ -277,7 +277,7 @@ static struct instruction_info instruction_infos[256] = {
 		{2, "LD\tB, 0x%02X"},
 		{1, "RLCA"},
 		{3, "LD\t(0x%04X), SP"},
-		{1, "ADD\tHLC, BC"},
+		{1, "ADD\tHL, BC"},
 		{1, "LD\tA, (BC)"},
 		{1, "DEC\tBC"},
 		{1, "INC\tC"},

@@ -33,6 +33,9 @@ void cpu_set_halted(bool val);
 bool cpu_get_stopped();
 void cpu_set_stopped(bool val);
 
+// Interface for reading whether emulator is in double speed mode.
+bool cpu_is_double_speed();
+
 // For debugging purposes
 struct cpu_registers cpu_register_get();
 

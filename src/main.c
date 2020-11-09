@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 	// Main Loop
 	while ( cycles_delta != -1 && !display_get_closed_status() ) {
 		cycles_delta = cpu_single_step();
-		gpu_step(cycles_delta);
+		gpu_step(cpu_is_double_speed() ? cycles_delta/2 : cycles_delta);
 		mem_step(cycles_delta);
 		// sound_step(cycles_delta)
 		joypad_step();
