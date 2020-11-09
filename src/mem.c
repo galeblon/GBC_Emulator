@@ -131,6 +131,8 @@ static inline void _mem_dma_start(a16 total_length)
 
 static void _mem_dma(a16 length)
 {
+	int dma_lock_temp = g_dma_lock;
+	g_dma_lock = 0;
 	u8 data;
 	a16 offset = g_dma_length - g_dma_remaining;
 
@@ -141,6 +143,7 @@ static void _mem_dma(a16 length)
 		mem_write8(g_dma_dst + offset + i, data);
 	}
 
+	g_dma_lock = dma_lock_temp;
 	g_dma_remaining -= length;
 
 	if (g_dma_remaining == 0) {
@@ -486,10 +489,10 @@ static inline void _mem_write_wram(a16 addr, u8 data)
 
 static inline u8 _mem_read_wram_echo(a16 addr)
 {
-	if (addr < BASE_ADDR_WRAM)
-		return _mem_read_wram0(addr);
+	if (addr - BASE_ADDR_WRAM_ECHO + BASE_ADDR_WRAM0 < BASE_ADDR_WRAM)
+		return _mem_read_wram0(addr - BASE_ADDR_WRAM_ECHO + BASE_ADDR_WRAM0);
 
-	return _mem_read_wram(addr);
+	return _mem_read_wram(addr - BASE_ADDR_WRAM_ECHO + BASE_ADDR_WRAM0);
 }
 
 static inline void _mem_write_wram_echo(a16 addr, u8 data)
@@ -637,12 +640,9 @@ static inline void _mem_io_ports_write_handler(a16 addr, u8 data)
 			case DMA_VRAM_SUCCESS:
 			case DMA_H_BLANK_TERMINATED:
 				g_dma_dst &= 0x1FF0;
+				g_dma_dst |= 0x8000;
 				g_dma_src &= 0xFFF0;
-				length = ((data & 0x7F) + 1) << 8;
-
-				// Prevent DMA from overflowing beyond VRAM
-				if (g_dma_dst + length > SIZE_VRAM)
-					length = SIZE_VRAM - g_dma_dst;
+				length = ((data & 0x7F) + 1) * 0x10;
 
 				_mem_dma_start(length);
 
