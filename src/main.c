@@ -1,8 +1,9 @@
+#include<SDL2/SDL_main.h>
 #include<stdlib.h>
 #include"display.h"
 #include"gpu.h"
 #include"ints.h"
-#include"input.h"
+#include"events.h"
 #include"joypad.h"
 #include"logger.h"
 #include"mem.h"
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
 	cpu_prepare();
 	ints_prepare();
 	gpu_prepare(title, g_args.frame_rate, g_args.fullscreen);
-	if(!input_prepare(input_bindings))
+	if(!events_prepare(input_bindings))
 		return 1;
 	joypad_prepare();
 	timer_prepare();
@@ -69,6 +70,7 @@ int main(int argc, char *argv[])
 
 	logger_print(LOG_INFO, "Halting emulation.\n");
 
+	events_destroy();
 	gpu_destroy();
 	mem_destroy(save_path);
 	logger_destroy();
