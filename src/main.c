@@ -1,3 +1,4 @@
+#include<SDL2/SDL_main.h>
 #include<stdlib.h>
 #include"display.h"
 #include"gpu.h"

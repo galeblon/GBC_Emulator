@@ -1,8 +1,16 @@
+#include<SDL2/SDL.h>
 #include<allegro5/allegro5.h>
 #include"cpu.h"
 #include"debug.h"
 #include"display.h"
 #include"logger.h"
+
+static SDL_Window   * window   = NULL;
+static SDL_Surface  * surface  = NULL;
+static SDL_Renderer * renderer = NULL;
+static SDL_Texture  * texture  = NULL;
+static uint32_t       buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
+
 
 static ALLEGRO_BITMAP      *g_bitmap            = NULL;
 static ALLEGRO_DISPLAY     *g_display           = NULL;
@@ -25,6 +33,69 @@ static void _display_error(enum logger_log_type type, char *title, char *message
 
 void display_prepare(float frequency, char * rom_title, bool fullscreen)
 {
+
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
+        _display_error(
+			LOG_FATAL,
+			"SDL INIT",
+			SDL_GetError()
+		);
+        return;
+    }
+
+    window = SDL_CreateWindow(
+        rom_title,
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        SCREEN_WIDTH  * g_scale,
+        SCREEN_HEIGHT * g_scale,
+        SDL_WINDOW_OPENGL
+    );
+
+    if (window == NULL) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL WINDOW",
+			SDL_GetError()
+		);
+        return;
+    } else {
+    	surface = SDL_GetWindowSurface(window);
+    }
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer == NULL) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL RENDERER",
+			SDL_GetError()
+		);
+        return;
+    } else {
+    	SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    }
+
+    texture = SDL_CreateTexture(
+    	renderer,
+		SDL_PIXELFORMAT_ABGR8888,
+		SDL_TEXTUREACCESS_STREAMING,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+    );
+    if (texture == NULL) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL TEXTURE",
+			SDL_GetError()
+		);
+        return;
+    }
+
+
+
+
+
+
 	if(!al_init()) {
 		_display_error(
 			LOG_FATAL,
@@ -125,6 +196,40 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		return;
 	}
 
+
+
+	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+	SDL_RenderClear(renderer);
+
+	u8 *ptr = (u8*) buffer;
+	for (int y = 0; y < SCREEN_HEIGHT; y++) {
+
+		for(int x = 0; x < SCREEN_WIDTH; x++) {
+			*ptr++ = screen[y][x].b;
+			*ptr++ = screen[y][x].g;
+			*ptr++ = screen[y][x].r;
+			*ptr++ = (screen[y][x].a) ? SDL_ALPHA_OPAQUE : SDL_ALPHA_TRANSPARENT;
+		}
+
+	}
+
+	SDL_UpdateTexture(
+		texture,
+		NULL,
+		&buffer,
+		SCREEN_WIDTH * 4
+	);
+
+	//SDL_RenderCopy(renderer, texture, NULL, NULL);
+	SDL_RenderPresent(renderer);
+
+
+
+
+
+
+
 	al_set_target_bitmap(g_bitmap);
 	ALLEGRO_LOCKED_REGION *lr = al_lock_bitmap(
 		g_bitmap,
@@ -132,7 +237,7 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		ALLEGRO_LOCK_WRITEONLY
 	);
 
-	u8 *ptr = (u8*) lr->data;
+	ptr = (u8*) lr->data;
 	for (int y = 0; y < SCREEN_HEIGHT; y++) {
 		colour *line = screen[y];
 
@@ -187,6 +292,13 @@ bool display_get_closed_status(void)
 
 void display_destroy(void)
 {
+	if(surface != NULL)
+		SDL_FreeSurface(surface);
+	if(window != NULL)
+		SDL_DestroyWindow(window);
+	SDL_Quit();
+
+
 	al_destroy_display(g_display);
 	al_destroy_event_queue(g_event_queue);
 	al_destroy_event_queue(g_close_event_queue);
