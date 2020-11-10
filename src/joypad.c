@@ -1,12 +1,13 @@
-#include<allegro5/allegro5.h>
 #include"debug.h"
-#include"input.h"
+#include"events.h"
 #include"ints.h"
 #include"joypad.h"
 #include"mem_priv.h"
 #include"types.h"
 
+
 #define JOYPAD_INPUT_ADDR 0xFF00
+
 
 static struct all_inputs g_all_inputs;
 
@@ -82,6 +83,7 @@ void joypad_prepare(void)
 void joypad_step(void)
 {
 	struct all_inputs prev_inputs = g_all_inputs;
-	input_check_queue(&g_all_inputs);
+	g_all_inputs = events_get_inputs();
 	_joypad_check_interrupt(&prev_inputs);
 }
+

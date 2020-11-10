@@ -1,10 +1,10 @@
 #ifndef SRC_INCLUDE_INPUT_H_
 #define SRC_INCLUDE_INPUT_H_
 
+#include<SDL2/SDL.h>
 #include"types.h"
 
 #define INPUT_BINDINGS_TO_READ 15
-
 
 struct all_inputs {
 	bool DOWN;
@@ -46,7 +46,8 @@ struct input_bindings {
 };
 
 int input_prepare(struct input_bindings *input_bindings);
-void input_check_queue(struct all_inputs *inputs);
+void input_handle_event(SDL_Event event, struct all_inputs* inputs);
+void input_destroy(void);
 
 
 #endif /* SRC_INCLUDE_INPUT_H_ */
