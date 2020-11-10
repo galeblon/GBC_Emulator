@@ -5,12 +5,13 @@
 #include"display.h"
 #include"logger.h"
 
-static SDL_Window   * window   = NULL;
-static SDL_Surface  * surface  = NULL;
-static SDL_Renderer * renderer = NULL;
-static SDL_Texture  * texture  = NULL;
-static uint32_t       buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
+static SDL_Window   * g_window   = NULL;
+static SDL_Renderer * g_renderer = NULL;
+static SDL_Texture  * g_texture  = NULL;
+static uint32_t       g_buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
+
+// --------------------------------------------
 
 static ALLEGRO_BITMAP      *g_bitmap            = NULL;
 static ALLEGRO_DISPLAY     *g_display           = NULL;
@@ -21,7 +22,7 @@ static ALLEGRO_EVENT       g_event;
 
 static float g_scale = SCALING_FACTOR;
 
-static void _display_error(enum logger_log_type type, char *title, char *message)
+static void _display_error(enum logger_log_type type, char *title, const char *message)
 {
 	logger_log(
 		type,
@@ -43,7 +44,7 @@ void display_prepare(float frequency, char * rom_title, bool fullscreen)
         return;
     }
 
-    window = SDL_CreateWindow(
+    g_window = SDL_CreateWindow(
         rom_title,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
@@ -51,20 +52,21 @@ void display_prepare(float frequency, char * rom_title, bool fullscreen)
         SCREEN_HEIGHT * g_scale,
         SDL_WINDOW_OPENGL
     );
-
-    if (window == NULL) {
+    if (g_window == NULL) {
     	_display_error(
 			LOG_FATAL,
 			"SDL WINDOW",
 			SDL_GetError()
 		);
         return;
-    } else {
-    	surface = SDL_GetWindowSurface(window);
     }
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == NULL) {
+    g_renderer = SDL_CreateRenderer(
+    	g_window,
+		-1,
+		SDL_RENDERER_SOFTWARE
+	);
+    if (g_renderer == NULL) {
     	_display_error(
 			LOG_FATAL,
 			"SDL RENDERER",
@@ -72,17 +74,24 @@ void display_prepare(float frequency, char * rom_title, bool fullscreen)
 		);
         return;
     } else {
-    	SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+    	if (SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE) != 0) {
+			_display_error(
+				LOG_FATAL,
+				"SDL SET RENDER COLOR",
+				SDL_GetError()
+			);
+			return;
+		}
     }
 
-    texture = SDL_CreateTexture(
-    	renderer,
+    g_texture = SDL_CreateTexture(
+    	g_renderer,
 		SDL_PIXELFORMAT_ABGR8888,
 		SDL_TEXTUREACCESS_STREAMING,
 		SCREEN_WIDTH,
 		SCREEN_HEIGHT
     );
-    if (texture == NULL) {
+    if (g_texture == NULL) {
     	_display_error(
 			LOG_FATAL,
 			"SDL TEXTURE",
@@ -92,7 +101,7 @@ void display_prepare(float frequency, char * rom_title, bool fullscreen)
     }
 
 
-
+// --------------------------------------------
 
 
 
@@ -197,35 +206,45 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 	}
 
 
+// --------------------------------------------
 
-	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+	if (SDL_RenderClear(g_renderer) != 0) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL CLEAR",
+			SDL_GetError()
+		);
+        return;
+    }
 
-	SDL_RenderClear(renderer);
 
-	u8 *ptr = (u8*) buffer;
+
+	u8 *ptr = (u8*) g_buffer;
 	for (int y = 0; y < SCREEN_HEIGHT; y++) {
 
 		for(int x = 0; x < SCREEN_WIDTH; x++) {
-			*ptr++ = screen[y][x].b;
-			*ptr++ = screen[y][x].g;
 			*ptr++ = screen[y][x].r;
+			*ptr++ = screen[y][x].g;
+			*ptr++ = screen[y][x].b;
 			*ptr++ = (screen[y][x].a) ? SDL_ALPHA_OPAQUE : SDL_ALPHA_TRANSPARENT;
 		}
 
 	}
 
 	SDL_UpdateTexture(
-		texture,
+		g_texture,
 		NULL,
-		&buffer,
+		&g_buffer,
 		SCREEN_WIDTH * 4
 	);
 
-	//SDL_RenderCopy(renderer, texture, NULL, NULL);
-	SDL_RenderPresent(renderer);
+	SDL_RenderCopy(g_renderer, g_texture, NULL, NULL);
+	SDL_RenderPresent(g_renderer);
 
 
 
+
+// --------------------------------------------
 
 
 
@@ -292,12 +311,13 @@ bool display_get_closed_status(void)
 
 void display_destroy(void)
 {
-	if(surface != NULL)
-		SDL_FreeSurface(surface);
-	if(window != NULL)
-		SDL_DestroyWindow(window);
+	if(g_texture != NULL)
+		SDL_DestroyTexture(g_texture);
+	if(g_window != NULL)
+		SDL_DestroyWindow(g_window);
 	SDL_Quit();
 
+// --------------------------------------------
 
 	al_destroy_display(g_display);
 	al_destroy_event_queue(g_event_queue);

@@ -1,11 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
 CFLAGS_DEBUG = -g -O0 -DDEBUG
-INCL = -I./include -I/usr/include -I/usr/local/include -I/usr/local/include/SDL2
+INCL = -I./include -I/usr/include
 SRCS = cpu.c debug.c display.c gpu.c input.c ints.c joypad.c \
 	   logger.c main.c mem.c mem_rtc.c regs.c rom.c sys.c timer.c
 PKG = $$(pkg-config --libs allegro-5 allegro_primitives-5)
-LBR = -pthread -lSDL2 -lSDL2main
+LBR = -pthread -lSDL2
 OBJS = $(SRCS:.c=.o)
 BIN = gbc
 

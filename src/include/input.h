@@ -5,7 +5,6 @@
 
 #define INPUT_BINDINGS_TO_READ 15
 
-
 struct all_inputs {
 	bool DOWN;
 	bool UP;
@@ -45,6 +44,7 @@ struct input_bindings {
 	bool filled;
 };
 
+bool input_get_closed_status(void);
 int input_prepare(struct input_bindings *input_bindings);
 void input_check_queue(struct all_inputs *inputs);
 

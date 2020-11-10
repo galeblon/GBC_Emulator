@@ -3,6 +3,7 @@
 
 #include"types.h"
 
+
 #define SCALING_FACTOR 1
 #define SCREEN_WIDTH  160
 #define SCREEN_HEIGHT 144

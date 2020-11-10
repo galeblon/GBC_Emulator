@@ -1,7 +1,12 @@
+#include<SDL2/SDL.h>
 #include<allegro5/allegro5.h>
 #include"input.h"
 #include"logger.h"
 #include"types.h"
+
+
+static SDL_Event g_sdl_event;
+bool g_sdl_quit = false;
 
 static ALLEGRO_EVENT_QUEUE *g_event_queue = NULL;
 static ALLEGRO_EVENT g_event;
@@ -17,6 +22,10 @@ static void _input_error(const char *feature)
 		"INPUT MODULE",
 		"%s failure.\n",
 		feature);
+}
+
+bool input_get_closed_status() {
+	return g_sdl_quit;
 }
 
 void _input_load_default_bindings() {
@@ -139,6 +148,17 @@ void _input_fill_inputs_from_keyboard(struct all_inputs* inputs) {
 
 void input_check_queue(struct all_inputs* inputs)
 {
+	while(SDL_PollEvent(&g_sdl_event)) {
+		if(g_sdl_event.type == SDL_QUIT) {
+			g_sdl_quit = true;
+		}
+	}
+
+
+
+	// ----------------------------------------------------
+
+
 	bool event_exists = al_get_next_event(g_event_queue, &g_event);
 	bool is_keyboard = false;
 
