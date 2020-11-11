@@ -32,79 +32,12 @@ static void _display_error(enum logger_log_type type, char *title, const char *m
 	);
 }
 
-void display_prepare(float frequency, char * rom_title, bool fullscreen)
+
+// -------------- ALLEGRO SECTION --------------
+
+
+static void _display_allegro_prepare(float frequency, char * rom_title, bool fullscreen)
 {
-
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
-        _display_error(
-			LOG_FATAL,
-			"SDL INIT",
-			SDL_GetError()
-		);
-        return;
-    }
-
-    g_window = SDL_CreateWindow(
-        rom_title,
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        SCREEN_WIDTH  * g_scale,
-        SCREEN_HEIGHT * g_scale,
-        SDL_WINDOW_OPENGL
-    );
-    if (g_window == NULL) {
-    	_display_error(
-			LOG_FATAL,
-			"SDL WINDOW",
-			SDL_GetError()
-		);
-        return;
-    }
-
-    g_renderer = SDL_CreateRenderer(
-    	g_window,
-		-1,
-		SDL_RENDERER_SOFTWARE
-	);
-    if (g_renderer == NULL) {
-    	_display_error(
-			LOG_FATAL,
-			"SDL RENDERER",
-			SDL_GetError()
-		);
-        return;
-    } else {
-    	if (SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE) != 0) {
-			_display_error(
-				LOG_FATAL,
-				"SDL SET RENDER COLOR",
-				SDL_GetError()
-			);
-			return;
-		}
-    }
-
-    g_texture = SDL_CreateTexture(
-    	g_renderer,
-		SDL_PIXELFORMAT_ABGR8888,
-		SDL_TEXTUREACCESS_STREAMING,
-		SCREEN_WIDTH,
-		SCREEN_HEIGHT
-    );
-    if (g_texture == NULL) {
-    	_display_error(
-			LOG_FATAL,
-			"SDL TEXTURE",
-			SDL_GetError()
-		);
-        return;
-    }
-
-
-// --------------------------------------------
-
-
-
 	if(!al_init()) {
 		_display_error(
 			LOG_FATAL,
@@ -193,62 +126,8 @@ void display_prepare(float frequency, char * rom_title, bool fullscreen)
 	al_flip_display();
 }
 
-void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
+static void _display_allegro_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 {
-	ALLEGRO_EVENT event;
-
-	bool event_present = al_get_next_event(g_event_queue, &event);
-
-	// Drop frames which would not be seen due to refresh rate
-	if(!event_present || event.type != ALLEGRO_EVENT_TIMER) {
-		logger_print(LOG_INFO, "[Display] Frame dropped\n");
-		return;
-	}
-
-
-// --------------------------------------------
-
-	if (SDL_RenderClear(g_renderer) != 0) {
-    	_display_error(
-			LOG_FATAL,
-			"SDL CLEAR",
-			SDL_GetError()
-		);
-        return;
-    }
-
-
-
-	u8 *ptr = (u8*) g_buffer;
-	for (int y = 0; y < SCREEN_HEIGHT; y++) {
-
-		for(int x = 0; x < SCREEN_WIDTH; x++) {
-			*ptr++ = screen[y][x].r;
-			*ptr++ = screen[y][x].g;
-			*ptr++ = screen[y][x].b;
-			*ptr++ = (screen[y][x].a) ? SDL_ALPHA_OPAQUE : SDL_ALPHA_TRANSPARENT;
-		}
-
-	}
-
-	SDL_UpdateTexture(
-		g_texture,
-		NULL,
-		&g_buffer,
-		SCREEN_WIDTH * 4
-	);
-
-	SDL_RenderCopy(g_renderer, g_texture, NULL, NULL);
-	SDL_RenderPresent(g_renderer);
-
-
-
-
-// --------------------------------------------
-
-
-
-
 	al_set_target_bitmap(g_bitmap);
 	ALLEGRO_LOCKED_REGION *lr = al_lock_bitmap(
 		g_bitmap,
@@ -256,7 +135,7 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		ALLEGRO_LOCK_WRITEONLY
 	);
 
-	ptr = (u8*) lr->data;
+	u8 *ptr = (u8*) lr->data;
 	for (int y = 0; y < SCREEN_HEIGHT; y++) {
 		colour *line = screen[y];
 
@@ -291,6 +170,159 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 }
 
 
+static void _display_allegro_destroy()
+{
+	al_destroy_display(g_display);
+	al_destroy_event_queue(g_event_queue);
+	al_destroy_event_queue(g_close_event_queue);
+}
+
+
+// -------------- SDL SECTION --------------
+
+
+static void _display_sdl_prepare(float frequency, char * rom_title, bool fullscreen)
+{
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
+        _display_error(
+			LOG_FATAL,
+			"SDL INIT",
+			SDL_GetError()
+		);
+        return;
+    }
+
+    g_window = SDL_CreateWindow(
+        rom_title,
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        SCREEN_WIDTH  * g_scale,
+        SCREEN_HEIGHT * g_scale,
+        SDL_WINDOW_OPENGL
+    );
+    if (g_window == NULL) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL WINDOW",
+			SDL_GetError()
+		);
+        return;
+    }
+
+    g_renderer = SDL_CreateRenderer(
+    	g_window,
+		-1,
+		SDL_RENDERER_SOFTWARE
+	);
+    if (g_renderer == NULL) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL RENDERER",
+			SDL_GetError()
+		);
+        return;
+    } else {
+    	if (SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE) != 0) {
+			_display_error(
+				LOG_FATAL,
+				"SDL SET RENDER COLOR",
+				SDL_GetError()
+			);
+			return;
+		}
+    }
+
+    g_texture = SDL_CreateTexture(
+    	g_renderer,
+		SDL_PIXELFORMAT_ABGR8888,
+		SDL_TEXTUREACCESS_STREAMING,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+    );
+    if (g_texture == NULL) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL TEXTURE",
+			SDL_GetError()
+		);
+        return;
+    }
+}
+
+
+static void _display_sdl_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
+{
+	if (SDL_RenderClear(g_renderer) != 0) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL CLEAR",
+			SDL_GetError()
+		);
+        return;
+    }
+
+	u8 *ptr = (u8*) g_buffer;
+	for (int y = 0; y < SCREEN_HEIGHT; y++) {
+
+		for(int x = 0; x < SCREEN_WIDTH; x++) {
+			*ptr++ = screen[y][x].r;
+			*ptr++ = screen[y][x].g;
+			*ptr++ = screen[y][x].b;
+			*ptr++ = (screen[y][x].a) ? SDL_ALPHA_OPAQUE : SDL_ALPHA_TRANSPARENT;
+		}
+
+	}
+
+	SDL_UpdateTexture(
+		g_texture,
+		NULL,
+		&g_buffer,
+		SCREEN_WIDTH * 4
+	);
+
+	SDL_RenderCopy(g_renderer, g_texture, NULL, NULL);
+	SDL_RenderPresent(g_renderer);
+}
+
+
+static void _display_sdl_destroy()
+{
+	if(g_texture != NULL)
+		SDL_DestroyTexture(g_texture);
+	if(g_window != NULL)
+		SDL_DestroyWindow(g_window);
+	SDL_Quit();
+}
+
+
+// -------------- MAIN SECTION --------------
+
+
+void display_prepare(float frequency, char * rom_title, bool fullscreen)
+{
+	_display_sdl_prepare(frequency, rom_title, fullscreen);
+
+	_display_allegro_prepare(frequency, rom_title, fullscreen);
+}
+
+void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
+{
+	ALLEGRO_EVENT event;
+
+	bool event_present = al_get_next_event(g_event_queue, &event);
+
+	// Drop frames which would not be seen due to refresh rate
+	if(!event_present || event.type != ALLEGRO_EVENT_TIMER) {
+		logger_print(LOG_INFO, "[Display] Frame dropped\n");
+		return;
+	}
+
+	_display_sdl_draw(screen);
+
+	_display_allegro_draw(screen);
+}
+
+
 bool display_get_closed_status(void)
 {
 	// Fetch the event (if one exists)
@@ -311,15 +343,6 @@ bool display_get_closed_status(void)
 
 void display_destroy(void)
 {
-	if(g_texture != NULL)
-		SDL_DestroyTexture(g_texture);
-	if(g_window != NULL)
-		SDL_DestroyWindow(g_window);
-	SDL_Quit();
-
-// --------------------------------------------
-
-	al_destroy_display(g_display);
-	al_destroy_event_queue(g_event_queue);
-	al_destroy_event_queue(g_close_event_queue);
+	_display_sdl_destroy();
+	_display_allegro_destroy();
 }
