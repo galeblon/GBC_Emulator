@@ -252,5 +252,6 @@ void logger_destroy(void)
 	pthread_mutex_lock(&g_lock);
 	g_kill = true;
 	pthread_mutex_unlock(&g_lock);
+	logger_print(LOG_INFO, "Exiting logger thread.\n");
 	pthread_join(g_logger_thread, NULL);
 }
