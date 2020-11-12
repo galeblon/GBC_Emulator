@@ -47,6 +47,7 @@ struct input_bindings {
 bool input_get_closed_status(void);
 int input_prepare(struct input_bindings *input_bindings);
 void input_check_queue(struct all_inputs *inputs);
+void input_destroy(void);
 
 
 #endif /* SRC_INCLUDE_INPUT_H_ */

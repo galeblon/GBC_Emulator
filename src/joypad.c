@@ -85,3 +85,8 @@ void joypad_step(void)
 	input_check_queue(&g_all_inputs);
 	_joypad_check_interrupt(&prev_inputs);
 }
+
+void joypad_destroy(void)
+{
+	input_destroy();
+}

@@ -3,13 +3,15 @@
 #include"cpu.h"
 #include"debug.h"
 #include"display.h"
+#include"events.h"
 #include"logger.h"
 
 
-static SDL_Window   * g_window   = NULL;
-static SDL_Renderer * g_renderer = NULL;
-static SDL_Texture  * g_texture  = NULL;
+static SDL_Window   * g_window    = NULL;
+static SDL_Renderer * g_renderer  = NULL;
+static SDL_Texture  * g_texture   = NULL;
 static uint32_t       g_buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
+static SDL_TimerID    g_sdl_timer;
 
 // --------------------------------------------
 
@@ -36,7 +38,7 @@ static void _display_error(enum logger_log_type type, char *title, const char *m
 // -------------- ALLEGRO SECTION --------------
 
 
-static void _display_allegro_prepare(float frequency, char * rom_title, bool fullscreen)
+static void _display_allegro_prepare(float period, char * rom_title, bool fullscreen)
 {
 	if(!al_init()) {
 		_display_error(
@@ -47,7 +49,7 @@ static void _display_allegro_prepare(float frequency, char * rom_title, bool ful
 		return;
 	}
 
-	g_timer = al_create_timer(frequency);
+	g_timer = al_create_timer(period);
 	if (!g_timer) {
 		_display_error(
 			LOG_FATAL,
@@ -181,9 +183,29 @@ static void _display_allegro_destroy()
 // -------------- SDL SECTION --------------
 
 
-static void _display_sdl_prepare(float frequency, char * rom_title, bool fullscreen)
+static Uint32 _display_timer_callback(
+		Uint32 interval,
+		__attribute__((unused)) void * param )
 {
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
+	SDL_Event event;
+	SDL_UserEvent user_event;
+
+	user_event.type  = SDL_USEREVENT;
+	user_event.code  = 0;
+	user_event.data1 = NULL;
+	user_event.data2 = NULL;
+
+	event.type = SDL_USEREVENT;
+	event.user = user_event;
+
+	SDL_PushEvent(&event);
+	return interval;
+}
+
+
+static void _display_sdl_prepare(float period, char * rom_title, bool fullscreen)
+{
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_EVENTS) != 0) {
         _display_error(
 			LOG_FATAL,
 			"SDL INIT",
@@ -247,6 +269,16 @@ static void _display_sdl_prepare(float frequency, char * rom_title, bool fullscr
 		);
         return;
     }
+
+    g_sdl_timer = SDL_AddTimer(period * 1000, _display_timer_callback, NULL);
+    if(g_sdl_timer == 0) {
+    	_display_error(
+			LOG_FATAL,
+			"SDL TIMER",
+			SDL_GetError()
+		);
+        return;
+    }
 }
 
 
@@ -287,6 +319,8 @@ static void _display_sdl_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 
 static void _display_sdl_destroy()
 {
+	if(g_sdl_timer != 0)
+		SDL_RemoveTimer(g_sdl_timer);
 	if(g_texture != NULL)
 		SDL_DestroyTexture(g_texture);
 	if(g_window != NULL)
@@ -298,11 +332,11 @@ static void _display_sdl_destroy()
 // -------------- MAIN SECTION --------------
 
 
-void display_prepare(float frequency, char * rom_title, bool fullscreen)
+void display_prepare(float period, char * rom_title, bool fullscreen)
 {
-	_display_sdl_prepare(frequency, rom_title, fullscreen);
+	_display_sdl_prepare(period, rom_title, fullscreen);
 
-	_display_allegro_prepare(frequency, rom_title, fullscreen);
+	_display_allegro_prepare(period, rom_title, fullscreen);
 }
 
 void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
@@ -313,18 +347,26 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 
 	// Drop frames which would not be seen due to refresh rate
 	if(!event_present || event.type != ALLEGRO_EVENT_TIMER) {
-		logger_print(LOG_INFO, "[Display] Frame dropped\n");
+		logger_print(LOG_INFO, "[DISPLAY] ALLEGRO Premature frame calculation\n");
 		return;
 	}
 
-	_display_sdl_draw(screen);
-
 	_display_allegro_draw(screen);
+
+	if(!events_get_frame_status()) {
+		logger_print(LOG_INFO, "[DISPLAY] SDL Premature frame calculation\n");
+		return;
+	}
+	events_reset_frame_status();
+
+	_display_sdl_draw(screen);
 }
 
 
 bool display_get_closed_status(void)
 {
+	bool closed;
+
 	// Fetch the event (if one exists)
 	bool event_exists = al_get_next_event(g_close_event_queue, &g_event);
 
@@ -332,12 +374,16 @@ bool display_get_closed_status(void)
 		// Handle the event
 		switch (g_event.type) {
 			case ALLEGRO_EVENT_DISPLAY_CLOSE:
-				return true;
+				closed = true;
 			default:
-				return false;
+				closed = false;
 		}
 	else
-		return false;
+		closed = false;
+
+	closed |= events_get_closed_status();
+
+	return closed;
 }
 
 

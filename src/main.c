@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 	int cycles_delta = 0;
 
 	// Main Loop
-	while ( cycles_delta != -1 && !display_get_closed_status() && !input_get_closed_status()) {
+	while ( cycles_delta != -1 && !display_get_closed_status() ) {
 		cycles_delta = cpu_single_step();
 		gpu_step(cycles_delta);
 		mem_step(cycles_delta);
@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
 
 	logger_print(LOG_INFO, "Halting emulation.\n");
 
+	input_destroy();
 	gpu_destroy();
 	mem_destroy(save_path);
 	logger_destroy();

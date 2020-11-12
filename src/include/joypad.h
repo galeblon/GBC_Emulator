@@ -22,5 +22,6 @@ struct joypad_register {
 
 void joypad_prepare(void);
 void joypad_step(void);
+void joypad_destroy(void);
 
 #endif /* SRC_INCLUDE_JOYPAD_H_ */
