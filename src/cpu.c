@@ -46,6 +46,12 @@ static bool g_speed_switch = false;
 static int g_ime_delay = 0;
 static int g_ime_op = IME_OP_DI;
 
+
+bool cpu_is_double_speed() {
+	return g_double_speed;
+}
+
+
 struct cpu_registers cpu_register_get()
 {
 	return g_registers;
@@ -4969,9 +4975,9 @@ static int _cpu_set_7_a(void)
 int cpu_single_step(void)
 {
 	if(g_cpu_stopped) {
-		return 1;
+		return 4;
 	} else if(g_cpu_halted) {
-		return 1;
+		return 4;
 	} else {
 		// Fetch
 #ifdef DEBUG

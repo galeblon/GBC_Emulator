@@ -2081,16 +2081,15 @@ static void _gpu_write_bgpi(u8 new_bgpi)
 
 static u8 _gpu_read_bgpd(void)
 {
-	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
+	if(stat != GPU_VRAM)
 		return background_palette_memory[g_gpu_reg.bgpi & 0x3F];
 	else
 		_gpu_error(
 			LOG_FATAL,
-			"GPU SPD",
-			"SPD REGISTER ACCESSED OUTSIDE H- OR V-BLANK"
+			"GPU BGPD",
+			"BGPD REGISTER ACCESSED DURING MODE 3"
 		);
 
 	return -1;
@@ -2099,10 +2098,9 @@ static u8 _gpu_read_bgpd(void)
 
 static void _gpu_write_bgpd(u8 new_bgpd)
 {
-	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK) {
+	if(stat != GPU_VRAM) {
 		g_gpu_reg.bgpd = new_bgpd;
 
 		//Update BGP
@@ -2119,8 +2117,8 @@ static void _gpu_write_bgpd(u8 new_bgpd)
 	} else {
 		_gpu_error(
 			LOG_FATAL,
-			"GPU SPD",
-			"SPD REGISTER ACCESSED OUTSIDE H- OR V-BLANK"
+			"GPU BGPD",
+			"BGPD REGISTER ACCESSED DURING MODE 3"
 		);
 	}
 }
@@ -2140,16 +2138,15 @@ static void _gpu_write_spi(u8 new_spi)
 
 static u8 _gpu_read_spd(void)
 {
-	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK)
+	if(stat != GPU_VRAM)
 		return sprite_palette_memory[g_gpu_reg.spi & 0x3F];
 	else
 		_gpu_error(
 			LOG_FATAL,
 			"GPU SPD",
-			"SPD REGISTER ACCESSED OUTSIDE H- OR V-BLANK"
+			"SPD REGISTER ACCESSED DURING MODE 3"
 		);
 
 	return -1;
@@ -2158,10 +2155,9 @@ static u8 _gpu_read_spd(void)
 
 static void _gpu_write_spd(u8 new_spd)
 {
-	//Only accessible during H-BLANK or V-BLANK
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat == GPU_H_BLANK || stat == GPU_V_BLANK) {
+	if(stat != GPU_VRAM) {
 		g_gpu_reg.spd = new_spd;
 
 		//Update SP
@@ -2179,7 +2175,7 @@ static void _gpu_write_spd(u8 new_spd)
 		_gpu_error(
 			LOG_FATAL,
 			"GPU SPD",
-			"SPD REGISTER ACCESSED OUTSIDE H- OR V-BLANK"
+			"SPD REGISTER ACCESSED DURING MODE 3"
 		);
 	}
 }
