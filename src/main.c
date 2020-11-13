@@ -1,5 +1,6 @@
 #include<SDL2/SDL_main.h>
 #include<stdlib.h>
+#include<time.h>
 #include"display.h"
 #include"gpu.h"
 #include"ints.h"
@@ -14,6 +15,30 @@
 #include"sys.h"
 
 static struct sys_args g_args;
+
+#if defined(__x86_64__)
+#define SEC (1000000000)
+#define NSEC_PER_CLOCK  (SEC / CPU_CLOCK_SPEED)
+
+static inline long timespec_diff(struct timespec *t_end, struct timespec *t_start)
+{
+	return (t_end->tv_sec * SEC + t_end->tv_nsec) - (t_start->tv_sec * SEC + t_start->tv_nsec);
+}
+
+static inline void wait_clock(struct timespec *t_start, int cycles)
+{
+	int clock_div = cpu_is_double_speed() ? 4 : 2;
+
+	struct timespec t_end;
+	clock_gettime(CLOCK_MONOTONIC, &t_end);
+
+	// for some reason the theoretical cycle time divided by 2
+	// (by 4 in double speed mode) is about the right speed
+	while (timespec_diff(&t_end, t_start) < NSEC_PER_CLOCK / clock_div * cycles) {
+		clock_gettime(CLOCK_MONOTONIC, &t_end);
+	}
+}
+#endif // defined(__x86_64__)
 
 int main(int argc, char *argv[])
 {
@@ -57,8 +82,16 @@ int main(int argc, char *argv[])
 	logger_print(LOG_INFO, "Starting emulation.\n");
 	int cycles_delta = 0;
 
+#if defined(__x86_64__)
+	struct timespec t_start;
+#endif // defined(__x86_64__)
+
 	// Main Loop
 	while ( cycles_delta != -1 && !display_get_closed_status() ) {
+#if defined(__x86_64__)
+		clock_gettime(CLOCK_MONOTONIC, &t_start);
+#endif // defined(__x86_64__)
+
 		cycles_delta = cpu_single_step();
 		gpu_step(cpu_is_double_speed() ? cycles_delta/2 : cycles_delta);
 		mem_step(cycles_delta);
@@ -66,6 +99,10 @@ int main(int argc, char *argv[])
 		joypad_step();
 		timer_step(cycles_delta);
 		ints_check();
+
+#if defined(__x86_64__)
+		wait_clock(&t_start, cycles_delta);
+#endif // defined(__x86_64__)
 	}
 
 	logger_print(LOG_INFO, "Halting emulation.\n");
