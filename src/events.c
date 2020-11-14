@@ -61,14 +61,19 @@ static int _events_filter(
 		SDL_Event* event
 )
 {
+	// Both joypad and controllers events have to be catched here, don't ask me why.
 	switch(event->type) {
 		case SDL_QUIT:
 		case SDL_USEREVENT:
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
-		case SDL_JOYAXISMOTION:
+		case SDL_CONTROLLERAXISMOTION:
+		case SDL_CONTROLLERBUTTONDOWN:
+		case SDL_CONTROLLERBUTTONUP:
 		case SDL_JOYBUTTONDOWN:
 		case SDL_JOYBUTTONUP:
+		case SDL_JOYAXISMOTION:
+		case SDL_JOYHATMOTION:
 			return 1;
 			break;
 		default:
@@ -95,9 +100,9 @@ int events_thread(__attribute__((unused)) void *data)
 			//Nice idea - similarly to MEM, register input handlers
 			case SDL_KEYDOWN:
 			case SDL_KEYUP:
-			case SDL_JOYAXISMOTION:
-			case SDL_JOYBUTTONDOWN:
-			case SDL_JOYBUTTONUP:
+			case SDL_CONTROLLERAXISMOTION:
+			case SDL_CONTROLLERBUTTONDOWN:
+			case SDL_CONTROLLERBUTTONUP:
 				input_handle_event(event, &g_inputs);
 				break;
 			default:
