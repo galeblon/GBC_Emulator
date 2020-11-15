@@ -60,6 +60,8 @@ int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *op
  * Available flags:
  *     -s <save path>  path to save file, which will be loaded at startup
  *                     and saved after emulation finishes
+ *     -a              automatically try to load save from <rom_path>.sav and
+ *                     write save file to it after emulation ends
  *     -c <input bindings> path to input bindings file. For reference
  *                     check the provided input.config file
  *     -f              run in fulscreen window
@@ -69,10 +71,12 @@ int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *op
  * @param argv  argument vector form main
  * @param opts  struct to be filled
  *
- * @return	true if parsing successful, false on invalid arguments
+ * @return true if parsing successful, false on invalid arguments
  */
 bool sys_parse_args(int argc, char *argv[], struct sys_args *opts)
 {
+	bool autosave = false;
+
 	memset(opts, 0, sizeof(struct sys_args));
 
 	opts->frame_rate = DEFAULT_FRAME_RATE;
@@ -86,6 +90,9 @@ bool sys_parse_args(int argc, char *argv[], struct sys_args *opts)
 			switch (arg[1]) {
 			case 's':
 				strncpy(opts->save_path, argv[++i], PATH_LENGTH);
+				break;
+			case 'a':
+				autosave = true;
 				break;
 			case 'c':
 				_sys_load_custom_bindings(argv[++i], opts);
@@ -101,6 +108,8 @@ bool sys_parse_args(int argc, char *argv[], struct sys_args *opts)
 			}
 		} else if (opts->rom_path[0] == '\0') {
 			strncpy(opts->rom_path, argv[i], PATH_LENGTH);
+			if (autosave)
+				sprintf(opts->save_path, "%s.sav", argv[i]);
 		} else {
 			logger_print(LOG_FATAL, "Invalid arguments.\n");
 			return false;
