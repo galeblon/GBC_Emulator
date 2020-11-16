@@ -49,17 +49,6 @@ int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *op
 
 	opts->input_bindings.keyboard = bindings;
 
-	struct gamepad_bindings pad_bindings = {
-			binding_values[8],
-			binding_values[9],
-			binding_values[10],
-			binding_values[11],
-			binding_values[12],
-			binding_values[13],
-			binding_values[14]
-	};
-
-	opts->input_bindings.gamepad = pad_bindings;
 	opts->input_bindings.filled = true;
 	return 1;
 }
