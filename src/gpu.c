@@ -201,29 +201,6 @@ static void _gpu_lazy_get_sprite_rest(sprite * current_sprite, u8 number)
 }
 
 
-static sprite _gpu_get_sprite(u8 number)
-{
-	sprite current_sprite;
-
-	a16 address= OAMAddress + number * 4;
-	current_sprite.y = spriteScreenPosY( mem_read8(address) );
-	address++;
-	current_sprite.x = spriteScreenPosX( mem_read8(address) );
-	address++;
-	current_sprite.tile_number = mem_read8(address);
-	address++;
-	d8 bit_data = mem_read8(address);
-	current_sprite.palette_number_cgb =        bit_data & (B2 | B1 | B0);
-	current_sprite.vram_bank_number =         (bit_data & B3) >> 3;
-	current_sprite.palette_number_gb =        (bit_data & B4) >> 4;
-	current_sprite.flipped_x =                (bit_data & B5) == B5;
-	current_sprite.flipped_y =                (bit_data & B6) == B6;
-	current_sprite.has_priority_over_bg_1_3 = (bit_data & B7) == 0;
-
-	return current_sprite;
-}
-
-
 //vram_bank_number is 255-nullable
 static void _gpu_get_colour_numbers(
 	a16 base_address,
@@ -316,20 +293,17 @@ static void _gpu_put_sprites(
 				: (ly - sprites[i].y);
 
 		// Get tile address
-		// TODO this part is incorrect please, look into it:
 		if(g_sprite_height == 16)
 			if(line_index > 8)
-				tile_number = sprites[i].tile_number | B0;
+				tile_number = sprites[i].tile_number | 0x01;
 			else
-				tile_number = sprites[i].tile_number & (~B0);
+				tile_number = sprites[i].tile_number & 0xFE;
 		else
 			tile_number = sprites[i].tile_number;
-		//*/
 
 		//Get single sprite colour numbers
 		_gpu_get_colour_numbers(
 			g_sprite_tile_data_address,
-			//sprites[i].tile_number,
 			tile_number,
 			line_index,
 			rom_is_cgb() ? sprites[i].vram_bank_number : 255,
