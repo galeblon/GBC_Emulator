@@ -420,12 +420,9 @@ static void _gpu_put_sprites(
 				? g_sprite_height - 1 - (ly - sprites[i].y)
 				: (ly - sprites[i].y);
 
-		// Get tile address
+		// Get base tile address
 		if(g_sprite_height == 16)
-			if(line_index > 8)
-				tile_number = sprites[i].tile_number | 0x01;
-			else
-				tile_number = sprites[i].tile_number & 0xFE;
+			tile_number = sprites[i].tile_number & 0xFE;
 		else
 			tile_number = sprites[i].tile_number;
 
