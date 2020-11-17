@@ -6,3 +6,5 @@ Debug/
 *.gb
 *.o
 gbc
+/perf.data
+/perf.data.old

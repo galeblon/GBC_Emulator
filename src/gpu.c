@@ -2,11 +2,13 @@
 #include"debug.h"
 #include"display.h"
 #include"gpu.h"
+#include"gpu_gb_palettes.h"
 #include"ints.h"
 #include"logger.h"
 #include"mem_priv.h"
 #include"rom.h"
 #include"types.h"
+
 
 #define _CLOCKS_PER_SCANLINE 456
 
@@ -59,78 +61,6 @@
 #define isLCDC7(reg) ((reg & B7) != 0)
 
 
-#define g_cgb_000000 {0x00, 0x00, 0x00, false}
-#define g_cgb_0000ff {0x00, 0x00, 0xFF, false}
-#define g_cgb_adad84 {0xAD, 0xAD, 0x84, false}
-#define g_cgb_42737b {0x42, 0x73, 0x7B, false}
-#define g_cgb_ffff9c {0xFF, 0xFF, 0x9C, false}
-#define g_cgb_94b5ff {0x94, 0xB5, 0xFF, false}
-#define g_cgb_639473 {0x63, 0x94, 0x73, false}
-#define g_cgb_003a3a {0x00, 0x3A, 0x3A, false}
-#define g_cgb_6bff00 {0x6B, 0xFF, 0x00, false}
-#define g_cgb_ff524a {0xFF, 0x52, 0x4A, false}
-#define g_cgb_52de00 {0x52, 0xDE, 0x00, false}
-#define g_cgb_ff8400 {0xFF, 0x84, 0x00, false}
-#define g_cgb_ffff00 {0xFF, 0xFF, 0x00, false}
-#define g_cgb_7bff00 {0x7B, 0xFF, 0x00, false}
-#define g_cgb_b57300 {0xB5, 0x73, 0x00, false}
-#define g_cgb_ffffce {0xFF, 0xFF, 0xCE, false}
-#define g_cgb_63efef {0x63, 0xEF, 0xEF, false}
-#define g_cgb_9c8431 {0x9C, 0x84, 0x31, false}
-#define g_cgb_5a5a5a {0x5A, 0x5A, 0x5A, false}
-#define g_cgb_b5b5ff {0xB5, 0xB5, 0xFF, false}
-#define g_cgb_ffff94 {0xFF, 0xFF, 0x94, false}
-#define g_cgb_ad5a42 {0xAD, 0x5A, 0x42, false}
-#define g_cgb_63a5ff {0x63, 0xA5, 0xFF, false}
-#define g_cgb_8c8cde {0x8C, 0x8C, 0xDE, false}
-#define g_cgb_52528c {0x52, 0x52, 0x8C, false}
-#define g_cgb_7bff31 {0x7B, 0xFF, 0x31, false}
-#define g_cgb_008400 {0x00, 0x84, 0x00, false}
-#define g_cgb_ffad63 {0xFF, 0xAD, 0x63, false}
-#define g_cgb_843100 {0x84, 0x31, 0x00, false}
-#define g_cgb_ff8484 {0xFF, 0x84, 0x84, false}
-#define g_cgb_943a3a {0x94, 0x3A, 0x3A, false}
-#define g_cgb_ffe6c5 {0xFF, 0xE6, 0xC5, false}
-#define g_cgb_ce9c84 {0xCE, 0x9C, 0x84, false}
-#define g_cgb_846b29 {0x84, 0x6b, 0x29, false}
-#define g_cgb_5a3108 {0x5A, 0x31, 0x08, false}
-#define g_cgb_7b4a00 {0x7B, 0x4A, 0x00, false}
-#define g_cgb_0063c5 {0x00, 0x63, 0xC5, false}
-#define g_cgb_ffc542 {0xFF, 0xC5, 0x42, false}
-#define g_cgb_ffd600 {0xFF, 0xD6, 0x00, false}
-#define g_cgb_943a00 {0x94, 0x3A, 0x00, false}
-#define g_cgb_4a0000 {0x4A, 0x00, 0x00, false}
-#define g_cgb_ff0000 {0xFF, 0x00, 0x00, false}
-#define g_cgb_9c6300 {0x9C, 0x63, 0x00, false}
-#define g_cgb_ffce00 {0xFF, 0xCE, 0x00, false}
-#define g_cgb_006300 {0x00, 0x63, 0x00, false}
-#define g_cgb_008484 {0x00, 0x84, 0x84, false}
-#define g_cgb_ffde00 {0xFF, 0xDE, 0x00, false}
-#define g_cgb_a5a5a5 {0xA5, 0xA5, 0xA5, false}
-#define g_cgb_525252 {0x52, 0x52, 0x52, false}
-#define g_cgb_52ff00 {0x52, 0xFF, 0x00, false}
-#define g_cgb_ff4200 {0xFF, 0x42, 0x00, false}
-#define g_cgb_ff9c00 {0xFF, 0x9C, 0x00, false}
-#define g_cgb_a59cff {0xA5, 0x9C, 0xFF, false}
-#define g_cgb_ff7300 {0xFF, 0x73, 0x00, false}
-#define g_cgb_944200 {0x94, 0x42, 0x00, false}
-#define g_cgb_ff6352 {0xFF, 0x63, 0x52, false}
-#define g_cgb_d60000 {0xD6, 0x00, 0x00, false}
-#define g_cgb_630000 {0x63, 0x00, 0x00, false}
-#define g_cgb_00ff00 {0x00, 0xFF, 0x00, false}
-#define g_cgb_318400 {0x31, 0x84, 0x00, false}
-#define g_cgb_004a00 {0x00, 0x4a, 0x00, false}
-#define g_cgb_ffffa5 {0xFF, 0xFF, 0xA5, false}
-#define g_cgb_ff9494 {0xFF, 0x94, 0x94, false}
-#define g_cgb_9494ff {0x94, 0x94, 0xFF, false}
-#define g_cgb_5abdff {0x5A, 0xBD, 0xFF, false}
-#define g_cgb_ffff7b {0xFF, 0xFF, 0x7B, false}
-#define g_cgb_0084ff {0x00, 0x84, 0xFF, false}
-#define g_cgb_555555 {0x55, 0x55, 0x55, false}
-#define g_cgb_aaaaaa {0xAA, 0xAA, 0xAA, false}
-#define g_cgb_ffffff {0xFF, 0xFF, 0xFF, false}
-
-
 enum gpu_mode {
 	GPU_H_BLANK = 0,
 	GPU_V_BLANK = 1,
@@ -168,13 +98,6 @@ typedef struct bg_attr {
 } bg_attr;
 
 
-typedef struct palette_config {
-	colour bg_palette[4];
-	colour obj0_palette[4];
-	colour obj1_palette[4];
-} palette_config;
-
-
 static struct {
 	u8 lcdc;
 	u8 stat;
@@ -193,6 +116,7 @@ static struct {
 	u8 spd;
 } g_gpu_reg = {0};
 
+
 static u16       g_current_clocks                  = 0;
 static u8        g_sprite_height                   = 0;
 static s16       g_mode_clocks_counter             = 0;
@@ -210,891 +134,6 @@ static palette_config g_current_palette_configuration = {
 		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff }
 };
 
-
-static palette_config const g_palette_configurations[6][29] = {
-	{
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a }
-		},
-		{
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a }
-		},
-		{
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 }
-		}
-	},
-	{
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 },
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a }
-		},
-		{
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff },
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff },
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_ff6352, g_cgb_d60000, g_cgb_630000, g_cgb_000000 },
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 },
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a }
-		},
-		{
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a },
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_00ff00, g_cgb_318400, g_cgb_004a00 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffff00, g_cgb_ff0000, g_cgb_630000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 }
-		}
-	},
-	{
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 }
-		},
-		{
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_ff6352, g_cgb_d60000, g_cgb_630000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_00ff00, g_cgb_318400, g_cgb_004a00 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffff00, g_cgb_ff0000, g_cgb_630000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		}
-	},
-	{
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 }
-		},
-		{
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_ff6352, g_cgb_d60000, g_cgb_630000, g_cgb_000000 },
-			{ g_cgb_ff6352, g_cgb_d60000, g_cgb_630000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_00ff00, g_cgb_318400, g_cgb_004a00 },
-			{ g_cgb_ffffff, g_cgb_00ff00, g_cgb_318400, g_cgb_004a00 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffff00, g_cgb_ff0000, g_cgb_630000, g_cgb_000000 },
-			{ g_cgb_ffff00, g_cgb_ff0000, g_cgb_630000, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		}
-	},
-	{
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffc542, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_0000ff, g_cgb_ffffff, g_cgb_ffff7b, g_cgb_0084ff }
-		},
-		{
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff7b, g_cgb_0084ff, g_cgb_ff0000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffff00, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		}
-	},
-	{
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffff9c, g_cgb_94b5ff, g_cgb_639473, g_cgb_003a3a },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_6bff00, g_cgb_ffffff, g_cgb_ff524a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_52de00, g_cgb_ff8400, g_cgb_ffff00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff00, g_cgb_b57300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_52ff00, g_cgb_ff4200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff9c00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_ff0000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_a59cff, g_cgb_ffff00, g_cgb_006300, g_cgb_000000 },
-			{ g_cgb_ff6352, g_cgb_d60000, g_cgb_630000, g_cgb_000000 },
-			{ g_cgb_0000ff, g_cgb_ffffff, g_cgb_ffff7b, g_cgb_0084ff }
-		},
-		{
-			{ g_cgb_ffffce, g_cgb_63efef, g_cgb_9c8431, g_cgb_5a5a5a },
-			{ g_cgb_ffffff, g_cgb_ff7300, g_cgb_944200, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_b5b5ff, g_cgb_ffff94, g_cgb_ad5a42, g_cgb_000000 },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a },
-			{ g_cgb_000000, g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffff7b, g_cgb_0084ff, g_cgb_ff0000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffc542, g_cgb_ffd600, g_cgb_943a00, g_cgb_4a0000 },
-			{ g_cgb_ffffff, g_cgb_5abdff, g_cgb_ff0000, g_cgb_0000ff }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_8c8cde, g_cgb_52528c, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_00ff00, g_cgb_318400, g_cgb_004a00 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_000000, g_cgb_008484, g_cgb_ffde00, g_cgb_ffffff },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffff00, g_cgb_ff0000, g_cgb_630000, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_adad84, g_cgb_42737b, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_a5a5a5, g_cgb_525252, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffa5, g_cgb_ff9494, g_cgb_9494ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffe6c5, g_cgb_ce9c84, g_cgb_846b29, g_cgb_5a3108 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffad63, g_cgb_843100, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffff00, g_cgb_7b4a00, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_008400, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ffce00, g_cgb_9c6300, g_cgb_000000 }
-		},
-		{
-			{ g_cgb_ffffff, g_cgb_7bff31, g_cgb_0063c5, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_ff8484, g_cgb_943a3a, g_cgb_000000 },
-			{ g_cgb_ffffff, g_cgb_63a5ff, g_cgb_0000ff, g_cgb_000000 }
-		}
-	}
-};
 
 static colour g_gpu_screen[SCREEN_HEIGHT][SCREEN_WIDTH];
 
@@ -1261,26 +300,32 @@ static colour _gpu_get_colour(u8 colour_number, u8 palette_number, enum gpu_draw
 }
 
 
-static sprite _gpu_get_sprite(u8 number)
+static sprite _gpu_lazy_get_sprite(u8 number)
 {
 	sprite current_sprite;
 
 	a16 address= OAMAddress + number * 4;
 	current_sprite.y = spriteScreenPosY( mem_read8(address) );
-	address++;
-	current_sprite.x = spriteScreenPosX( mem_read8(address) );
-	address++;
-	current_sprite.tile_number = mem_read8(address);
-	address++;
-	d8 bit_data = mem_read8(address);
-	current_sprite.palette_number_cgb =        bit_data & (B2 | B1 | B0);
-	current_sprite.vram_bank_number =         (bit_data & B3) >> 3;
-	current_sprite.palette_number_gb =        (bit_data & B4) >> 4;
-	current_sprite.flipped_x =                (bit_data & B5) == B5;
-	current_sprite.flipped_y =                (bit_data & B6) == B6;
-	current_sprite.has_priority_over_bg_1_3 = (bit_data & B7) == 0;
 
 	return current_sprite;
+}
+
+
+static void _gpu_lazy_get_sprite_rest(sprite * current_sprite, u8 number)
+{
+	a16 address= OAMAddress + number * 4 + 1;
+
+	current_sprite->x = spriteScreenPosX( mem_read8(address) );
+	address++;
+	current_sprite->tile_number = mem_read8(address);
+	address++;
+	d8 bit_data = mem_read8(address);
+	current_sprite->palette_number_cgb =        bit_data & (B2 | B1 | B0);
+	current_sprite->vram_bank_number =         (bit_data & B3) >> 3;
+	current_sprite->palette_number_gb =        (bit_data & B4) >> 4;
+	current_sprite->flipped_x =                (bit_data & B5) == B5;
+	current_sprite->flipped_y =                (bit_data & B6) == B6;
+	current_sprite->has_priority_over_bg_1_3 = (bit_data & B7) == 0;
 }
 
 
@@ -1330,19 +375,25 @@ static void _gpu_put_sprites(
 	//Get up to 10 sprites in current scanline
 	u8 ly = g_gpu_reg.ly;
 	u8 sprite_index = 0;
+	u8 sprite_numbers[10];
 	sprite sprites[10];
 	sprite current_sprite;
 	for(u8 i = 0; i < 40; i++)
 	{
-		current_sprite = _gpu_get_sprite(i);
+		current_sprite = _gpu_lazy_get_sprite(i);
 
 		if( ly < current_sprite.y + g_sprite_height && ly >= current_sprite.y ) {
-			sprites[sprite_index] = current_sprite;
+			sprite_numbers[sprite_index] = i;
+			sprites[sprite_index]        = current_sprite;
 			sprite_index++;
 			if(sprite_index == 10)
 				break;
 		}
 	}
+
+	//Get rest of sprite info
+	for(u8 i=0; i<sprite_index; i++)
+		_gpu_lazy_get_sprite_rest(&(sprites[i]), sprite_numbers[i]);
 
 	//Sort based on Z-priority
 	if(!rom_is_cgb())
@@ -1360,7 +411,7 @@ static void _gpu_put_sprites(
 
 	//Get colour numbers
 	u8 colour_numbers[10][8];
-	//d8 tile_number;
+	d8 tile_number;
 	d8 line_index;
 	for(u8 i = 0; i < sprite_index; i++)
 	{
@@ -1369,21 +420,16 @@ static void _gpu_put_sprites(
 				? g_sprite_height - 1 - (ly - sprites[i].y)
 				: (ly - sprites[i].y);
 
-		//Get tile address
-		/* TODO this part is incorrect please, look into it:
+		// Get base tile address
 		if(g_sprite_height == 16)
-			if(line_index > 8)
-				tile_number = sprites[i].tile_number | B0;
-			else
-				tile_number = sprites[i].tile_number & !B0;
+			tile_number = sprites[i].tile_number & 0xFE;
 		else
 			tile_number = sprites[i].tile_number;
-		*/
 
 		//Get single sprite colour numbers
 		_gpu_get_colour_numbers(
 			g_sprite_tile_data_address,
-			sprites[i].tile_number,
+			tile_number,
 			line_index,
 			rom_is_cgb() ? sprites[i].vram_bank_number : 255,
 			sprites[i].flipped_x,
