@@ -1,59 +1,8 @@
-#ifndef GPU_STATICS_H_
-#define GPU_STATICS_H_
+#ifndef GPU_GB_PALETTES_H_
+#define GPU_GB_PALETTES_H_
 
 
 #include"types.h"
-
-
-#define _CLOCKS_PER_SCANLINE 456
-
-#define MODE_0_CLOCKS		204
-#define MODE_1_CLOCKS		4560
-#define MODE_2_CLOCKS		80
-#define MODE_3_CLOCKS		172
-
-#define BGPDefault 0xE4 	/* Default value for BGP, b11100100 */
-
-#define OAMAddress  0xFE00 	/* Sprite Attribute Table / Object Attribute Memory */
-
-#define LCDCAddress 0xFF40 	/* LCD Controller */
-#define STATAddress 0xFF41 	/* LCD Controller Status*/
-#define SCYAddress  0xFF42 	/* Background Y Scroll position */
-#define SCXAddress  0xFF43 	/* Background X Scroll position */
-#define LYAddress   0xFF44 	/* LCD Controller Y-Coordinate */
-#define LYCAddress  0xFF45 	/* LY Compare */
-
-#define BGPAddress  0xFF47 	/* Background & Window Palette Data */
-#define OBP0Address 0xFF48 	/* Object Palette 0 Data */
-#define OBP1Address 0xFF49 	/* Object Palette 1 Data */
-#define WYAddress   0xFF4A 	/* Window Y Position */
-#define WXAddress   0xFF4B 	/* Window X Position */
-
-#define BGPIAddress 0xFF68 	/* Background Palette Index */
-#define BGPDAddress 0xFF69 	/* Background Palette Data */
-#define SPIAddress  0xFF6A 	/* Sprite Palette Index */
-#define SPDAddress  0xFF6B 	/* Sprite Palette Data */
-
-#define spriteScreenPosX(SpriteX) (SpriteX-8)
-#define spriteScreenPosY(SpriteY) (SpriteY-16)
-
-#define B0 0x01
-#define B1 0x02
-#define B2 0x04
-#define B3 0x08
-#define B4 0x10
-#define B5 0x20
-#define B6 0x40
-#define B7 0x80
-
-#define isLCDC0(reg) ((reg & B0) != 0)
-#define isLCDC1(reg) ((reg & B1) != 0)
-#define isLCDC2(reg) ((reg & B2) != 0)
-#define isLCDC3(reg) ((reg & B3) != 0)
-#define isLCDC4(reg) ((reg & B4) != 0)
-#define isLCDC5(reg) ((reg & B5) != 0)
-#define isLCDC6(reg) ((reg & B6) != 0)
-#define isLCDC7(reg) ((reg & B7) != 0)
 
 
 #define g_cgb_000000 {0x00, 0x00, 0x00, false}
@@ -128,84 +77,11 @@
 #define g_cgb_ffffff {0xFF, 0xFF, 0xFF, false}
 
 
-enum gpu_mode {
-	GPU_H_BLANK = 0,
-	GPU_V_BLANK = 1,
-	GPU_OAM     = 2,
-	GPU_VRAM    = 3
-};
-
-
-enum gpu_drawing_type {
-	BACKGROUND,
-	WINDOW,
-	SPRITE
-};
-
-
-typedef struct sprite {
-	d8   x;
-	d8   y;
-	d8   tile_number;
-	d8   palette_number_cgb;
-	d8   vram_bank_number;
-	d8   palette_number_gb;
-	bool flipped_x;
-	bool flipped_y;
-	bool has_priority_over_bg_1_3;
-} sprite;
-
-
-typedef struct bg_attr {
-	d8   bgp_number;
-	d8   vram_bank_number;
-	bool flipped_x;
-	bool flipped_y;
-	bool has_priority_over_oam;
-} bg_attr;
-
-
 typedef struct palette_config {
 	colour bg_palette[4];
 	colour obj0_palette[4];
 	colour obj1_palette[4];
 } palette_config;
-
-
-static struct {
-	u8 lcdc;
-	u8 stat;
-	u8 scy;
-	u8 scx;
-	u8 ly;
-	u8 lyc;
-	u8 bgp;
-	u8 obp0;
-	u8 obp1;
-	u8 wy;
-	u8 wx;
-	u8 bgpi;
-	u8 bgpd;
-	u8 spi;
-	u8 spd;
-} g_gpu_reg = {0};
-
-static u16       g_current_clocks                  = 0;
-static u8        g_sprite_height                   = 0;
-static s16       g_mode_clocks_counter             = 0;
-static a16       g_window_tile_map_display_address = 0;
-static a16       g_bg_window_tile_data_address     = 0;
-static const a16 g_sprite_tile_data_address        = 0x8000;
-static a16       g_bg_tile_map_display_address     = 0;
-
-
-static d8 background_palette_memory[64];
-static d8 sprite_palette_memory[64];
-static palette_config g_current_palette_configuration = {
-		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff },
-		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff },
-		{ g_cgb_000000, g_cgb_555555, g_cgb_aaaaaa, g_cgb_ffffff }
-};
 
 
 static palette_config const g_palette_configurations[6][29] = {
@@ -1093,6 +969,4 @@ static palette_config const g_palette_configurations[6][29] = {
 	}
 };
 
-static colour g_gpu_screen[SCREEN_HEIGHT][SCREEN_WIDTH];
-
-#endif /* GPU_STATICS_H_ */
+#endif /* GPU_GB_PALETTES_H_ */
