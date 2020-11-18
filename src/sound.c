@@ -35,34 +35,39 @@
 #define WAVEFORM_RAM_END_ADDRESS 0xFF3F
 
 
-// Channel 1
-d8 g_channel1_sweep_register = 0;
-d8 g_channel1_sound_length_wave_pattern_duty = 0;
-d8 g_channel1_volume_envelope = 0;
-d8 g_channel1_frequency_lo = 0;
-d8 g_channel1_frequency_hi = 0;
+struct channel1_attributes {
+	d8 sweep_register;
+	d8 sound_length_wave_pattern_duty;
+	d8 volume_envelope;
+	d8 frequency_lo;
+	d8 frequency_hi;
+} g_channel1;
 
-// Channel 2
-d8 g_channel2_sound_length_wave_pattern_duty = 0;
-d8 g_channel2_volume_envelope = 0;
-d8 g_channel2_frequency_lo = 0;
-d8 g_channel2_frequency_hi = 0;
+struct channel2_attributes {
+	d8 sound_length_wave_pattern_duty;
+	d8 volume_envelope;
+	d8 frequency_lo;
+	d8 frequency_hi;
+} g_channel2;
 
-// Channel 3
-d8 g_channel3_sound_on_off = 0;
-d8 g_channel3_sound_length = 0;
-d8 g_channel3_select_output_level = 0;
-d8 g_channel3_frequency_lo = 0;
-d8 g_channel3_frequency_hi = 0;
+struct channel3_attributes {
+	d8 sound_on_off;
+	d8 sound_length;
+	d8 select_output_level;
+	d8 frequency_lo;
+	d8 frequency_hi;
+} g_channel3;
+
 d8 g_wave_pattern_ram[16];
 
-// Channel 4
-d8 g_channel4_sound_length = 0;
-d8 g_channel4_volume_envelope = 0;
-d8 g_channel4_polynomial_counter = 0;
-d8 g_channel4_counter_consecutive = 0;
-d8 g_channel4_frequency_lo = 0;
-d8 g_channel4_frequency_hi = 0;
+struct channel4_attributes {
+	d8 sound_length;
+	d8 volume_envelope;
+	d8 polynomial_counter;
+	d8 counter_consecutive;
+	d8 frequency_lo;
+	d8 frequency_hi;
+} g_channel4;
 
 // General
 d8 g_channel_control = 0;
@@ -77,55 +82,54 @@ static u8 _sound_read_handler(a16 addr)
 	}
 	switch(addr) {
 		case CH1_SWEEP_REG_ADDRESS:
-			return g_channel1_sweep_register;
+			return g_channel1.sweep_register;
 			break;
 		case CH1_SND_LEN_PATTERN_ADDRESS:
-			return g_channel1_sound_length_wave_pattern_duty & 0xC0;
+			return g_channel1.sound_length_wave_pattern_duty & 0xC0;
 		case CH1_VOL_ENVELOPE_ADDRESS:
-			return g_channel1_volume_envelope;
+			return g_channel1.volume_envelope;
 		case CH1_FREQ_LO_ADDRESS:
 			debug_assert(false, "_sound_read_handler: write only address");
 			return 0;
 		case CH1_FREQ_HI_ADDRESS:
-			return g_channel1_frequency_hi & 0x40;
+			return g_channel1.frequency_hi & 0x40;
 		case CH2_SND_LEN_PATTERN_ADDRESS:
-			return g_channel2_sound_length_wave_pattern_duty & 0xC0;
+			return g_channel2.sound_length_wave_pattern_duty & 0xC0;
 		case CH2_VOL_ENVELOPE_ADDRESS:
-			return g_channel1_volume_envelope;
+			return g_channel1.volume_envelope;
 		case CH2_FREQ_LO_ADDRESS:
 			debug_assert(false, "_sound_read_handler: write only address");
 			return 0;
 		case CH2_FREQ_HI_ADDRESS:
-			return g_channel2_frequency_hi & 0x40;
+			return g_channel2.frequency_hi & 0x40;
 		case CH3_SND_ON_OFF_ADDRESS:
-			return g_channel3_sound_on_off;
+			return g_channel3.sound_on_off;
 		case CH3_SND_LEN_ADDRESS:
-			return g_channel3_sound_length;
+			return g_channel3.sound_length;
 		case CH3_SND_SEL_OUT_LVL_ADDRESS:
-			return g_channel3_select_output_level;
+			return g_channel3.select_output_level;
 		case CH3_FREQ_LO_ADDRESS:
 			debug_assert(false, "_sound_read_handler: write only address");
 			return 0;
 		case CH3_FREQ_HI_ADDRESS:
-			return g_channel3_frequency_hi & 0x40;
+			return g_channel3.frequency_hi & 0x40;
 		case CH4_SND_LEN_ADDRESS:
-			return g_channel4_sound_length;
+			return g_channel4.sound_length;
 		case CH4_VOL_ENVELOPE_ADDRESS:
-			return g_channel4_volume_envelope;
+			return g_channel4.volume_envelope;
 		case CH4_POLY_COUNT_ADDRESS:
-			return g_channel4_polynomial_counter;
+			return g_channel4.polynomial_counter;
 		case CH4_COUNTER_CONSECUTIVE_ADDRESS:
-			return g_channel4_counter_consecutive & 0x7F;
+			return g_channel4.counter_consecutive & 0x7F;
 		case CHANNEL_CONTROL_ADDRESS:
 			return g_channel_control;
 		case SOUND_TERMINAL_SELECTION_ADDRESS:
 			return g_sound_output_terminal;
 		case SOUND_ON_OFF_ADDRESS:
-			return g_sound_on_off & (g_channel3_sound_on_off >> 4);
-		default:
-			debug_assert(false, "_sound_read_handler: invalid address");
-			return 0;
+			return g_sound_on_off & (g_channel3.sound_on_off >> 4);
 	}
+	debug_assert(false, "_sound_read_handler: invalid address");
+	return 0;
 }
 
 static void _sound_write_handler(a16 addr, u8 data)
@@ -136,58 +140,58 @@ static void _sound_write_handler(a16 addr, u8 data)
 	}
 	switch(addr) {
 		case CH1_SWEEP_REG_ADDRESS:
-			g_channel1_sweep_register = data;
+			g_channel1.sweep_register = data;
 			break;
 		case CH1_SND_LEN_PATTERN_ADDRESS:
-			g_channel1_sound_length_wave_pattern_duty = data;
+			g_channel1.sound_length_wave_pattern_duty = data;
 			break;
 		case CH1_VOL_ENVELOPE_ADDRESS:
-			g_channel1_volume_envelope = data;
+			g_channel1.volume_envelope = data;
 			break;
 		case CH1_FREQ_LO_ADDRESS:
-			g_channel1_frequency_lo = data;
+			g_channel1.frequency_lo = data;
 			break;
 		case CH1_FREQ_HI_ADDRESS:
-			g_channel1_frequency_hi = data;
+			g_channel1.frequency_hi = data;
 			break;
 		case CH2_SND_LEN_PATTERN_ADDRESS:
-			g_channel2_sound_length_wave_pattern_duty = data;
+			g_channel2.sound_length_wave_pattern_duty = data;
 			break;
 		case CH2_VOL_ENVELOPE_ADDRESS:
-			g_channel2_volume_envelope = data;
+			g_channel2.volume_envelope = data;
 			break;
 		case CH2_FREQ_LO_ADDRESS:
-			g_channel2_frequency_lo = data;
+			g_channel2.frequency_lo = data;
 			break;
 		case CH2_FREQ_HI_ADDRESS:
-			g_channel2_frequency_hi = data;
+			g_channel2.frequency_hi = data;
 			break;
 		case CH3_SND_ON_OFF_ADDRESS:
-			g_channel3_sound_on_off = data & 0x80;
+			g_channel3.sound_on_off = data & 0x80;
 			break;
 		case CH3_SND_LEN_ADDRESS:
-			g_channel3_sound_length = data;
+			g_channel3.sound_length = data;
 			break;
 		case CH3_SND_SEL_OUT_LVL_ADDRESS:
-			g_channel3_select_output_level = data & 0x60;
+			g_channel3.select_output_level = data & 0x60;
 			break;
 		case CH3_FREQ_LO_ADDRESS:
-			g_channel3_frequency_lo = data;
+			g_channel3.frequency_lo = data;
 			break;
 		case CH3_FREQ_HI_ADDRESS:
-			g_channel3_frequency_hi = data;
+			g_channel3.frequency_hi = data;
 			break;
 		case CH4_SND_LEN_ADDRESS:
-			g_channel4_sound_length = data & 0x3F;
+			g_channel4.sound_length = data & 0x3F;
 			break;
 		case CH4_VOL_ENVELOPE_ADDRESS:
-			g_channel4_volume_envelope = data;
+			g_channel4.volume_envelope = data;
 			break;
 		case CH4_POLY_COUNT_ADDRESS:
-			g_channel4_polynomial_counter = data;
+			g_channel4.polynomial_counter = data;
 			break;
 		case CH4_COUNTER_CONSECUTIVE_ADDRESS:
-			g_channel4_counter_consecutive = data;
+			g_channel4.counter_consecutive = data;
 			break;
 		case CHANNEL_CONTROL_ADDRESS:
 			g_channel_control = data;
