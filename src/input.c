@@ -29,8 +29,8 @@ static void _input_load_default_bindings() {
 	struct keyboard_bindings bindings = {
 			SDLK_z,
 			SDLK_x,
-			SDLK_s,
-			SDLK_a,
+			SDLK_RETURN,
+			SDLK_SPACE,
 			SDLK_UP,
 			SDLK_DOWN,
 			SDLK_LEFT,
