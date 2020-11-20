@@ -1129,16 +1129,7 @@ static u8 _gpu_read_bgpd(void)
 {
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat != GPU_VRAM)
-		return background_palette_memory[g_gpu_reg.bgpi & 0x3F];
-	else
-		_gpu_error(
-			LOG_FATAL,
-			"GPU BGPD",
-			"BGPD REGISTER ACCESSED DURING MODE 3"
-		);
-
-	return -1;
+	return background_palette_memory[g_gpu_reg.bgpi & 0x3F];
 }
 
 
@@ -1146,26 +1137,18 @@ static void _gpu_write_bgpd(u8 new_bgpd)
 {
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat != GPU_VRAM) {
-		g_gpu_reg.bgpd = new_bgpd;
+	g_gpu_reg.bgpd = new_bgpd;
 
-		//Update BGP
-		u8 bgpi = _gpu_read_bgpi();
-		_gpu_write_bgpm((bgpi & 0x3F), new_bgpd);
+	//Update BGP
+	u8 bgpi = _gpu_read_bgpi();
+	_gpu_write_bgpm((bgpi & 0x3F), new_bgpd);
 
-		//Increment BGPI if required
-		if((bgpi & B7) == B7) {
-			d8 new_bgpi = bgpi;
-			new_bgpi++;
-			new_bgpi = new_bgpi & 0xBF;
-			_gpu_write_bgpi(new_bgpi);
-		}
-	} else {
-		_gpu_error(
-			LOG_FATAL,
-			"GPU BGPD",
-			"BGPD REGISTER ACCESSED DURING MODE 3"
-		);
+	//Increment BGPI if required
+	if((bgpi & B7) == B7) {
+		d8 new_bgpi = bgpi;
+		new_bgpi++;
+		new_bgpi = new_bgpi & 0xBF;
+		_gpu_write_bgpi(new_bgpi);
 	}
 }
 
@@ -1186,16 +1169,7 @@ static u8 _gpu_read_spd(void)
 {
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat != GPU_VRAM)
-		return sprite_palette_memory[g_gpu_reg.spi & 0x3F];
-	else
-		_gpu_error(
-			LOG_FATAL,
-			"GPU SPD",
-			"SPD REGISTER ACCESSED DURING MODE 3"
-		);
-
-	return -1;
+	return sprite_palette_memory[g_gpu_reg.spi & 0x3F];
 }
 
 
@@ -1203,26 +1177,18 @@ static void _gpu_write_spd(u8 new_spd)
 {
 	u8 stat = g_gpu_reg.stat;
 	stat &= 0x03;
-	if(stat != GPU_VRAM) {
-		g_gpu_reg.spd = new_spd;
+	g_gpu_reg.spd = new_spd;
 
-		//Update SP
-		u8 spi = _gpu_read_spi();
-		_gpu_write_spm((spi & 0x3F), new_spd);
+	//Update SP
+	u8 spi = _gpu_read_spi();
+	_gpu_write_spm((spi & 0x3F), new_spd);
 
-		//Increment BGPI if required
-		if((spi & B7) == B7) {
-			u8 new_spi = spi;
-			new_spi++;
-			new_spi = new_spi & 0xBF;
-			_gpu_write_spi(new_spi);
-		}
-	} else {
-		_gpu_error(
-			LOG_FATAL,
-			"GPU SPD",
-			"SPD REGISTER ACCESSED DURING MODE 3"
-		);
+	//Increment BGPI if required
+	if((spi & B7) == B7) {
+		u8 new_spi = spi;
+		new_spi++;
+		new_spi = new_spi & 0xBF;
+		_gpu_write_spi(new_spi);
 	}
 }
 

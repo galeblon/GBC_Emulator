@@ -2,14 +2,15 @@
 #include<stdlib.h>
 #include<time.h>
 #include"display.h"
+#include"events.h"
 #include"gpu.h"
 #include"ints.h"
-#include"events.h"
 #include"joypad.h"
 #include"logger.h"
 #include"mem.h"
 #include"regs.h"
 #include"rom.h"
+#include"sound.h"
 #include"timer.h"
 #include"types.h"
 #include"sys.h"
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
 	logger_print(LOG_INFO, "ROM title: %.16s\n", title);
 
 	//TODO prepare memory and fill stack with data according to powerup sequence
-	//TODO prepare sound
+	sound_prepare();
 	cpu_prepare();
 	ints_prepare();
 	gpu_prepare(title, g_args.frame_rate, g_args.fullscreen);
