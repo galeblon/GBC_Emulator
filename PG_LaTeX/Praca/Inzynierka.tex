@@ -1,0 +1,75 @@
+\documentclass[nostrict]{szablonPG}
+
+%-------------------- Dodatkowe pakiety ---------------------
+\usepackage{listing_schemat}
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%			      Początek pracy dyplomowej  
+%------------------------------------------------------------
+
+\begin{document}
+
+%------------------------------------------------------------
+%  Dodanie strony tytułowej wygenerowanej z MojaPG oraz 
+%  						oświadczenia
+
+%\includepdf{meta/strona_tytulowa.pdf}
+%\includepdf{meta/oswiadczenie.pdf}
+
+%------------------------------------------------------------
+%  Dodanie streszczenia i abstract
+%  						
+
+\input{meta/streszczenie.tex}
+\input{meta/abstract.tex}
+
+%------------------------------------------------------------
+%	Utworzenie spisu treści pracy dyplomowej
+\tableofcontents
+
+%------------------------------------------------------------
+%	Dodanie wykazu wazniejszych skrótów i oznaczeń 
+\input{meta/oznaczenia.tex}
+
+%------------------------------------------------------------
+%	Dodanie rozdziałów pracy dyplomowej - główne ciało dokumentu 
+
+\input{rozdzialy/r1_wstep.tex}
+\input{rozdzialy/r2_czesc_analityczna.tex}
+\input{rozdzialy/r3_analiza_problemu.tex}
+\input{rozdzialy/r4_architektura_systemu.tex}
+\input{rozdzialy/r5_implementacja.tex}
+\input{rozdzialy/r6_testy_wyniki.tex}
+\input{rozdzialy/r7_instrukcja_zrzuty.tex}
+\input{rozdzialy/r8_podsumowanie.tex}
+
+
+% ---------------------- Bibliografia -----------------------
+\input{meta/Bibliografia.tex} % dodanie pliku bibliografii
+% -----------------------------------------------------------
+
+%------------------------------------------------------------
+%	Dodanie wykazu rysunków oraz tabeli
+
+\renewcommand{\baselinestretch}{1.0}\normalsize	% interlinia w sekcji wykazów
+\addcontentsline{toc}{chapter}{\listfigurename}	% dodanie wykazu rysunków do spisu treści
+\listoffigures									% generacja wykazu rysunków
+
+\addcontentsline{toc}{chapter}{\listtablename}	% dodanie wykazu tabel do spisu treści
+\listoftables									% generacja wykazu tabel
+\renewcommand{\baselinestretch}{1.3}\normalsize	% powrót do interlinii 1.5
+
+
+% ---------------------- DODATKI -----------------------
+%\chapter*{Dodatek A}
+%\addcontentsline{toc}{chapter}{Dodatek A}
+% Zależnie od dodatku, zaleca się dodawać dodatki jako
+% dokumenty PDF
+% \includepdf{dodatki/dodatek1.pdf}
+
+% -----------------------------------------------------------
+\end{document}
+%------------------------------------------------------------
+			 	%	Koniec pracy dyplomowej  %
+%------------------------------------------------------------
