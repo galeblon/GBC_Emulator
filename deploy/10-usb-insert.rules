@@ -1,0 +1,1 @@
+KERNEL=="sda", RUN+="/bin/bash /home/pi/script/udev-script.sh"
