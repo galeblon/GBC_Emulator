@@ -12,7 +12,7 @@ dpkg -i usbmount_0.0.24_all.deb; sudo apt-get install -y -f
 
 shopt -s dotglob
 cp -r ./home/* /home/pi
-chown -R /home/pi
+chown -R pi /home/pi
 
 cp 10-usb-insert.rules /etc/udev/rules.d/
 
