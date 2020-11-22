@@ -104,6 +104,13 @@ int events_thread(__attribute__((unused)) void *data)
 			case SDL_CONTROLLERBUTTONDOWN:
 			case SDL_CONTROLLERBUTTONUP:
 				input_handle_event(event, &g_inputs);
+
+				if (g_inputs.QUIT) {
+					g_closed = true;
+					SDL_UnlockMutex(g_mutex);
+					return 0;
+				}
+
 				break;
 			default:
 				break;

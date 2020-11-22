@@ -27,29 +27,32 @@ static void _input_error(const char *feature)
 
 static void _input_load_default_bindings() {
 	struct keyboard_bindings bindings = {
-			SDLK_z,
-			SDLK_x,
-			SDLK_RETURN,
-			SDLK_SPACE,
-			SDLK_UP,
-			SDLK_DOWN,
-			SDLK_LEFT,
-			SDLK_RIGHT
+			.a_button = SDLK_z,
+			.b_button = SDLK_x,
+			.start    = SDLK_RETURN,
+			.select   = SDLK_SPACE,
+			.up       = SDLK_UP,
+			.down     = SDLK_DOWN,
+			.left     = SDLK_LEFT,
+			.right    = SDLK_RIGHT,
+			.quit     = SDLK_q
 	};
 
 	g_keyboard_bindings = bindings;
 
 	struct gamepad_bindings pad_bindings = {
-			SDL_CONTROLLER_BUTTON_A,
-			SDL_CONTROLLER_BUTTON_B,
-			SDL_CONTROLLER_BUTTON_START,
-			SDL_CONTROLLER_BUTTON_BACK,
-			SDL_CONTROLLER_BUTTON_DPAD_UP,
-			SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-			SDL_CONTROLLER_BUTTON_DPAD_LEFT,
-			SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
-			SDL_CONTROLLER_AXIS_LEFTX,
-			SDL_CONTROLLER_AXIS_LEFTY};
+			.a_button    = SDL_CONTROLLER_BUTTON_A,
+			.b_button    = SDL_CONTROLLER_BUTTON_B,
+			.start       = SDL_CONTROLLER_BUTTON_START,
+			.select      = SDL_CONTROLLER_BUTTON_BACK,
+			.d_pad_up    = SDL_CONTROLLER_BUTTON_DPAD_UP,
+			.d_pad_down  = SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+			.d_pad_left  = SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+			.d_pad_right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
+			.axis_h      = SDL_CONTROLLER_AXIS_LEFTX,
+			.axis_v      = SDL_CONTROLLER_AXIS_LEFTY,
+			.quit        = SDL_CONTROLLER_BUTTON_X
+	};
 
 	g_gamepad_bindings = pad_bindings;
 }
@@ -79,6 +82,8 @@ static void _input_sdl_parse_keyboard(
 		inputs->LEFT = is_down;
 	else if(key_code == g_keyboard_bindings.right)
 		inputs->RIGHT = is_down;
+	else if(key_code == g_keyboard_bindings.quit)
+		inputs->QUIT = is_down;
 }
 
 
@@ -143,6 +148,8 @@ static void _input_sdl_parse_joystick_buttons(SDL_Event event, struct all_inputs
 		inputs->LEFT = event.cbutton.state == SDL_PRESSED;
 	else if(button_num == g_gamepad_bindings.d_pad_right)
 		inputs->RIGHT = event.cbutton.state == SDL_PRESSED;
+	else if(button_num == g_gamepad_bindings.quit)
+		inputs->QUIT = event.cbutton.state == SDL_PRESSED;
 }
 
 
