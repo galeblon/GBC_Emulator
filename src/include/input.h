@@ -15,6 +15,7 @@ struct all_inputs {
 	bool SELECT;
 	bool A;
 	bool B;
+	bool QUIT;
 };
 
 struct keyboard_bindings {
@@ -26,6 +27,7 @@ struct keyboard_bindings {
 	int down;
 	int left;
 	int right;
+	int quit;
 };
 
 struct gamepad_bindings {
@@ -39,6 +41,7 @@ struct gamepad_bindings {
 	int d_pad_right;
 	int axis_h;
 	int axis_v;
+	int quit;
 };
 
 
