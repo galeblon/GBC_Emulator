@@ -1253,7 +1253,7 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			g_gpu_reg.lcdc = data;
 			break;
 		case STATAddress:
-			g_gpu_reg.stat = data;
+			g_gpu_reg.stat = (data & 0xF8) | (g_gpu_reg.stat & 0x07);
 			break;
 		case SCYAddress:
 			g_gpu_reg.scy  = data;

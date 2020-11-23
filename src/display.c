@@ -1,4 +1,5 @@
 #include<SDL2/SDL.h>
+#include<time.h>
 #include"cpu.h"
 #include"debug.h"
 #include"display.h"
@@ -13,6 +14,23 @@ static uint32_t       g_buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 static SDL_TimerID    g_sdl_timer;
 
 static float g_scale = SCALING_FACTOR;
+
+
+#if defined(__x86_64__) && defined(JITTER)
+#define SEC (1000000000)
+#define NSEC_PER_CLOCK  (SEC / CPU_CLOCK_SPEED)
+
+static bool				t_e_started;
+static struct timespec 	t_e_start;
+static struct timespec 	t_e_end;
+static double			t_e_avg_jitter;
+static long 			t_e_frame_count;
+
+static inline long timespec_diff(struct timespec *t_end, struct timespec *t_start)
+{
+	return (t_end->tv_sec * SEC + t_end->tv_nsec) - (t_start->tv_sec * SEC + t_start->tv_nsec);
+}
+#endif
 
 
 static void _display_error(enum logger_log_type type, char *title, const char *message)
@@ -195,6 +213,17 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		return;
 	}
 
+#if defined(__x86_64__) && defined(JITTER)
+	if(!t_e_started) {
+		t_e_started = true;
+	} else {
+		clock_gettime(CLOCK_MONOTONIC, &t_e_end);
+		long long sum = t_e_avg_jitter * t_e_frame_count++ + (timespec_diff(&t_e_end, &t_e_start) - (1./60.) * SEC);
+		t_e_avg_jitter = sum / t_e_frame_count;
+	}
+	clock_gettime(CLOCK_MONOTONIC, &t_e_start);
+#endif
+
 	_display_sdl_draw(screen);
 }
 
@@ -209,5 +238,8 @@ bool display_get_closed_status(void)
 
 void display_destroy(void)
 {
+#if defined(__x86_64__) && defined(JITTER)
+	printf("JITTER: %lf", t_e_avg_jitter);
+#endif
 	_display_sdl_destroy();
 }
