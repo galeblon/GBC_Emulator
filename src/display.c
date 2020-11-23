@@ -24,6 +24,7 @@ static bool				t_e_started;
 static struct timespec 	t_e_start;
 static struct timespec 	t_e_end;
 static double			t_e_avg_jitter;
+static double			t_e_max_jitter;
 static long 			t_e_frame_count;
 
 static inline long timespec_diff(struct timespec *t_end, struct timespec *t_start)
@@ -218,8 +219,10 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		t_e_started = true;
 	} else {
 		clock_gettime(CLOCK_MONOTONIC, &t_e_end);
-		long long sum = t_e_avg_jitter * t_e_frame_count++ + (timespec_diff(&t_e_end, &t_e_start) - (1./60.) * SEC);
+		double this_jitter = timespec_diff(&t_e_end, &t_e_start) - (1./60.) * SEC;
+		long long sum = t_e_avg_jitter * t_e_frame_count++ + this_jitter;
 		t_e_avg_jitter = sum / t_e_frame_count;
+		t_e_max_jitter = t_e_max_jitter < this_jitter ? this_jitter : t_e_max_jitter;
 	}
 	clock_gettime(CLOCK_MONOTONIC, &t_e_start);
 #endif
@@ -239,7 +242,8 @@ bool display_get_closed_status(void)
 void display_destroy(void)
 {
 #if defined(__x86_64__) && defined(JITTER)
-	printf("JITTER: %lf", t_e_avg_jitter);
+	printf("JITTER_AVG: %lf\n", t_e_avg_jitter);
+	printf("JITTER_MAX: %lf\n", t_e_max_jitter);
 #endif
 	_display_sdl_destroy();
 }
