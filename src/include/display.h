@@ -14,7 +14,7 @@ typedef struct colour {
 	bool a;
 } colour;
 
-
+void display_frame_increase(void);
 void display_prepare(float frequency, char * rom_title, bool fullscreen);
 void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH]);
 bool display_get_closed_status(void);

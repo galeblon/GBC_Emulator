@@ -27,10 +27,16 @@ static struct timespec 	t_e_end;
 static double			t_e_avg_jitter;
 static double			t_e_max_jitter;
 static long 			t_e_frame_count;
+static long				t_e_frame_expected = 0;
 
 static inline long timespec_diff(struct timespec *t_end, struct timespec *t_start)
 {
 	return (t_end->tv_sec * SEC + t_end->tv_nsec) - (t_start->tv_sec * SEC + t_start->tv_nsec);
+}
+
+void display_frame_increase()
+{
+	t_e_frame_expected++;
 }
 #endif
 
@@ -225,11 +231,13 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		t_e_started = true;
 	} else {
 		clock_gettime(CLOCK_MONOTONIC, &t_e_end);
-		double this_jitter = timespec_diff(&t_e_end, &t_e_start) - t_e_framerate * SEC;
+		double this_jitter = timespec_diff(&t_e_end, &t_e_start) - t_e_frame_expected * t_e_framerate * SEC;
+		this_jitter = this_jitter < 0 ? -this_jitter : this_jitter;
 		long long sum = t_e_avg_jitter * t_e_frame_count++ + this_jitter;
 		t_e_avg_jitter = sum / t_e_frame_count;
 		t_e_max_jitter = t_e_max_jitter < this_jitter ? this_jitter : t_e_max_jitter;
 	}
+	t_e_frame_expected = 0;
 	clock_gettime(CLOCK_MONOTONIC, &t_e_start);
 #endif
 
