@@ -19,5 +19,6 @@ void display_prepare(float frequency, char * rom_title, bool fullscreen);
 void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH]);
 bool display_get_closed_status(void);
 void display_destroy(void);
+void display_clocks_decrease(u16 clocks);
 
 #endif /* DISPLAY_H_ */

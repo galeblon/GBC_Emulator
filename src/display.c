@@ -24,10 +24,12 @@ static bool				t_e_started;
 static float			t_e_framerate;
 static struct timespec 	t_e_start;
 static struct timespec 	t_e_end;
-static double			t_e_avg_jitter;
+static long 			t_e_jitter_total = 0;
+static long 			t_e_frame_total  = 0;
+static long 			t_e_clocks_total  = 0;
 static double			t_e_max_jitter;
-static long 			t_e_frame_count;
 static long				t_e_frame_expected = 0;
+static long				t_e_clocks_omitted = 0;
 
 static inline long timespec_diff(struct timespec *t_end, struct timespec *t_start)
 {
@@ -37,6 +39,11 @@ static inline long timespec_diff(struct timespec *t_end, struct timespec *t_star
 void display_frame_increase()
 {
 	t_e_frame_expected++;
+}
+
+void display_clocks_decrease(u16 clocks)
+{
+	t_e_clocks_omitted += (long)clocks;
 }
 #endif
 
@@ -231,14 +238,20 @@ void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 		t_e_started = true;
 	} else {
 		clock_gettime(CLOCK_MONOTONIC, &t_e_end);
-		double this_jitter = timespec_diff(&t_e_end, &t_e_start) - t_e_frame_expected * t_e_framerate * SEC;
+
+		double this_jitter =
+				timespec_diff(&t_e_end, &t_e_start)
+				- t_e_framerate * SEC
+				- t_e_clocks_omitted * NSEC_PER_CLOCK;
 		this_jitter = this_jitter < 0 ? -this_jitter : this_jitter;
-		long long sum = t_e_avg_jitter * t_e_frame_count++ + this_jitter;
-		t_e_avg_jitter = sum / t_e_frame_count;
+		t_e_jitter_total += this_jitter;
+		t_e_frame_total  += 1;
+		t_e_clocks_total += t_e_clocks_omitted;
 		t_e_max_jitter = t_e_max_jitter < this_jitter ? this_jitter : t_e_max_jitter;
 	}
-	t_e_frame_expected = 0;
 	clock_gettime(CLOCK_MONOTONIC, &t_e_start);
+	t_e_frame_expected = 0;
+	t_e_clocks_omitted = 0;
 #endif
 
 	_display_sdl_draw(screen);
@@ -256,7 +269,7 @@ bool display_get_closed_status(void)
 void display_destroy(void)
 {
 #if defined(__x86_64__) && defined(JITTER)
-	printf("JITTER_AVG: %lf\n", t_e_avg_jitter);
+	printf("JITTER_AVG: %lf\n", (double)t_e_jitter_total / (double)t_e_frame_total );
 	printf("JITTER_MAX: %lf\n", t_e_max_jitter);
 #endif
 	_display_sdl_destroy();

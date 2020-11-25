@@ -1353,16 +1353,9 @@ void gpu_step(int cycles_delta)
 	//Update cycles only if LCD is enabled
 	if(isLCDC7(lcdc))
 		g_current_clocks += (u16)cycles_delta;
-
-
 #if defined(__x86_64__) && defined(JITTER)
-		t_e_current_clocks += (u16)cycles_delta;
-		if( t_e_current_clocks >= _CLOCKS_PER_SCANLINE ) {
-			t_e_current_clocks -= _CLOCKS_PER_SCANLINE;
-			if(g_gpu_reg.ly == SCREEN_HEIGHT) {
-				display_frame_increase();
-			}
-		}
+	else
+		display_clocks_decrease((u16)cycles_delta);
 #endif
 
 	if( g_current_clocks >= _CLOCKS_PER_SCANLINE ) {

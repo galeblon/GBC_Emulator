@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
 CFLAGS_DEBUG = -g -O0 -DDEBUG
-CFLAGS_JITTER = -DJITTER
+CFLAGS_JITTER = -g -O0 -DJITTER
 INCL = -I./include
 SRCS = cpu.c debug.c display.c events.c gpu.c input.c ints.c joypad.c \
 	logger.c main.c mem.c mem_rtc.c regs.c rom.c sys.c timer.c sound.c
