@@ -191,7 +191,9 @@ void display_prepare(float period, char * rom_title, bool fullscreen)
 void display_draw(colour screen[SCREEN_HEIGHT][SCREEN_WIDTH])
 {
 	if(!events_is_frame_ready()) {
+#ifdef DEBUG
 		logger_print(LOG_INFO, "[DISPLAY] SDL Premature frame calculation\n");
+#endif
 		return;
 	}
 
