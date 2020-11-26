@@ -35,7 +35,7 @@ static void _input_load_default_bindings() {
 			.down     = SDLK_DOWN,
 			.left     = SDLK_LEFT,
 			.right    = SDLK_RIGHT,
-			.quit     = SDLK_q
+			.quit     = SDLK_3
 	};
 
 	g_keyboard_bindings = bindings;

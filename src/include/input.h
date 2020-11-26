@@ -4,7 +4,7 @@
 #include<SDL2/SDL.h>
 #include"types.h"
 
-#define INPUT_BINDINGS_TO_READ 7
+#define INPUT_BINDINGS_TO_READ 9
 
 struct all_inputs {
 	bool DOWN;
