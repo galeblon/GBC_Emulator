@@ -44,7 +44,8 @@ int _sys_load_custom_bindings(const char *input_config_path, struct sys_args *op
 			binding_values[4],
 			binding_values[5],
 			binding_values[6],
-			binding_values[7]
+			binding_values[7],
+			binding_values[8]
 	};
 
 	opts->input_bindings.keyboard = bindings;
