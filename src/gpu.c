@@ -382,7 +382,9 @@ static void _gpu_put_sprites(
 	{
 		current_sprite = _gpu_lazy_get_sprite(i);
 
-		if( ly < current_sprite.y + g_sprite_height && ly >= current_sprite.y ) {
+		if( (ly < current_sprite.y + g_sprite_height && ly >= current_sprite.y)
+			|| ( current_sprite.y >= (256 - g_sprite_height) && ly < g_sprite_height - (256 - current_sprite.y) )
+		) {
 			sprite_numbers[sprite_index] = i;
 			sprites[sprite_index]        = current_sprite;
 			sprite_index++;
@@ -455,7 +457,7 @@ static void _gpu_put_sprites(
 				)
 			) {
 				if(current_index >= SCREEN_WIDTH)
-					break;
+					continue;
 				colour col = _gpu_get_colour(
 						colour_numbers[i][j],
 						rom_is_cgb() ? sprites[i].palette_number_cgb : sprites[i].palette_number_gb,
@@ -1253,7 +1255,7 @@ static void _gpu_write_handler(a16 addr, u8 data)
 			g_gpu_reg.lcdc = data;
 			break;
 		case STATAddress:
-			g_gpu_reg.stat = data;
+			g_gpu_reg.stat = (data & 0xF8) | (g_gpu_reg.stat & 0x07);
 			break;
 		case SCYAddress:
 			g_gpu_reg.scy  = data;
